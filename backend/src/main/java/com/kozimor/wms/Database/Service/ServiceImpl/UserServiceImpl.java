@@ -4,7 +4,6 @@ import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Repository.UserRepository;
 import com.kozimor.wms.Database.Service.UserService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +16,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
-    @Autowired
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }

@@ -4,7 +4,6 @@ import com.kozimor.wms.Database.Model.Category;
 import com.kozimor.wms.Database.Repository.CategoryRepository;
 import com.kozimor.wms.Database.Service.CategoryService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +16,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    @Autowired
     public CategoryServiceImpl(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
     }

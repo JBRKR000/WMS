@@ -3,7 +3,6 @@ package com.kozimor.wms.Controller;
 import com.kozimor.wms.Database.Model.Role;
 import com.kozimor.wms.Database.Service.RoleService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +15,6 @@ public class RoleController {
 
     private final RoleService roleService;
 
-    @Autowired
     public RoleController(RoleService roleService) {
         this.roleService = roleService;
     }

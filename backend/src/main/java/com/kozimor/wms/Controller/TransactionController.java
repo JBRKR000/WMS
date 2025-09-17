@@ -4,7 +4,6 @@ import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Service.TransactionService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +18,6 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @Autowired
     public TransactionController(TransactionService transactionService) {
         this.transactionService = transactionService;
     }

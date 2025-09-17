@@ -4,7 +4,6 @@ import com.kozimor.wms.Database.Model.Role;
 import com.kozimor.wms.Database.Repository.RoleRepository;
 import com.kozimor.wms.Database.Service.RoleService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +16,6 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
 
-    @Autowired
     public RoleServiceImpl(RoleRepository roleRepository) {
         this.roleRepository = roleRepository;
     }

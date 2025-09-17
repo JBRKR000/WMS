@@ -5,7 +5,6 @@ import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Repository.TransactionRepository;
 import com.kozimor.wms.Database.Service.TransactionService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +18,6 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
 
-    @Autowired
     public TransactionServiceImpl(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
     }

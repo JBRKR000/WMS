@@ -4,7 +4,6 @@ import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Service.ItemService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +16,6 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
 
-    @Autowired
     public ItemServiceImpl(ItemRepository itemRepository) {
         this.itemRepository = itemRepository;
     }
