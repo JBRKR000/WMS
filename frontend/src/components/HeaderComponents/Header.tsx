@@ -1,5 +1,5 @@
 import { type FC, useState } from 'react'
-import { LayoutGrid, Box, ShoppingCart, TruckIcon, Settings, ChartColumnIcon, Factory, type LucideIcon, ChevronDown, User, Menu, X } from 'lucide-react'
+import { LayoutGrid, Box, ShoppingCart, TruckIcon, Settings, ChartColumnIcon, Factory, type LucideIcon, User, Menu, X } from 'lucide-react'
 import HeaderButton from './HeaderButton'
 
 type NavItem = {
