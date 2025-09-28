@@ -10,8 +10,8 @@ type Props = {
 }
 
 const HeaderButton: FC<Props> = ({ to, onClick, icon, children, className = '' }) => {
-  const baseClasses = `inline-flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium ${className}`
-  const ghostClass = 'bg-transparent hover:bg-[var(--color-surface)]'
+  const baseClasses = `inline-flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-2xl text-sm sm:text-base font-medium transition-colors duration-400 ${className}`
+  const ghostClass = 'bg-transparent hover:bg-gray-200 hover:bg-opacity-80'
   let iconElement = icon
   let textContent = children
 
