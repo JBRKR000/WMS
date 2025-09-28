@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Color palette (use these variables throughout the app) */
+    --color-primary: #2563eb; /* blue-600 */
+    --color-accent: #06b6d4; /* cyan-500 */
+    --color-text: #0f172a; /* slate-900 */
+    --color-muted: #6b7280; /* gray-500 */
+    --color-surface: #f8fafc; /* gray-50 */
+  }
+
+
   html {
     font-family: system-ui, -apple-system, sans-serif;
   }
