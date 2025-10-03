@@ -1,6 +1,7 @@
 import { type FC, useState } from 'react'
 import { LayoutGrid, Box, ShoppingCart, TruckIcon, Settings, ChartColumnIcon, Factory, type LucideIcon, User, Menu, X } from 'lucide-react'
 import HeaderButton from './HeaderButton'
+import DarkLightSwitch from './DarkLightSwitch'
 
 type NavItem = {
   to?: string
@@ -50,9 +51,9 @@ const Header: FC = () => {
             })}
           </nav>
 
-          {/* Desktop Account + Mobile Menu Button */}
+          {/* Desktop Account + Dark/Light Switch + Mobile Menu Button */}
           <div className="flex items-center gap-2">
-            {/* Desktop Account Button */}
+            {/* Desktop Account Button + Dark/Light Switch */}
             <div className="hidden md:flex items-center group">
               <HeaderButton 
                 onClick={() => console.log('Moje Konto clicked')}
@@ -61,17 +62,19 @@ const Header: FC = () => {
                 <User size={iconSize} />
                 <span className="hidden lg:inline">Moje Konto</span>
               </HeaderButton>
+              {/* Dark/Light Switch (desktop only) */}
+              <span className="ml-2 hidden md:inline-block"><DarkLightSwitch /></span>
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-all duration-200 hover:scale-105"
+              className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 hover:scale-105"
             >
               <div className="relative w-6 h-6">
                 <Menu 
                   size={24} 
-                  className={`absolute inset-0 transition-all duration-300 ${
+                  className={`absolute inset-0 transition-all duration-300 text-gray-700 dark:text-white ${
                     isMobileMenuOpen 
                       ? 'rotate-90 opacity-0 scale-75' 
                       : 'rotate-0 opacity-100 scale-100'
@@ -79,7 +82,7 @@ const Header: FC = () => {
                 />
                 <X 
                   size={24} 
-                  className={`absolute inset-0 transition-all duration-300 ${
+                  className={`absolute inset-0 transition-all duration-300 text-gray-700 dark:text-white ${
                     isMobileMenuOpen 
                       ? 'rotate-0 opacity-100 scale-100' 
                       : 'rotate-90 opacity-0 scale-75'
@@ -141,6 +144,16 @@ const Header: FC = () => {
                   <User size={iconSize} />
                   <span>Moje Konto</span>
                 </HeaderButton>
+              </div>
+              <div
+                className={`w-full flex justify-center py-3 transition-all duration-300 ease-out md:hidden ${
+                  isMobileMenuOpen 
+                    ? 'opacity-100' 
+                    : 'opacity-0 pointer-events-none'
+                }`}
+                style={{ transitionDelay: `${(navItems.length + 1) * 50}ms` }}
+              >
+                <DarkLightSwitch />
               </div>
             </nav>
           </div>

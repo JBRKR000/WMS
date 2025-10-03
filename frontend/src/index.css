@@ -4,14 +4,22 @@
 
 @layer base {
   :root {
-    /* Color palette (use these variables throughout the app) */
-    --color-primary: #000000; /* blue-600 */
-    --color-accent: #06b6d4; /* cyan-500 */
-    --color-text: #0f172a; /* slate-900 */
-    --color-muted: #6b7280; /* gray-500 */
-    --color-surface: #f8fafc; /* gray-50 */
+    /* Light mode color palette */
+    --color-primary: #000000;
+    --color-accent: #06b6d4;
+    --color-text: #0f172a;
+    --color-muted: #6b7280;
+    --color-surface: #f8fafc;
   }
 
+  :root.dark {
+    /* Dark mode color palette */
+    --color-primary: #06b6d4;
+    --color-accent: #0ea5e9;
+    --color-text: #f1f5f9;
+    --color-muted: #94a3b8;
+    --color-surface: #18181b;
+  }
 
   html {
     font-family: system-ui, -apple-system, sans-serif;
