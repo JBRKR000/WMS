@@ -2,8 +2,8 @@ import { Outlet } from 'react-router-dom'
 import { type FC } from 'react'
 import Header from '../../components/HeaderComponents/Header'
 import Footer from '../../components/FooterComponents/Footer'
-import Sidebar from '../../components/Sidebar'
-import type { SidebarSection } from '../../components/Sidebar'
+import Sidebar from '../../components/MainComponents/Sidebar'
+import type { SidebarSection } from '../../components/MainComponents/Sidebar'
 import {
   Activity,
   AlertTriangle,
@@ -56,22 +56,22 @@ const dashboardSections: SidebarSection[] = [
 
 const DashboardPage: FC = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[var(--color-surface)]">
+    <div className="min-h-screen flex flex-col bg-surface-secondary">
       <Header />
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar (hidden on mobile, sticky on desktop) */}
-        <div className="hidden md:block sticky top-0 h-[calc(100vh-0.5rem)]">
-          <Sidebar sections={dashboardSections} />
+      <div className="flex flex-1">
+        {/* Sidebar (hidden on mobile) */}
+        <div className="hidden md:block">
+          <Sidebar sections={dashboardSections} className="h-full" />
         </div>
         {/* Main content */}
         <main className="flex-1 p-4 md:p-8">
-          <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-main">Dashboard</h2>
           {/* Tu wstawisz zawartość dashboardu */}
           <section>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">Card 1</div>
-              <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">Card 2</div>
-              <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">Card 3</div>
+              <div className="bg-surface p-4 rounded shadow border border-main">Card 1</div>
+              <div className="bg-surface p-4 rounded shadow border border-main">Card 2</div>
+              <div className="bg-surface p-4 rounded shadow border border-main">Card 3</div>
             </div>
           </section>
           {/* Outlet pozwala na zagnieżdżone trasy, jeśli potrzebne */}

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { type FC, type ReactNode, Children } from 'react'
 
 type Props = {
@@ -10,8 +10,19 @@ type Props = {
 }
 
 const HeaderButton: FC<Props> = ({ to, onClick, icon, children, className = '' }) => {
+  const location = useLocation()
+  
+  const isActive = to ? (
+    to === '/main' 
+      ? location.pathname === '/main' || location.pathname === '/'
+      : location.pathname.startsWith(to)
+  ) : false
+
   const baseClasses = `inline-flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-2xl text-sm sm:text-base font-medium transition-colors duration-400 ${className}`
-  const ghostClass = 'bg-transparent hover:bg-gray-200 hover:bg-opacity-80'
+  const stateClasses = isActive 
+    ? 'bg-success-bg text-success-text' 
+    : 'bg-transparent hover:bg-surface-hover text-main hover:text-primary'
+  
   let iconElement = icon
   let textContent = children
 
@@ -24,17 +35,16 @@ const HeaderButton: FC<Props> = ({ to, onClick, icon, children, className = '' }
   }
 
   const content = (
-    <span className={`${baseClasses} ${ghostClass}`}>
+    <span className={`${baseClasses} ${stateClasses}`}>
       {iconElement ? (
         <span 
-          className="flex items-center" 
-          style={{ color: 'var(--color-primary)' }}
+          className="flex items-center text-primary"
           aria-hidden
         >
           {iconElement}
         </span>
       ) : null}
-      <span className="text-[var(--color-text)]">{textContent}</span>
+      <span>{textContent}</span>
     </span>
   )
 

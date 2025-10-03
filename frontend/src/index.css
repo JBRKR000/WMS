@@ -5,23 +5,92 @@
 @layer base {
   :root {
     /* Light mode color palette */
-    --color-primary: #000000;
-    --color-accent: #06b6d4;
-    --color-text: #0f172a;
-    --color-muted: #6b7280;
-    --color-surface: #f8fafc;
+    --color-primary: #059669;        /* Emerald 600 - główny kolor zielony */
+    --color-primary-hover: #047857;  /* Emerald 700 - hover dla primary */
+    --color-accent: #0ea5e9;         /* Sky 500 - akcentowy niebieski */
+    --color-accent-hover: #0284c7;   /* Sky 600 - hover dla accent */
+    
+    /* Text colors */
+    --color-text: #111827;           /* Gray 900 - główny tekst */
+    --color-text-secondary: #6b7280; /* Gray 500 - drugorzędny tekst */
+    --color-text-muted: #9ca3af;    /* Gray 400 - wyciszony tekst */
+    
+    /* Surface colors */
+    --color-surface: #ffffff;        /* Białe tło */
+    --color-surface-secondary: #f9fafb; /* Gray 50 - drugorzędne tło */
+    --color-surface-hover: #f3f4f6;  /* Gray 100 - hover surface */
+    
+    /* Border colors */
+    --color-border: #e5e7eb;         /* Gray 200 - standardowe bordery */
+    --color-border-strong: #d1d5db;  /* Gray 300 - mocniejsze bordery */
+    
+    /* Status colors */
+    --color-success: #10b981;        /* Emerald 500 */
+    --color-success-bg: #d1fae5;     /* Emerald 100 */
+    --color-success-text: #065f46;   /* Emerald 800 */
+    
+    --color-warning: #f59e0b;        /* Amber 500 */
+    --color-warning-bg: #fef3c7;     /* Amber 100 */
+    --color-warning-text: #92400e;   /* Amber 800 */
+    
+    --color-error: #ef4444;          /* Red 500 */
+    --color-error-bg: #fee2e2;       /* Red 100 */
+    --color-error-text: #991b1b;     /* Red 800 */
   }
 
   :root.dark {
     /* Dark mode color palette */
-    --color-primary: #06b6d4;
-    --color-accent: #0ea5e9;
-    --color-text: #f1f5f9;
-    --color-muted: #94a3b8;
-    --color-surface: #18181b;
+    --color-primary: #10b981;        /* Emerald 500 - jaśniejszy w dark mode */
+    --color-primary-hover: #059669;  /* Emerald 600 */
+    --color-accent: #38bdf8;         /* Sky 400 */
+    --color-accent-hover: #0ea5e9;   /* Sky 500 */
+    
+    /* Text colors */
+    --color-text: #f9fafb;           /* Gray 50 - główny tekst */
+    --color-text-secondary: #d1d5db; /* Gray 300 - drugorzędny tekst */
+    --color-text-muted: #9ca3af;     /* Gray 400 - wyciszony tekst */
+    
+    /* Surface colors */
+    --color-surface: #111827;        /* Gray 900 - główne tło */
+    --color-surface-secondary: #1f2937; /* Gray 800 - drugorzędne tło */
+    --color-surface-hover: #374151;  /* Gray 700 - hover surface */
+    
+    /* Border colors */
+    --color-border: #374151;         /* Gray 700 - standardowe bordery */
+    --color-border-strong: #4b5563;  /* Gray 600 - mocniejsze bordery */
+    
+    /* Status colors */
+    --color-success: #10b981;        /* Emerald 500 */
+    --color-success-bg: #064e3b;     /* Emerald 900 */
+    --color-success-text: #a7f3d0;   /* Emerald 200 */
+    
+    --color-warning: #f59e0b;        /* Amber 500 */
+    --color-warning-bg: #78350f;     /* Amber 900 */
+    --color-warning-text: #fde68a;   /* Amber 200 */
+    
+    --color-error: #ef4444;          /* Red 500 */
+    --color-error-bg: #7f1d1d;       /* Red 900 */
+    --color-error-text: #fecaca;     /* Red 200 */
   }
 
   html {
     font-family: system-ui, -apple-system, sans-serif;
   }
+  
+  /* Utility classes for consistent usage */
+  .text-primary { color: var(--color-primary); }
+  .text-accent { color: var(--color-accent); }
+  .text-main { color: var(--color-text); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-muted { color: var(--color-text-muted); }
+  
+  .bg-surface { background-color: var(--color-surface); }
+  .bg-surface-secondary { background-color: var(--color-surface-secondary); }
+  .bg-surface-hover { background-color: var(--color-surface-hover); }
+  
+  .bg-success-bg { background-color: var(--color-success-bg); }
+  .text-success-text { color: var(--color-success-text); }
+  
+  .border-main { border-color: var(--color-border); }
+  .border-strong { border-color: var(--color-border-strong); }
 }
