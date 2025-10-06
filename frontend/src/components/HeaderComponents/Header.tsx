@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import HeaderButton from "./HeaderButton";
 import DarkLightSwitch from "./DarkLightSwitch";
+import { useAuth } from "../../utils/AuthContext";
 
 type SubMenuItem = {
   to: string;
@@ -74,6 +75,7 @@ const Header: FC = () => {
   const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
   const navigate = useNavigate();
   const iconSize = 24;
+  const { logout } = useAuth();
 
   const navItems: NavItem[] = [
     {
@@ -190,6 +192,11 @@ const Header: FC = () => {
     setExpandedSubmenu(null);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+  };
+
   return (
     <header className="shadow bg-surface">
       <div className="px-4 py-4">
@@ -225,11 +232,11 @@ const Header: FC = () => {
             {/* Desktop Account Button + Dark/Light Switch */}
             <div className="hidden md:flex items-center group">
               <HeaderButton
-                onClick={() => console.log("Moje Konto clicked")}
+                onClick={handleLogout}
                 className="group-hover:opacity-30 hover:!opacity-100 transition-opacity duration-200"
               >
                 <User size={iconSize} />
-                <span className="hidden lg:inline">Moje Konto</span>
+                <span className="hidden lg:inline">Wyloguj</span>
               </HeaderButton>
               {/* Dark/Light Switch (desktop only) */}
               <span className="ml-2 hidden md:inline-block">

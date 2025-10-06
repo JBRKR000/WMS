@@ -1,9 +1,13 @@
 import type { FC } from "react"
+import { Outlet, Link } from "react-router-dom"
 
 const SettingsPage: FC = () => {
   return (
     <div>
-      <h1>Ustawienia</h1>
+      <nav className="mb-4">
+        {/* dodaj tu inne podstrony ustawień */}
+      </nav>
+      <Outlet />
     </div>
   )
 }

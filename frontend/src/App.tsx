@@ -6,37 +6,58 @@ import Orders from "./pages/MainContent/Orders";
 import Raports from "./pages/MainContent/Raports";
 import Settings from "./pages/MainContent/Settings";
 import { ThemeProvider } from "./utils/ThemeContext";
+import { AuthProvider, useAuth } from "./utils/AuthContext";
 import Layout from "./layouts/MainLayout";
 import Auth from "./pages/Auth";
+import Users from "./pages/MainContent/Settings/Users";
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" replace />;
+}
+
+function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <Routes>
+      <Route 
+        path="/auth" 
+        element={isAuthenticated ? <Navigate to="/main" replace /> : <Auth />} 
+      />
+
+      <Route
+        path="*"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Navigate to="/main" replace />} />
+                <Route path="/main/*" element={<Dashboard />} />
+                <Route path="/components/*" element={<Components />} />
+                <Route path="/issues/*" element={<Issues />} />
+                <Route path="/orders/*" element={<Orders />} />
+                <Route path="/raports/*" element={<Raports />} />
+                <Route path="/settings/*" element={<Settings />}>
+                  <Route path="users" element={<Users />} />
+                </Route>
+              </Routes>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Strony bez layoutu */}
-          <Route path="/auth" element={<Auth />} />
-
-          {/* Strony z layoutem */}
-          <Route
-            path="*"
-            element={
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Navigate to="/main" replace />} />
-                  <Route path="/main/*" element={<Dashboard />} />
-                  <Route path="/components/*" element={<Components />} />
-                  <Route path="/issues/*" element={<Issues />} />
-                  <Route path="/orders/*" element={<Orders />} />
-                  <Route path="/raports/*" element={<Raports />} />
-                  <Route path="/settings/*" element={<Settings />} />
-                </Routes>
-              </Layout>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
