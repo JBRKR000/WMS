@@ -1,4 +1,4 @@
-package com.kozimor.wms.Controller;
+package com.kozimor.wms.Database.Controller;
 
 import com.kozimor.wms.Database.Model.Category;
 import com.kozimor.wms.Database.Service.CategoryService;

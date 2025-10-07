@@ -1,4 +1,4 @@
-package com.kozimor.wms.Controller;
+package com.kozimor.wms.Database.Controller;
 
 import com.kozimor.wms.Security.JwtService;
 import com.kozimor.wms.Database.Model.User;
