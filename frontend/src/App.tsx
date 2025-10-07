@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "./utils/AuthContext";
 import Layout from "./layouts/MainLayout";
 import Auth from "./pages/Auth";
 import Users from "./pages/MainContent/Settings/Users";
+import Summary from "./pages/MainContent/Dashboard/Summary";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -33,7 +34,9 @@ function AppRoutes() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Navigate to="/main" replace />} />
-                <Route path="/main/*" element={<Dashboard />} />
+                <Route path="/main/*" element={<Dashboard />}>
+                  <Route path="summary" element={<Summary />} />
+                </Route> 
                 <Route path="/components/*" element={<Components />} />
                 <Route path="/issues/*" element={<Issues />} />
                 <Route path="/orders/*" element={<Orders />} />

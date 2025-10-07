@@ -4,9 +4,8 @@ import Header from '../components/HeaderComponents/Header'
 import Sidebar, { type SidebarSection } from '../components/MainComponents/Sidebar'
 import Footer from '../components/FooterComponents/Footer'
 import {
-    Activity, AlertTriangle, BarChart3, Boxes, Calendar, Clock, Download, FileSpreadsheet, FileText, Layers,
-    List,
-    MapPin, Package, PieChart, Plus, QrCode, Shuffle, TrendingUp, Upload, Users, Users2, Settings, Shield, Database, Palette, Bell
+    Activity, AlertTriangle, BarChart3, Boxes, Clock, Download, FileSpreadsheet, Layers,
+    List, Package, Plus, QrCode, Upload, Users, Shield
 } from 'lucide-react'
 
 type LayoutProps = {
@@ -14,59 +13,30 @@ type LayoutProps = {
 }
 
 
-// Sekcje dla różnych stron
-const componentsSections: SidebarSection[] = [
+
+// Nowe sekcje zgodnie z wymaganiami użytkownika
+const dashboardSections: SidebarSection[] = [
     {
-        label: "Komponenty",
+        label: "Dashboard",
         items: [
-            { to: "/components", icon: Package, label: "Lista komponentów" },
-            { to: "/components/categories", icon: Boxes, label: "Kategorie" },
-            { to: "/components/qrcodes", icon: QrCode, label: "Kody QR" },
-        ],
-    },
-    {
-        label: "Operacje",
-        items: [
-            { to: "/components/add-receipt", icon: Plus, label: "Dodaj przyjęcie" },
-            {
-                to: "/components/issue-production",
-                icon: Upload,
-                label: "Wydaj na produkcję",
-            },
+            { to: "/main/summary", icon: Activity, label: "Podsumowanie magazynu" },
+            { to: "/main/last-operations", icon: Clock, label: "Ostatnie przyjęcia/wydań" },
+            { to: "/main/categories-preview", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+            { to: "/main/alerts", icon: AlertTriangle, label: "Alerty magazynowe" },
         ],
     },
 ];
 
-const mainSections: SidebarSection[] = [
+const componentsSections: SidebarSection[] = [
     {
-        label: "Dashboard",
+        label: "Komponenty i Produkty",
         items: [
-            { to: "/main", icon: Activity, label: "Przegląd" },
-            { to: "/main/exceptions", icon: AlertTriangle, label: "Wyjątki" },
-            { to: "/main/activity", icon: Clock, label: "Ostatnia aktywność" },
+            { to: "/components", icon: Package, label: "Lista komponentów" },
+            { to: "/products", icon: Layers, label: "Lista produktów gotowych" },
+            { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
+            { to: "/components/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+            { to: "/components/search", icon: BarChart3, label: "Wielokryterialne wyszukiwanie" },
         ],
-    },
-    {
-        label: "Magazyn",
-        items: [
-            { to: "/main/categories", icon: Boxes, label: "Kategorie" },
-            { to: "/main/items", icon: Package, label: "Komponenty" },
-            { to: "/main/materials", icon: Layers, label: "Materiały" },
-            { to: "/main/qrcodes", icon: QrCode, label: "Skany QR" },
-            { to: "/main/locations", icon: MapPin, label: "Lokalizacje" },
-        ],
-    },
-    {
-        label: "Operacje",
-        items: [
-            { to: "/main/inbound", icon: Download, label: "Przyjęcia" },
-            { to: "/main/outbound", icon: Upload, label: "Wydania" },
-            { to: "/main/moves", icon: Shuffle, label: "Ruchy" },
-        ],
-    },
-    {
-        label: "Użytkownicy",
-        items: [{ to: "/main/roles", icon: Users2, label: "Role i dostępy" }],
     },
 ];
 
@@ -74,15 +44,8 @@ const issuesSections: SidebarSection[] = [
     {
         label: "Wydania",
         items: [
-            { to: "/issues", icon: List, label: "Lista wydań" },
-            { to: "/issues/new", icon: Plus, label: "Nowe wydanie" },
-        ],
-    },
-    {
-        label: "Eksport",
-        items: [
-            { to: "/issues/export-pdf", icon: FileText, label: "PDF listy wydań" },
-            { to: "/issues/downloads", icon: Download, label: "Pobierz raporty" },
+            { to: "/issues/register", icon: Upload, label: "Rejestracja wydania" },
+            { to: "/issues/history", icon: List, label: "Historia wydań" },
         ],
     },
 ];
@@ -91,97 +54,70 @@ const ordersSections: SidebarSection[] = [
     {
         label: "Zamówienia",
         items: [
-            { to: "/orders", icon: List, label: "Lista zamówień" },
-            { to: "/orders/new", icon: Plus, label: "Nowe zamówienie" },
-            { to: "/orders/pending", icon: Clock, label: "Oczekujące" },
-        ],
-    },
-    {
-        label: "Planowanie",
-        items: [
-            { to: "/orders/schedule", icon: Calendar, label: "Harmonogram dostaw" },
-            {
-                to: "/orders/forecast",
-                icon: TrendingUp,
-                label: "Prognoza zapotrzebowania",
-            },
-        ],
-    },
-    {
-        label: "Dostawcy",
-        items: [
-            { to: "/orders/suppliers", icon: Users, label: "Lista dostawców" },
-            { to: "/orders/catalog", icon: Package, label: "Katalog produktów" },
+            { to: "/orders/create", icon: Plus, label: "Tworzenie zamówień" },
+            { to: "/orders/history", icon: List, label: "Historia zamówień" },
+            { to: "/orders/status", icon: Clock, label: "Statusy zamówień" },
         ],
     },
 ];
 
 const raportsSections: SidebarSection[] = [
     {
-        label: "Generowanie raportów",
-        items: [
-            { to: "/raports/generate", icon: FileText, label: "Generuj raport" },
-            {
-                to: "/raports/custom",
-                icon: FileSpreadsheet,
-                label: "Raport niestandardowy",
-            },
-        ],
-    },
-    {
         label: "Raporty",
         items: [
-            { to: "/raports", icon: List, label: "Lista raportów" },
-            { to: "/raports/inventory", icon: BarChart3, label: "Raport magazynowy" },
-            { to: "/raports/analytics", icon: PieChart, label: "Analityka ruchu" },
-            { to: "/raports/trends", icon: TrendingUp, label: "Trendy i prognozy" },
-        ],
-    },
-    {
-        label: "Harmonogramy",
-        items: [
-            { to: "/raports/scheduled", icon: Calendar, label: "Raporty cykliczne" },
-            { to: "/raports/downloads", icon: Download, label: "Pobierz raporty" },
+            { to: "/raports/inventory", icon: BarChart3, label: "Stany magazynowe" },
+            { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
+            { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
+            { to: "/raports/export", icon: FileSpreadsheet, label: "Eksport do PDF/Excel" },
         ],
     },
 ];
 
 const settingsSections: SidebarSection[] = [
     {
-        label: "Ustawienia systemu",
+        label: "Ustawienia",
         items: [
-            { to: "/settings", icon: Settings, label: "Ogólne" },
-            { to: "/settings/users", icon: Users, label: "Użytkownicy" },
+            { to: "/settings/users", icon: Users, label: "Zarządzanie użytkownikami" },
             { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-            { to: "/settings/database", icon: Database, label: "Baza danych" },
-        ],
-    },
-    {
-        label: "Personalizacja",
-        items: [
-            { to: "/settings/appearance", icon: Palette, label: "Wygląd" },
-            { to: "/settings/notifications", icon: Bell, label: "Powiadomienia" },
+            { to: "/settings/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+            { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
         ],
     },
 ];
 
 const Layout: FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
+
+    // Pobierz dane użytkownika z localStorage
+    const userDataRaw = localStorage.getItem("userData");
+    let isAdmin = false;
+    if (userDataRaw) {
+        try {
+            const userData = JSON.parse(userDataRaw);
+            isAdmin = userData?.role?.roleName === "ROLE_ADMIN";
+        } catch {
+            isAdmin = false;
+        }
+    }
+
+
     const getSectionsForPath = (pathname: string): SidebarSection[] => {
-        if (pathname.startsWith('/components')) {
+        if (pathname.startsWith('/settings')) {
+            return settingsSections;
+        }
+        if (pathname.startsWith('/components') || pathname.startsWith('/products')) {
             return componentsSections;
         } else if (pathname.startsWith('/main')) {
-            return mainSections;
+            return dashboardSections;
         } else if (pathname.startsWith('/issues')) {
             return issuesSections;
         } else if (pathname.startsWith('/orders')) {
             return ordersSections;
         } else if (pathname.startsWith('/raports')) {
             return raportsSections;
-        } else if (pathname.startsWith('/settings')) {
-            return settingsSections;
         }
-        return mainSections;
+        return dashboardSections;
+        //TODO: dodać sekcję domyślną lub obsługę błędów
     };
 
     const currentSections = getSectionsForPath(location.pathname);

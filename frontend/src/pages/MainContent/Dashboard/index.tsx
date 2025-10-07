@@ -1,11 +1,16 @@
 import { type FC } from 'react'
+import { Outlet } from 'react-router-dom'
 
 const DashboardPage: FC = () => {
   return (
     <div>
-      <h1>Dashboard</h1>
+      <nav className="mb-4">
+        {/* dodaj tu inne podstrony ustawień */}
+      </nav>
+      <Outlet />
     </div>
   )
 }
+
 
 export default DashboardPage

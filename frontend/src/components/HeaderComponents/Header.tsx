@@ -1,4 +1,5 @@
-import { type FC, useState } from "react";
+import { type FC, useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
@@ -14,43 +15,20 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  // Icons for Dashboard submenu
   Activity,
   AlertTriangle,
   Clock,
   Boxes,
-  Package,
   Layers,
-  QrCode,
-  MapPin,
   Download,
   Upload,
-  Shuffle,
-  Users2,
-  // Icons for Components submenu
   List,
   Plus,
-  Archive,
-  // Icons for Issues submenu
   FileText,
-  PlusCircle,
-  FileDown,
-  // Icons for Orders submenu
-  TrendingUp,
-  Building2,
-  BookOpen,
-  // Icons for Raports submenu
   BarChart,
-  Calendar,
-  Database as DatabaseIcon,
-  PieChart,
-  // Icons for Settings submenu
-  Sliders,
-  Palette,
-  Globe,
-  Shield,
-  Lock,
-  Bell,
+  QrCode,
+  Users2,
+  Shield
 } from "lucide-react";
 import HeaderButton from "./HeaderButton";
 import DarkLightSwitch from "./DarkLightSwitch";
@@ -73,9 +51,49 @@ type NavItem = {
 const Header: FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const navigate = useNavigate();
   const iconSize = 24;
   const { logout } = useAuth();
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    const cachedUser = localStorage.getItem("userData");
+    if (cachedUser) {
+      try {
+        setUsername(JSON.parse(cachedUser).username);
+        return;
+      } catch {
+      }
+    }
+
+    type JwtPayload = { userId: number };
+    const decoded = jwtDecode<JwtPayload>(token);
+    const userId = decoded.userId;
+    fetch(`/api/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.text().then(text => {
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Niepoprawny JSON: " + text);
+        }
+      }))
+      .then(user => {
+        setUsername(user.username);
+        localStorage.setItem("userData", JSON.stringify(user));
+      })
+      .catch(() => {
+        setUsername(null);
+      });
+  }, []);
+
 
   const navItems: NavItem[] = [
     {
@@ -83,34 +101,22 @@ const Header: FC = () => {
       icon: LayoutGrid,
       label: "Dashboard",
       submenu: [
-        { to: "/main", icon: Activity, label: "Przegląd" },
-        { to: "/main/exceptions", icon: AlertTriangle, label: "Wyjątki" },
-        { to: "/main/activity", icon: Clock, label: "Ostatnia aktywność" },
-        { to: "/main/categories", icon: Boxes, label: "Kategorie" },
-        { to: "/main/items", icon: Package, label: "Komponenty" },
-        { to: "/main/materials", icon: Layers, label: "Materiały" },
-        { to: "/main/qrcodes", icon: QrCode, label: "Skany QR" },
-        { to: "/main/locations", icon: MapPin, label: "Lokalizacje" },
-        { to: "/main/inbound", icon: Download, label: "Przyjęcia" },
-        { to: "/main/outbound", icon: Upload, label: "Wydania" },
-        { to: "/main/moves", icon: Shuffle, label: "Ruchy" },
-        { to: "/main/roles", icon: Users2, label: "Role i dostępy" },
+        { to: "/main/summary", icon: Activity, label: "Podsumowanie magazynu" },
+        { to: "/main/last-operations", icon: Clock, label: "Ostatnie przyjęcia/wydań" },
+        { to: "/main/categories-preview", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+        { to: "/main/alerts", icon: AlertTriangle, label: "Alerty magazynowe" },
       ],
     },
     {
       to: "/components",
       icon: ShoppingCart,
-      label: "Komponenty",
+      label: "Komponenty i Produkty",
       submenu: [
         { to: "/components", icon: List, label: "Lista komponentów" },
-        { to: "/components/categories", icon: Boxes, label: "Kategorie" },
-        { to: "/components/qrcodes", icon: QrCode, label: "Kody QR" },
-        { to: "/components/add-receipt", icon: Plus, label: "Dodaj przyjęcie" },
-        {
-          to: "/components/production",
-          icon: Factory,
-          label: "Wydaj na produkcję",
-        },
+        { to: "/products", icon: Layers, label: "Lista produktów gotowych" },
+        { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
+        { to: "/components/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+        { to: "/components/search", icon: BarChart, label: "Wielokryterialne wyszukiwanie" },
       ],
     },
     {
@@ -118,10 +124,8 @@ const Header: FC = () => {
       icon: TruckIcon,
       label: "Wydania",
       submenu: [
-        { to: "/issues", icon: List, label: "Lista wydań" },
-        { to: "/issues/new", icon: PlusCircle, label: "Nowe wydanie" },
-        { to: "/issues/pdf", icon: FileDown, label: "PDF listy wydań" },
-        { to: "/issues/reports", icon: FileText, label: "Pobierz raporty" },
+        { to: "/issues/register", icon: Upload, label: "Rejestracja wydania" },
+        { to: "/issues/history", icon: List, label: "Historia wydań" },
       ],
     },
     {
@@ -129,17 +133,9 @@ const Header: FC = () => {
       icon: Box,
       label: "Zamówienia",
       submenu: [
-        { to: "/orders", icon: List, label: "Lista zamówień" },
-        { to: "/orders/new", icon: PlusCircle, label: "Nowe zamówienie" },
-        { to: "/orders/pending", icon: Clock, label: "Oczekujące" },
-        { to: "/orders/schedule", icon: Calendar, label: "Harmonogram dostaw" },
-        {
-          to: "/orders/forecast",
-          icon: TrendingUp,
-          label: "Prognoza zapotrzebowania",
-        },
-        { to: "/orders/suppliers", icon: Building2, label: "Lista dostawców" },
-        { to: "/orders/catalog", icon: BookOpen, label: "Katalog produktów" },
+        { to: "/orders/create", icon: Plus, label: "Tworzenie zamówień" },
+        { to: "/orders/history", icon: List, label: "Historia zamówień" },
+        { to: "/orders/status", icon: Clock, label: "Statusy zamówień" },
       ],
     },
     {
@@ -147,22 +143,10 @@ const Header: FC = () => {
       icon: ChartColumnIcon,
       label: "Raporty",
       submenu: [
-        { to: "/raports/generate", icon: BarChart, label: "Generuj raport" },
-        {
-          to: "/raports/custom",
-          icon: Sliders,
-          label: "Raport niestandardowy",
-        },
-        { to: "/raports", icon: List, label: "Lista raportów" },
-        { to: "/raports/warehouse", icon: Archive, label: "Raport magazynowy" },
-        { to: "/raports/analytics", icon: PieChart, label: "Analityka ruchu" },
-        { to: "/raports/trends", icon: TrendingUp, label: "Trendy i prognozy" },
-        {
-          to: "/raports/scheduled",
-          icon: Calendar,
-          label: "Raporty cykliczne",
-        },
-        { to: "/raports/download", icon: FileDown, label: "Pobierz raporty" },
+        { to: "/raports/inventory", icon: BarChart, label: "Stany magazynowe" },
+        { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
+        { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
+        { to: "/raports/export", icon: FileText, label: "Eksport do PDF/Excel" },
       ],
     },
     {
@@ -170,14 +154,10 @@ const Header: FC = () => {
       icon: Settings,
       label: "Ustawienia",
       submenu: [
-        { to: "/settings", icon: Sliders, label: "Ogólne" },
-        { to: "/settings/appearance", icon: Palette, label: "Wygląd" },
-        { to: "/settings/language", icon: Globe, label: "Język i region" },
-        { to: "/settings/users", icon: Users2, label: "Użytkownicy" },
+        { to: "/settings/users", icon: Users2, label: "Zarządzanie użytkownikami" },
         { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-        { to: "/settings/security", icon: Lock, label: "Bezpieczeństwo" },
-        { to: "/settings/database", icon: DatabaseIcon, label: "Baza danych" },
-        { to: "/settings/notifications", icon: Bell, label: "Powiadomienia" },
+        { to: "/settings/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
+        { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
       ],
     },
   ];
@@ -193,6 +173,7 @@ const Header: FC = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("userData");
     logout();
     navigate('/auth');
   };
@@ -204,6 +185,7 @@ const Header: FC = () => {
           {/* Logo i tytuł */}
           <div className="flex items-center gap-3">
             <Factory size={32} className="text-primary" />
+            
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-main">
               WMS
             </h1>
@@ -229,6 +211,16 @@ const Header: FC = () => {
 
           {/* Desktop Account + Dark/Light Switch + Mobile Menu Button */}
           <div className="flex items-center gap-2">
+            {/* Powitanie użytkownika */}
+            {username && (
+              <span
+                className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-secondary border border-main text-primary font-semibold shadow-sm transition-all duration-200"
+                title={`Zalogowano jako ${username}`}
+              >
+                
+                Witaj, <span className="text-main">{username}!</span>
+              </span>
+            )}
             {/* Desktop Account Button + Dark/Light Switch */}
             <div className="hidden md:flex items-center group">
               <HeaderButton
@@ -243,7 +235,6 @@ const Header: FC = () => {
                 <DarkLightSwitch />
               </span>
             </div>
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
