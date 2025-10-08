@@ -1,5 +1,4 @@
-import { type FC, useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
+import { type FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
@@ -51,48 +50,11 @@ type NavItem = {
 const Header: FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
+  const { username, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const iconSize = 24;
-  const { logout } = useAuth();
 
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) return;
-
-    const cachedUser = localStorage.getItem("userData");
-    if (cachedUser) {
-      try {
-        setUsername(JSON.parse(cachedUser).username);
-        return;
-      } catch {
-      }
-    }
-
-    type JwtPayload = { userId: number };
-    const decoded = jwtDecode<JwtPayload>(token);
-    const userId = decoded.userId;
-    fetch(`/api/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => res.text().then(text => {
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          throw new Error("Niepoprawny JSON: " + text);
-        }
-      }))
-      .then(user => {
-        setUsername(user.username);
-        localStorage.setItem("userData", JSON.stringify(user));
-      })
-      .catch(() => {
-        setUsername(null);
-      });
-  }, []);
 
 
   const navItems: NavItem[] = [
@@ -113,9 +75,8 @@ const Header: FC = () => {
       label: "Komponenty i Produkty",
       submenu: [
         { to: "/components", icon: List, label: "Lista komponentów" },
-        { to: "/products", icon: Layers, label: "Lista produktów gotowych" },
+        { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
         { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
-        { to: "/components/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
         { to: "/components/search", icon: BarChart, label: "Wielokryterialne wyszukiwanie" },
       ],
     },
@@ -156,11 +117,12 @@ const Header: FC = () => {
       submenu: [
         { to: "/settings/users", icon: Users2, label: "Zarządzanie użytkownikami" },
         { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-        { to: "/settings/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
         { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
       ],
     },
   ];
+  // filter settings for non-admin
+  const filteredNavItems = navItems.filter(item => item.to !== "/settings" || isAdmin);
 
   const toggleSubmenu = (itemLabel: string) => {
     setExpandedSubmenu(expandedSubmenu === itemLabel ? null : itemLabel);
@@ -173,7 +135,7 @@ const Header: FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("userData");
+  // userData no longer stored in localStorage
     logout();
     navigate('/auth');
   };
@@ -193,7 +155,7 @@ const Header: FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-4 xl:gap-6 group">
-            {navItems.map((item, index) => {
+            {filteredNavItems.map((item, index) => {
               const IconComponent = item.icon;
               return (
                 <HeaderButton
@@ -270,7 +232,7 @@ const Header: FC = () => {
         >
           <div className="mt-4 py-4 border-t border-main max-h-[70vh] overflow-y-auto">
             <nav className="flex flex-col gap-1">
-              {navItems.map((item, index) => {
+              {filteredNavItems.map((item, index) => {
                 const IconComponent = item.icon;
                 const isExpanded = expandedSubmenu === item.label;
 

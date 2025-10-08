@@ -50,4 +50,6 @@ public interface UserService {
      * @param id The ID of the user to delete
      */
     void deleteUser(Long id);
+
+    boolean isAdmin(Long id);
 }

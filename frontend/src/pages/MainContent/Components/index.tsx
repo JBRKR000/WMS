@@ -1,9 +1,12 @@
 import { type FC } from 'react'
+import { Outlet } from 'react-router-dom'
 
 const ComponentsPage: FC = () => {
   return (
     <div>
-      <h1>Komponenty</h1>
+      <nav className="mb-4">
+      </nav>
+      <Outlet />
     </div>
   )
 }

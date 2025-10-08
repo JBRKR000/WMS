@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import { fetchApi } from './api';
 import { AuthService } from '../services/authService';
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -12,6 +14,8 @@ interface AuthContextType {
     role: string;
   }) => Promise<void>;
   logout: () => void;
+  username: string | null;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,13 +29,37 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    AuthService.isAuthenticated()
-  );
-
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AuthService.isAuthenticated());
+  const [username, setUsername] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   useEffect(() => {
-    setIsAuthenticated(AuthService.isAuthenticated());
-  }, []);
+    const initUser = async () => {
+      if (AuthService.isAuthenticated()) {
+        const token = AuthService.getToken();
+        if (token) {
+          type JwtPayload = { userId: number };
+          const decoded = jwtDecode<JwtPayload>(token);
+          const userId = decoded.userId;
+          try {
+            const user = await fetchApi<{ username: string }>(`/users/${userId}`);
+            setUsername(user.username);
+          } catch {
+            setUsername(null);
+          }
+          try {
+            const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
+            setIsAdmin(admin);
+          } catch {
+            setIsAdmin(false);
+          }
+        }
+      } else {
+        setUsername(null);
+        setIsAdmin(false);
+      }
+    };
+    initUser();
+  }, [isAuthenticated]);
 
   const login = async (username: string, password: string) => {
     await AuthService.login({ username, password });
@@ -53,10 +81,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     AuthService.logout();
     setIsAuthenticated(false);
+    setUsername(null);
+    setIsAdmin(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, username, login, register, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

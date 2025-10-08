@@ -1,9 +1,12 @@
 import { type FC } from 'react'
+import { Outlet } from 'react-router-dom'
 
 const IssuesPage: FC = () => {
   return (
-    <div>
-      <h1>Wydania</h1>
+   <div>
+      <nav className="mb-4">
+      </nav>
+      <Outlet />
     </div>
   )
 }

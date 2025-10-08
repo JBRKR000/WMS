@@ -66,4 +66,15 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.deleteById(id);
     }
+
+
+    @Override
+    public boolean isAdmin(Long id) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            return "ROLE_ADMIN".equalsIgnoreCase(user.getRole().getRoleName());
+        }
+        throw new EntityNotFoundException("User not found with id: " + id);
+    }
 }

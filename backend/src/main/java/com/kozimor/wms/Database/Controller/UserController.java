@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -40,4 +42,9 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
     }
+    @GetMapping("isAdmin/{id}")
+    public boolean isAdmin(@PathVariable Long id) {
+        return userService.isAdmin(id);
+    }
+    
 }

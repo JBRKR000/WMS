@@ -1,5 +1,6 @@
 import { type FC, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom' // Dodaj ten import
+import { useLocation } from 'react-router-dom'
+import { useAuth } from '../utils/AuthContext'
 import Header from '../components/HeaderComponents/Header'
 import Sidebar, { type SidebarSection } from '../components/MainComponents/Sidebar'
 import Footer from '../components/FooterComponents/Footer'
@@ -32,9 +33,8 @@ const componentsSections: SidebarSection[] = [
         label: "Komponenty i Produkty",
         items: [
             { to: "/components", icon: Package, label: "Lista komponentów" },
-            { to: "/products", icon: Layers, label: "Lista produktów gotowych" },
+            { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
             { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
-            { to: "/components/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
             { to: "/components/search", icon: BarChart3, label: "Wielokryterialne wyszukiwanie" },
         ],
     },
@@ -79,7 +79,6 @@ const settingsSections: SidebarSection[] = [
         items: [
             { to: "/settings/users", icon: Users, label: "Zarządzanie użytkownikami" },
             { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-            { to: "/settings/categories", icon: Boxes, label: "Kategorie i słowa kluczowe" },
             { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
         ],
     },
@@ -88,22 +87,14 @@ const settingsSections: SidebarSection[] = [
 const Layout: FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
 
-    // Pobierz dane użytkownika z localStorage
-    const userDataRaw = localStorage.getItem("userData");
-    let isAdmin = false;
-    if (userDataRaw) {
-        try {
-            const userData = JSON.parse(userDataRaw);
-            isAdmin = userData?.role?.roleName === "ROLE_ADMIN";
-        } catch {
-            isAdmin = false;
-        }
-    }
+    // get admin status from AuthContext
+    const { isAdmin } = useAuth()
 
 
     const getSectionsForPath = (pathname: string): SidebarSection[] => {
         if (pathname.startsWith('/settings')) {
-            return settingsSections;
+            // only admin can access settings
+            return isAdmin ? settingsSections : [];
         }
         if (pathname.startsWith('/components') || pathname.startsWith('/products')) {
             return componentsSections;
