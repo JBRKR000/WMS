@@ -2,8 +2,11 @@ package com.kozimor.wms.Database.Controller;
 
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
+import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
 import com.kozimor.wms.Database.Service.TransactionService;
 import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -89,4 +92,18 @@ public class TransactionController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/getTransactionCount")
+    public String getTransactionCount() {
+        long count = transactionService.getTransactionCount();
+        return String.valueOf(count);
+    }
+
+    @GetMapping("/paginated")
+public ResponseEntity<Page<TransactionDTO>> getTransactionsPaginated(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size) {
+    Page<TransactionDTO> transactions = transactionService.getTransactionsPaginated(page, size);
+    return ResponseEntity.ok(transactions);
+}
 }

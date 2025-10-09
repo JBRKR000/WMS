@@ -52,4 +52,5 @@ public interface UserService {
     void deleteUser(Long id);
 
     boolean isAdmin(Long id);
+    long getUserCount();
 }

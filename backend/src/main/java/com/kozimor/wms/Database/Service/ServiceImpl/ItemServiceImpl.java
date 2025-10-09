@@ -1,14 +1,22 @@
 package com.kozimor.wms.Database.Service.ServiceImpl;
 
 import com.kozimor.wms.Database.Model.Item;
+import com.kozimor.wms.Database.Model.DTO.ItemDTO;
 import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Service.ItemService;
 import jakarta.persistence.EntityNotFoundException;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+
+import javax.swing.text.DateFormatter;
 
 @Service
 @Transactional
@@ -74,4 +82,27 @@ public class ItemServiceImpl implements ItemService {
         }
         itemRepository.deleteById(id);
     }
+
+    @Override
+    public long getItemCount() {
+        return itemRepository.count();
+    }
+
+    public Page<ItemDTO> getItemsPaginated(int page, int size) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    PageRequest pageable = PageRequest.of(page, size);
+    return itemRepository.findAll(pageable).map(item -> {
+        ItemDTO dto = new ItemDTO();
+        dto.setId(item.getId());
+        dto.setName(item.getName());
+        dto.setDescription(item.getDescription());
+        dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+        dto.setUnit(item.getUnit());
+        dto.setCurrentQuantity(item.getCurrentQuantity());
+        dto.setQrCode(item.getQrCode());
+        dto.setCreatedAt(item.getCreatedAt().format(formatter));
+        dto.setUpdatedAt(item.getUpdatedAt().format(formatter));
+        return dto;
+    });
+}
 }

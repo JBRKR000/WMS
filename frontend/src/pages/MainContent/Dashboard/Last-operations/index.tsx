@@ -1,5 +1,5 @@
-import { type FC, useMemo, useState } from 'react'
-import { Search, Download, FileText } from 'lucide-react'
+import { type FC, useEffect, useState } from 'react';
+import { Search, Download, FileText } from 'lucide-react';
 
 // Minimal types matching backend Transaction model
 type Category = { id?: number | null; name: string }
@@ -27,44 +27,76 @@ const EmptyState: FC<{ label?: string }> = ({ label = 'Brak operacji' }) => (
 )
 
 const LastOperations: FC = () => {
-  // Replace these with API data
-  const [query, setQuery] = useState('')
-  const transactions: Transaction[] = []
+  const [query, setQuery] = useState('');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = useMemo(() => {
-    if (!query) return transactions
-    const q = query.toLowerCase()
-    return transactions.filter(t =>
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji');
+          return;
+        }
+
+        const requestOptions = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        };
+
+        const response = await fetch('/api/transactions/paginated?page=0&size=10', requestOptions);
+        if (!response.ok) {
+          throw new Error('Błąd podczas pobierania transakcji');
+        }
+
+        const data = await response.json();
+        setTransactions(data.content);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  const filtered = transactions.filter(t => {
+    const q = query.toLowerCase();
+    return (
       String(t.id).includes(q) ||
       (t.item?.name ?? '').toLowerCase().includes(q) ||
       (t.user?.username ?? '').toLowerCase().includes(q) ||
       (t.transactionType ?? '').toLowerCase().includes(q)
-    )
-  }, [query, transactions])
+    );
+  });
 
   const formatDate = (iso?: string | null) => {
-    if (!iso) return '-'
+    if (!iso) return '-';
     try {
-      return new Date(iso).toLocaleString()
+      return new Date(iso).toLocaleString();
     } catch {
-      return iso
+      return iso;
     }
-  }
+  };
 
   const typeBadge = (type: string) => {
-    const base = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold'
+    const base = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold';
     switch (type) {
       case 'RECEIPT':
-        return <span className={`${base} bg-success-bg text-success-text border border-main`}>Przyjęcie</span>
+        return <span className={`${base} bg-success-bg text-success-text border border-main`}>Przyjęcie</span>;
       case 'ISSUE_TO_PRODUCTION':
       case 'ISSUE_TO_SALES':
-        return <span className={`${base} bg-surface-hover text-main border border-main`}>Wydanie</span>
+        return <span className={`${base} bg-surface-hover text-main border border-main`}>Wydanie</span>;
       case 'RETURN':
-        return <span className={`${base} bg-surface-hover text-main border border-main`}>Zwrot</span>
+        return <span className={`${base} bg-surface-hover text-main border border-main`}>Zwrot</span>;
       default:
-        return <span className={`${base} bg-surface-hover text-secondary border border-main`}>{type}</span>
+        return <span className={`${base} bg-surface-hover text-secondary border border-main`}>{type}</span>;
     }
-  }
+  };
 
   return (
     <main className="p-4 md:p-6 lg:p-8">
@@ -75,35 +107,25 @@ const LastOperations: FC = () => {
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="flex items-center bg-white dark:bg-transparent border border-main rounded-2xl px-2 py-1 w-full sm:w-64">
-                <Search className="h-4 w-4 text-secondary mr-2" />
-                <input
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Szukaj po ID, item, user, typ"
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-800/30 backdrop-blur-sm border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 placeholder-secondary dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 focus:border-emerald-400/50 dark:focus:border-emerald-500/50 transition-all duration-300 text-sm"
-                />
-              </div>
+            <Search className="h-4 w-4 text-secondary mr-2" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Szukaj po ID, item, user, typ"
+              className="w-full px-4 py-2 bg-white dark:bg-gray-800/30 backdrop-blur-sm border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 placeholder-secondary dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 focus:border-emerald-400/50 dark:focus:border-emerald-500/50 transition-all duration-300 text-sm"
+            />
+          </div>
         </div>
       </div>
 
       <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-sm text-secondary">Filtry:</div>
-            <select className="px-4 py-2 bg-white dark:bg-gray-800/30 border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 transition-all duration-300">
-              <option value="">Wszystkie typy</option>
-              <option value="RECEIPT">Przyjęcie</option>
-              <option value="ISSUE_TO_PRODUCTION">Wydanie na produkcję</option>
-              <option value="ISSUE_TO_SALES">Wydanie na sprzedaż</option>
-              <option value="RETURN">Zwrot</option>
-            </select>
-            <input type="date" className="px-4 py-2 bg-white dark:bg-gray-800/30 border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 transition-all duration-300" />
-            <input type="date" className="px-4 py-2 bg-white dark:bg-gray-800/30 border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 transition-all duration-300" />
-          </div>
           <div className="text-sm text-secondary">Ilość rekordów: {filtered.length}</div>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <EmptyState label="Ładowanie danych..." />
+        ) : filtered.length === 0 ? (
           <EmptyState label="Brak ostatnich operacji w bazie" />
         ) : (
           <div className="overflow-x-auto">
@@ -123,13 +145,13 @@ const LastOperations: FC = () => {
               <tbody>
                 {filtered.map((t, idx) => (
                   <tr key={t.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
-                    <td className="px-3 py-2 text-secondary align-top">{t.id}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.id ?? '-'}</td>
                     <td className="px-3 py-2 text-secondary align-top">{formatDate(t.transactionDate)}</td>
                     <td className="px-3 py-2 align-top">{typeBadge(t.transactionType)}</td>
-                    <td className="px-3 py-2 text-main align-top">{t.item?.name ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.item?.category?.name ?? '-'}</td>
+                    <td className="px-3 py-2 text-main align-top">{t.itemName ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.categoryName ?? '-'}</td>
                     <td className="px-3 py-2 text-main align-top">{t.quantity}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.user?.username ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.userName ?? '-'}</td>
                     <td className="px-3 py-2 text-secondary align-top">{t.description ?? '-'}</td>
                   </tr>
                 ))}
@@ -139,7 +161,7 @@ const LastOperations: FC = () => {
         )}
       </section>
     </main>
-  )
-}
+  );
+};
 
-export default LastOperations
+export default LastOperations;

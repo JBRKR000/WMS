@@ -46,5 +46,11 @@ public class UserController {
     public boolean isAdmin(@PathVariable Long id) {
         return userService.isAdmin(id);
     }
-    
+
+    @GetMapping("/getUserCount")
+    public String getUserCount() {
+        long count = userService.getUserCount();
+        return String.valueOf(count);
+    }
+
 }

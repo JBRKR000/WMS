@@ -1,4 +1,4 @@
-import { type FC } from 'react'
+import { useEffect, useState, type FC } from 'react'
 
 // Types mirroring backend models
 type Category = {
@@ -25,7 +25,7 @@ type Item = {
   id: number | null
   name: string
   description?: string | null
-  category?: Category | null
+  categoryName?: string | null
   unit?: string | null
   currentQuantity: number
   qrCode?: string | null
@@ -37,9 +37,9 @@ type Transaction = {
   id: number | null
   transactionDate?: string | null // ISO with timezone
   transactionType: string // enum stored as string
-  item?: Item | null
+  itemName?: string | null
   quantity: number
-  user?: User | null
+  userName?: string | null
   description?: string | null
 }
 
@@ -48,163 +48,267 @@ const EmptyState: FC<{ label?: string }> = ({ label = 'Brak danych' }) => (
 )
 
 const SummaryPage: FC = () => {
-  const categories: Category[] = []
-  const items: Item[] = []
-  const users: User[] = []
-  const transactions: Transaction[] = []
+  const [counts, setCounts] = useState({
+    categories: 0,
+    items: 0,
+    users: 0,
+    transactions: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  const [items, setItems] = useState<Item[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [pageItems, setPageItems] = useState(0) // Current page for items
+  const [pageTransactions, setPageTransactions] = useState(0) // Current page for transactions
+  const [sizeItems, setSizeItems] = useState(5) // Page size for items
+  const [sizeTransactions, setSizeTransactions] = useState(5) // Page size for transactions
+  const [totalPagesItems, setTotalPagesItems] = useState(0) // Total pages for items
+  const [totalPagesTransactions, setTotalPagesTransactions] = useState(0) // Total pages for transactions
+  const [itemsLoading, setItemsLoading] = useState(false)
+  const [transactionsLoading, setTransactionsLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        setLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji')
+          return
+        }
+        const requestOptions = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+
+        // Wysyłanie równoległych zapytań
+        const [categoriesRes, itemsRes, usersRes, transactionsRes] = await Promise.all([
+          fetch('/api/categories/getCategoryCount', requestOptions),
+          fetch('/api/items/getItemCount', requestOptions),
+          fetch('/api/users/getUserCount', requestOptions),
+          fetch('/api/transactions/getTransactionCount', requestOptions),
+        ])
+
+        // Parsowanie odpowiedzi
+        const [categories, items, users, transactions] = await Promise.all([
+          categoriesRes.text(),
+          itemsRes.text(),
+          usersRes.text(),
+          transactionsRes.text(),
+        ])
+
+        setCounts({
+          categories: parseInt(categories, 10),
+          items: parseInt(items, 10),
+          users: parseInt(users, 10),
+          transactions: parseInt(transactions, 10),
+        })
+      } catch (error) {
+        console.error('Error fetching counts:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCounts()
+  }, [])
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setItemsLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji')
+          return
+        }
+
+        const requestOptions = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+
+        const response = await fetch(`/api/items/getAllPaginated?page=${pageItems}&size=${sizeItems}`, requestOptions)
+        if (!response.ok) {
+          throw new Error('Błąd podczas pobierania itemów')
+        }
+
+        const data = await response.json()
+        setItems(data.content) // Ustaw dane itemów
+        setTotalPagesItems(data.totalPages) // Ustaw liczbę stron
+      } catch (error) {
+        console.error('Error fetching items:', error)
+      } finally {
+        setItemsLoading(false)
+      }
+    }
+
+    fetchItems()
+  }, [pageItems, sizeItems]) // Fetch items when page or size changes
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setTransactionsLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji')
+          return
+        }
+
+        const requestOptions = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+
+        const response = await fetch(`/api/transactions/paginated?page=${pageTransactions}&size=${sizeTransactions}`, requestOptions)
+        if (!response.ok) {
+          throw new Error('Błąd podczas pobierania transakcji')
+        }
+
+        const data = await response.json()
+        setTransactions(data.content) // Ustaw dane transakcji
+        setTotalPagesTransactions(data.totalPages) // Ustaw liczbę stron
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+      } finally {
+        setTransactionsLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [pageTransactions, sizeTransactions]) // Fetch transactions when page or size changes
+
+  const handleNextPage = (type: 'items' | 'transactions') => {
+    if (type === 'items' && pageItems < totalPagesItems - 1) {
+      setPageItems(prevPage => prevPage + 1)
+    } else if (type === 'transactions' && pageTransactions < totalPagesTransactions - 1) {
+      setPageTransactions(prevPage => prevPage + 1)
+    }
+  }
+
+  const handlePreviousPage = (type: 'items' | 'transactions') => {
+    if (type === 'items' && pageItems > 0) {
+      setPageItems(prevPage => prevPage - 1)
+    } else if (type === 'transactions' && pageTransactions > 0) {
+      setPageTransactions(prevPage => prevPage - 1)
+    }
+  }
+
+  const handleSizeChange = (type: 'items' | 'transactions', event: React.ChangeEvent<HTMLInputElement>) => {
+    const newSize = parseInt(event.target.value, 10)
+    if (newSize > 0) {
+      if (type === 'items') {
+        setSizeItems(newSize)
+        setPageItems(0) // Resetuj stronę do 0 po zmianie rozmiaru
+      } else if (type === 'transactions') {
+        setSizeTransactions(newSize)
+        setPageTransactions(0) // Resetuj stronę do 0 po zmianie rozmiaru
+      }
+    }
+  }
+
+  const countKeys = ['categories', 'items', 'users', 'transactions'] as const;
 
   return (
-    <main className="p-4 md:p-6 lg:p-8 space-y-6">
+    <main className="p-4 md:p-6 lg:p-8 space-y-6 bg-surface text-main">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-main">Podsumowanie magazynu</h2>
-          <p className="text-sm text-secondary mt-1">Widok odzwierciedlający struktury bazy danych (items, categories, users, transactions)</p>
+          <h2 className="text-2xl lg:text-3xl font-bold">Podsumowanie magazynu</h2>
+          <p className="text-sm text-secondary mt-1">Widok odzwierciedlający struktury bazy danych</p>
         </div>
-        
       </div>
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-          <p className="text-sm text-secondary">Liczba kategorii</p>
-          <p className="text-2xl font-bold text-main mt-1">{categories.length}</p>
-        </div>
-        <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-          <p className="text-sm text-secondary">Liczba pozycji (items)</p>
-          <p className="text-2xl font-bold text-main mt-1">{items.length}</p>
-        </div>
-        <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-          <p className="text-sm text-secondary">Liczba użytkowników</p>
-          <p className="text-2xl font-bold text-main mt-1">{users.length}</p>
-        </div>
-        <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-          <p className="text-sm text-secondary">Liczba transakcji</p>
-          <p className="text-2xl font-bold text-main mt-1">{transactions.length}</p>
-        </div>
-      </section>
-      <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-main">Items (pozycje magazynowe)</h3>
-          <p className="text-sm text-secondary">Pola: id, name, currentQuantity, unit, qrCode, createdAt, updatedAt, category</p>
-        </div>
 
-        {items.length === 0 ? (
-          <EmptyState label="Brak pozycji w bazie" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-secondary">
-                  <th className="px-3 py-2">ID</th>
-                  <th className="px-3 py-2">Nazwa</th>
-                  <th className="px-3 py-2">Kategoria</th>
-                  <th className="px-3 py-2">Ilość</th>
-                  <th className="px-3 py-2">Jednostka</th>
-                  <th className="px-3 py-2">QR</th>
-                  <th className="px-3 py-2">Utworzono</th>
-                  <th className="px-3 py-2">Zaktualizowano</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(it => (
-                  <tr key={it.id ?? Math.random()} className="border-t border-main">
-                    <td className="px-3 py-2 text-secondary">{it.id}</td>
-                    <td className="px-3 py-2 text-main">{it.name}</td>
-                    <td className="px-3 py-2 text-secondary">{it.category?.name ?? '-'}</td>
-                    <td className="px-3 py-2 text-main">{it.currentQuantity}</td>
-                    <td className="px-3 py-2 text-secondary">{it.unit ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary">{it.qrCode ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary">{it.createdAt ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary">{it.updatedAt ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {countKeys.map((key) => (
+          <div key={key} className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
+            <p className="text-sm text-secondary capitalize">Liczba {key}</p>
+            <p className="text-2xl font-bold mt-1">{loading ? '...' : counts[key]}</p>
           </div>
-        )}
+        ))}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-main">Transactions</h3>
-            <p className="text-sm text-secondary">Pola: id, transactionDate, transactionType, item, quantity, user, description</p>
-          </div>
+        {[{ title: 'Items', data: items, loading: itemsLoading, page: pageItems, totalPages: totalPagesItems, size: sizeItems, setSize: setSizeItems, setPage: setPageItems },
+          { title: 'Transactions', data: transactions, loading: transactionsLoading, page: pageTransactions, totalPages: totalPagesTransactions, size: sizeTransactions, setSize: setSizeTransactions, setPage: setPageTransactions }].map((section, index) => (
+          <section key={index} className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">{section.title}</h3>
+              <div className="flex items-center gap-2">
+                <label htmlFor={`pageSize${section.title}`} className="text-sm text-secondary">
+                  Wyników na stronę:
+                </label>
+                <input
+                  id={`pageSize${section.title}`}
+                  type="number"
+                  value={section.size}
+                  onChange={(e) => {
+                    const newSize = parseInt(e.target.value, 10);
+                    if (newSize > 0) {
+                      section.setSize(newSize);
+                      section.setPage(0);
+                    }
+                  }}
+                  className="border border-main rounded px-2 py-1 text-sm bg-surface text-main"
+                  min="1"
+                />
+              </div>
+            </div>            
 
-          {transactions.length === 0 ? (
-            <EmptyState label="Brak transakcji w bazie" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-secondary">
-                    <th className="px-3 py-2">ID</th>
-                    <th className="px-3 py-2">Data</th>
-                    <th className="px-3 py-2">Typ</th>
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-3 py-2">Ilość</th>
-                    <th className="px-3 py-2">Użytkownik</th>
-                    <th className="px-3 py-2">Opis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(t => (
-                    <tr key={t.id ?? Math.random()} className="border-t border-main">
-                      <td className="px-3 py-2 text-secondary">{t.id}</td>
-                      <td className="px-3 py-2 text-secondary">{t.transactionDate ?? '-'}</td>
-                      <td className="px-3 py-2 text-main">{t.transactionType}</td>
-                      <td className="px-3 py-2 text-secondary">{t.item?.name ?? '-'}</td>
-                      <td className="px-3 py-2 text-main">{t.quantity}</td>
-                      <td className="px-3 py-2 text-secondary">{t.user?.username ?? '-'}</td>
-                      <td className="px-3 py-2 text-secondary">{t.description ?? '-'}</td>
+            {section.loading ? (
+              <EmptyState label="Ładowanie danych..." />
+            ) : section.data.length === 0 ? (
+              <EmptyState label={`Brak ${section.title.toLowerCase()} w bazie`} />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-secondary">
+                      {Object.keys(section.data[0] || {}).map((key, idx) => (
+                        <th key={idx} className="px-3 py-2 capitalize">{key}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {section.data.map((item, idx) => (
+                      <tr key={idx} className="border-t border-main">
+                        {Object.values(item).map((value, idy) => (
+                          <td key={idy} className="px-3 py-2 text-secondary">{value || '-'}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center mt-4">
+              <button
+                onClick={() => section.setPage(section.page - 1)}
+                disabled={section.page === 0}
+                className={`px-4 py-2 rounded transition-colors ${section.page === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
+              >
+                Poprzednia
+              </button>
+              <p className="text-sm text-secondary">
+                Strona {section.page + 1} z {section.totalPages}
+              </p>
+              <button
+                onClick={() => section.setPage(section.page + 1)}
+                disabled={section.page === section.totalPages - 1}
+                className={`px-4 py-2 rounded transition-colors ${section.page === section.totalPages - 1 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
+              >
+                Następna
+              </button>
             </div>
-          )}
-        </section>
-
-        <section className="space-y-6">
-          <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-            <h3 className="text-lg font-semibold text-main mb-3">Categories</h3>
-            {categories.length === 0 ? (
-              <EmptyState label="Brak kategorii w bazie" />
-            ) : (
-              <ul className="space-y-2">
-                {categories.map(c => (
-                  <li key={c.id ?? Math.random()} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-main">{c.name}</p>
-                      <p className="text-xs text-secondary">{c.description ?? '-'}</p>
-                    </div>
-                    <div className="text-sm text-secondary">ID: {c.id}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-            <h3 className="text-lg font-semibold text-main mb-3">Users</h3>
-            {users.length === 0 ? (
-              <EmptyState label="Brak użytkowników w bazie" />
-            ) : (
-              <ul className="space-y-2">
-                {users.map(u => (
-                  <li key={u.id ?? Math.random()} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-main">{u.username} <span className="text-xs text-secondary">({u.email})</span></p>
-                      <p className="text-xs text-secondary">{u.firstName ?? ''} {u.lastName ?? ''}</p>
-                    </div>
-                    <div className="text-sm text-secondary">Rola: {u.role?.roleName ?? '-'}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+          </section>
+        ))}
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default SummaryPage
+export default SummaryPage;

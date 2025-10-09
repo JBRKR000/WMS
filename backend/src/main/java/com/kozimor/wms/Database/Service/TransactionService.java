@@ -1,12 +1,16 @@
 package com.kozimor.wms.Database.Service;
 
-import com.kozimor.wms.Database.Model.Transaction;
-import com.kozimor.wms.Database.Model.TransactionType;
-import org.springframework.stereotype.Service;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Service;
+
+import com.kozimor.wms.Database.Model.Transaction;
+import com.kozimor.wms.Database.Model.TransactionType;
+import com.kozimor.wms.Database.Model.DTO.ItemDTO;
+import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
 
 @Service
 public interface TransactionService {
@@ -73,4 +77,7 @@ public interface TransactionService {
      * @param id The ID of the transaction to delete
      */
     void deleteTransaction(Long id);
+
+    long getTransactionCount();
+    Page<TransactionDTO> getTransactionsPaginated(int page, int size);
 }

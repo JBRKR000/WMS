@@ -1,13 +1,17 @@
 package com.kozimor.wms.Database.Controller;
 
 import com.kozimor.wms.Database.Model.Item;
+import com.kozimor.wms.Database.Model.DTO.ItemDTO;
 import com.kozimor.wms.Database.Service.ItemService;
 import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/items")
@@ -76,4 +80,19 @@ public class ItemController {
             return ResponseEntity.notFound().build();
         }
     }
+    @GetMapping("/getItemCount")
+    public String getItemCount() {
+        long count = itemService.getItemCount();
+        return String.valueOf(count);
+    }
+
+    @GetMapping("/getAllPaginated")
+    public ResponseEntity<Page<ItemDTO>> getAllPaginated(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size) {
+    Page<ItemDTO> items = itemService.getItemsPaginated(page, size);
+    return ResponseEntity.ok(items);
+    }
+    
+    
 }

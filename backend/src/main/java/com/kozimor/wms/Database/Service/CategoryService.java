@@ -49,4 +49,6 @@ public interface CategoryService {
      * @param id The ID of the category to delete
      */
     void deleteCategory(Long id);
+
+    long getCategoryCount();
 } 

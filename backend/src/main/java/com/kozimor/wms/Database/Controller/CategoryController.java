@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @RestController
 @RequestMapping("/api/categories")
@@ -64,4 +66,11 @@ public class CategoryController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/getCategoryCount")
+    public String getCategoryCount() {
+        long count = categoryService.getCategoryCount();
+        return String.valueOf(count);
+    }
+    
 }

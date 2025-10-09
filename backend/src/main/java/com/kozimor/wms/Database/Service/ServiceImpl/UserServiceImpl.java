@@ -77,4 +77,10 @@ public class UserServiceImpl implements UserService {
         }
         throw new EntityNotFoundException("User not found with id: " + id);
     }
+
+
+    @Override
+    public long getUserCount() {
+        return userRepository.count();
+    }
 }
