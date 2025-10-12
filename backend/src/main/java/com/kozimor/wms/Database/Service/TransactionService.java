@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
-import com.kozimor.wms.Database.Model.DTO.ItemDTO;
 import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
 
 @Service

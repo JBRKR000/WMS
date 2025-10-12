@@ -53,7 +53,24 @@ const LastOperations: FC = () => {
         }
 
         const data = await response.json();
-        setTransactions(data.content);
+
+        // ZAMIANA: normalizujemy odpowiedź tak, żeby zawsze mieć item.user.category jako obiekty
+        const normalized = (data.content ?? []).map((tx: any) => {
+          const itemObj = tx.item ?? (tx.itemName ? { name: tx.itemName, category: tx.categoryName ? { name: tx.categoryName } : undefined } : undefined);
+          const userObj = tx.user ?? (tx.userName ? { username: tx.userName } : undefined);
+
+          return {
+            id: tx.id ?? tx.transaction_id,
+            transactionDate: tx.transactionDate ?? tx.transaction_date,
+            transactionType: tx.transactionType ?? tx.transaction_type,
+            item: itemObj,
+            quantity: tx.quantity ?? tx.qty,
+            user: userObj,
+            description: tx.description ?? tx.desc,
+          } as Transaction;
+        });
+
+        setTransactions(normalized);
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
@@ -144,15 +161,18 @@ const LastOperations: FC = () => {
               </thead>
               <tbody>
                 {filtered.map((t, idx) => (
-                  <tr key={t.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
-                    <td className="px-3 py-2 text-secondary align-top">{t.id ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{formatDate(t.transactionDate)}</td>
+                  <tr
+                    key={t.id ?? idx}
+                    className="border-t border-main hover:bg-surface-hover odd:bg-white even:bg-surface dark:odd:bg-gray-800 dark:even:bg-gray-900"
+                  >
+                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.id ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{formatDate(t.transactionDate)}</td>
                     <td className="px-3 py-2 align-top">{typeBadge(t.transactionType)}</td>
-                    <td className="px-3 py-2 text-main align-top">{t.itemName ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.categoryName ?? '-'}</td>
-                    <td className="px-3 py-2 text-main align-top">{t.quantity}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.userName ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.description ?? '-'}</td>
+                    <td className="px-3 py-2 text-main dark:text-gray-100 align-top">{t.item?.name ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.item?.category?.name?? '-'}</td>
+                    <td className="px-3 py-2 text-main dark:text-gray-100 align-top">{t.quantity}</td>
+                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.user?.username ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.description ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>

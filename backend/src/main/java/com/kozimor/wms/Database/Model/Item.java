@@ -6,6 +6,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "items",
@@ -17,7 +19,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+
 public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,4 +53,14 @@ public class Item {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "item_keywords",
+            joinColumns = @JoinColumn(name = "item_id"),
+            inverseJoinColumns = @JoinColumn(name = "keyword_id"),
+            indexes = {@Index(name = "idx_item_keywords_item", columnList = "item_id"),
+                       @Index(name = "idx_item_keywords_keyword", columnList = "keyword_id")}
+    )
+    private Set<Keyword> keywords = new HashSet<>();
 }

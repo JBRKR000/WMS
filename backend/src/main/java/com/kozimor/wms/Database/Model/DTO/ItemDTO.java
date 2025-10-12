@@ -1,12 +1,14 @@
 package com.kozimor.wms.Database.Model.DTO;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,5 +23,6 @@ public class ItemDTO {
     private Integer currentQuantity;
     private String qrCode;
     private String createdAt;
-    private String updatedAt;   
+    private String updatedAt;
+    private Set<String> keywords;
 }

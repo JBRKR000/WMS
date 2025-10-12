@@ -19,5 +19,6 @@ public class TransactionDTO {
     private Integer quantity;
     private String userName;
     private String description;
+    private String categoryName;
 
 }

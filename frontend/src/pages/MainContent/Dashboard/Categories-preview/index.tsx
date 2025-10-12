@@ -1,4 +1,4 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useMemo, useState, useEffect } from 'react'
 import { Search, PlusCircle, FileText, LayoutGrid, List, X } from 'lucide-react'
 import CreateCategoryOrKeywordModal from '../../../../components/Category-previewComponents/addKeywordModal'
 
@@ -7,6 +7,12 @@ type Category = {
   name: string
   description?: string | null
   keywords?: string[] // Dodano pole keywords
+}
+
+type Keyword = {
+  id: number
+  value: string
+  itemsCount: number // Zmieniono z items: any[] na itemsCount: number
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak kategorii' }) => (
@@ -24,8 +30,94 @@ const CategoriesPreview: FC = () => {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'grid' | 'table'>('grid')
   const [isModalOpen, setIsModalOpen] = useState(false) // Stan dla modalu
-  const categories: Category[] = []
-  const items: Category[] = [] // Dodano tablicę dla przedmiotów
+  const [categories, setCategories] = useState<Category[]>([])
+  const [keywords, setKeywords] = useState<Keyword[]>([]) // Zmieniono z items na keywords
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
+  const [keywordsLoading, setKeywordsLoading] = useState(false)
+  
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji')
+          setCategories([])
+          return
+        }
+
+        const requestOptions: RequestInit = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+
+        const res = await fetch('/api/categories', requestOptions)
+        if (!res.ok) throw new Error('Failed to fetch categories')
+        const data = await res.json()
+        const mapped: Category[] = (data ?? []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          keywords: [], // backend nie zwraca keywords tutaj — zostaw pustą tablicę
+        }))
+        setCategories(mapped)
+      } catch (err) {
+        console.error('Error fetching categories:', err)
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+
+    const fetchKeywords = async () => {
+      try {
+        setKeywordsLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          console.error('Brak tokenu autoryzacji')
+          setKeywords([])
+          return
+        }
+
+        const requestOptions: RequestInit = {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+
+        const res = await fetch('/api/keywords', requestOptions)
+        if (!res.ok) throw new Error('Failed to fetch keywords')
+        const data = await res.json()
+        setKeywords(data ?? [])
+      } catch (err) {
+        console.error('Error fetching keywords:', err)
+      } finally {
+        setKeywordsLoading(false)
+      }
+    }
+
+    fetchCategories()
+    fetchKeywords()
+  }, [])
+
+  // helpery do dodawania/usuwania słów kluczowych
+  const handleAddKeyword = (category: Category, keyword: string) => {
+    if (!keyword || !category?.id) return
+    setCategories(prev =>
+      prev.map(c =>
+        c.id === category.id ? { ...c, keywords: [...(c.keywords ?? []), keyword] } : c
+      )
+    )
+  }
+
+  const handleRemoveKeyword = (category: Category, keyword: string) => {
+    if (!category?.id) return
+    setCategories(prev =>
+      prev.map(c =>
+        c.id === category.id ? { ...c, keywords: (c.keywords ?? []).filter(k => k !== keyword) } : c
+      )
+    )
+  }
 
   const filteredCategories = useMemo(() => {
     if (!query) return categories
@@ -38,31 +130,34 @@ const CategoriesPreview: FC = () => {
     )
   }, [query, categories])
 
-  const filteredItems = useMemo(() => {
-    if (!query) return items
+  const filteredKeywords = useMemo(() => {
+    if (!query) return keywords
     const q = query.toLowerCase()
-    return items.filter(i => 
-      (i.name ?? '').toLowerCase().includes(q) || 
-      (i.description ?? '').toLowerCase().includes(q) || 
-      String(i.id).includes(q)
+    return keywords.filter(k => 
+      k.value.toLowerCase().includes(q) || 
+      String(k.id).includes(q)
     )
-  }, [query, items])
+  }, [query, keywords])
 
   const handleAddCategoryOrKeyword = (data: { type: 'category' | 'keyword'; name: string; description?: string; categoryId?: number }) => {
     if (data.type === 'category') {
-      categories.push({
-        id: categories.length + 1,
-        name: data.name,
-        description: data.description,
-        keywords: [],
-      })
+      setCategories(prev => [
+        ...prev,
+        {
+          id: (prev.length ? Math.max(...prev.map(p => p.id ?? 0)) + 1 : 1),
+          name: data.name,
+          description: data.description,
+          keywords: [],
+        },
+      ])
     } else if (data.type === 'keyword' && data.categoryId) {
-      const category = categories.find(c => c.id === data.categoryId)
-      if (category) {
-        category.keywords = [...(category.keywords ?? []), data.name]
-      }
+      setCategories(prev =>
+        prev.map(c =>
+          c.id === data.categoryId ? { ...c, keywords: [...(c.keywords ?? []), data.name] } : c
+        )
+      )
     }
-    setIsModalOpen(false) // Zamknij modal po dodaniu
+    setIsModalOpen(false)
   }
 
   return (
@@ -98,48 +193,63 @@ const CategoriesPreview: FC = () => {
         {/* Categories Section */}
         <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-secondary">Pola: id, name, description, keywords</div>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-secondary">Pola: id, name, description, keywords</div>
+              <div className="flex items-center gap-1 border border-main rounded-lg p-1">
+                <button
+                  onClick={() => setView('grid')}
+                  className={`p-1 rounded ${view === 'grid' ? 'bg-primary text-white' : 'text-secondary hover:bg-surface'}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setView('table')}
+                  className={`p-1 rounded ${view === 'table' ? 'bg-primary text-white' : 'text-secondary hover:bg-surface'}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
             <div className="text-sm text-secondary">Ilość: {filteredCategories.length}</div>
           </div>
 
           {filteredCategories.length === 0 ? (
             <EmptyState label="Brak kategorii w bazie" />
           ) : view === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredCategories.map((c, idx) => (
-                <div key={c.id ?? idx} className="bg-white border border-main rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-secondary">ID: {c.id ?? '-'}</p>
-                      <h4 className="text-lg font-semibold text-main mt-2">{c.name}</h4>
-                      <p className="text-sm text-secondary mt-2">{c.description ?? 'Brak opisu'}</p>
+                <div key={c.id ?? idx} className="bg-white border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-secondary">#{c.id ?? '-'}</span>
+                        <h4 className="text-sm font-semibold text-main truncate">{c.name}</h4>
+                      </div>
+                      <p className="text-xs text-secondary line-clamp-2">{c.description ?? 'Brak opisu'}</p>
                     </div>
-                    <div className="ml-3 text-xs text-secondary">{(c.name || '').slice(0,1).toUpperCase()}</div>
+                    <div className="w-6 h-6 bg-surface-secondary rounded-full flex items-center justify-center text-xs text-secondary">
+                      {(c.name || '').slice(0,1).toUpperCase()}
+                    </div>
                   </div>
-                  <div className="mt-3">
-                    <div className="flex flex-wrap gap-2">
-                      {(c.keywords ?? []).map((keyword, i) => (
-                        <span key={i} className="px-2 py-1 bg-surface-secondary border border-main rounded-full text-xs text-secondary flex items-center gap-2">
-                          {keyword}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {(c.keywords ?? []).slice(0, 3).map((keyword, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary flex items-center gap-1">
+                          {keyword.length > 8 ? keyword.slice(0, 8) + '...' : keyword}
                           <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-red-500 hover:text-red-700">
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </span>
                       ))}
+                      {(c.keywords ?? []).length > 3 && (
+                        <span className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary">
+                          +{(c.keywords ?? []).length - 3}
+                        </span>
+                      )}
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Dodaj słowo kluczowe"
-                        className="w-full px-2 py-1 border border-main rounded-lg text-sm"
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            handleAddKeyword(c, e.currentTarget.value)
-                            e.currentTarget.value = ''
-                          }
-                        }}
-                      />
-                      <button className="px-2 py-1 bg-primary text-white rounded-lg text-sm">Dodaj</button>
+                    <div className="flex items-center gap-1">
+                      
+                      <button className="px-2 py-1 bg-primary text-white rounded text-xs">+</button>
                     </div>
                   </div>
                 </div>
@@ -147,44 +257,39 @@ const CategoriesPreview: FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-xs">
                 <thead>
                   <tr className="text-left text-secondary bg-surface">
-                    <th className="px-3 py-2">ID</th>
-                    <th className="px-3 py-2">Nazwa</th>
-                    <th className="px-3 py-2">Opis</th>
-                    <th className="px-3 py-2">Słowa kluczowe</th>
+                    <th className="px-2 py-1.5 w-12">ID</th>
+                    <th className="px-2 py-1.5">Nazwa</th>
+                    <th className="px-2 py-1.5">Opis</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCategories.map((c, idx) => (
                     <tr key={c.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
-                      <td className="px-3 py-2 text-secondary align-top">{c.id}</td>
-                      <td className="px-3 py-2 text-main align-top">{c.name}</td>
-                      <td className="px-3 py-2 text-secondary align-top">{c.description ?? '-'}</td>
-                      <td className="px-3 py-2 text-secondary align-top">
-                        <div className="flex flex-wrap gap-2">
-                          {(c.keywords ?? []).map((keyword, i) => (
-                            <span key={i} className="px-2 py-1 bg-surface-secondary border border-main rounded-full text-xs text-secondary flex items-center gap-2">
-                              {keyword}
+                      <td className="px-2 py-2 text-secondary align-top font-mono">#{c.id}</td>
+                      <td className="px-2 py-2 text-main align-top font-medium">{c.name}</td>
+                      <td className="px-2 py-2 text-secondary align-top max-w-32 truncate">{c.description ?? '-'}</td>
+                      <td className="px-2 py-2 text-secondary align-top">
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {(c.keywords ?? []).slice(0, 4).map((keyword, i) => (
+                            <span key={i} className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary flex items-center gap-1">
+                              {keyword.length > 10 ? keyword.slice(0, 10) + '...' : keyword}
                               <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-red-500 hover:text-red-700">
-                                <X className="w-3 h-3" />
+                                <X className="w-2.5 h-2.5" />
                               </button>
                             </span>
                           ))}
+                          {(c.keywords ?? []).length > 4 && (
+                            <span className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary">
+                              +{(c.keywords ?? []).length - 4}
+                            </span>
+                          )}
                         </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="Dodaj słowo kluczowe"
-                            className="w-full px-2 py-1 border border-main rounded-lg text-sm"
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
-                                handleAddKeyword(c, e.currentTarget.value)
-                                e.currentTarget.value = ''
-                              }
-                            }}
-                          />
+                        <div className="flex items-center gap-1">
+                          
+                          <button className="px-1.5 py-0.5 bg-primary text-white rounded text-xs">+</button>
                         </div>
                       </td>
                     </tr>
@@ -195,45 +300,70 @@ const CategoriesPreview: FC = () => {
           )}
         </section>
 
-        {/* Items Section */}
+        {/* Keywords Section */}
         <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-secondary">Pola: id, name, description</div>
-            <div className="text-sm text-secondary">Ilość: {filteredItems.length}</div>
+            <div className="text-sm text-secondary">Pola: id, value, itemsCount</div>
+            <div className="text-sm text-secondary">Ilość: {filteredKeywords.length}</div>
           </div>
 
-          {filteredItems.length === 0 ? (
-            <EmptyState label="Brak przedmiotów w bazie" />
+          {keywordsLoading ? (
+            <div className="py-8 text-center text-sm text-secondary">
+              Ładowanie słów kluczowych...
+            </div>
+          ) : filteredKeywords.length === 0 ? (
+            <EmptyState label="Brak słów kluczowych w bazie" />
           ) : view === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filteredItems.map((i, idx) => (
-                <div key={i.id ?? idx} className="bg-white border border-main rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-secondary">ID: {i.id ?? '-'}</p>
-                      <h4 className="text-lg font-semibold text-main mt-2">{i.name}</h4>
-                      <p className="text-sm text-secondary mt-2">{i.description ?? 'Brak opisu'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredKeywords.map((k) => (
+                <div key={k.id} className="bg-white border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-secondary">#{k.id}</span>
+                        <h4 className="text-sm font-semibold text-main truncate">{k.value}</h4>
+                      </div>
+                      <p className="text-xs text-secondary">
+                        Przedmioty: {k.itemsCount ?? 0}
+                      </p>
                     </div>
+                    <div className="w-6 h-6 bg-surface-secondary rounded-full flex items-center justify-center text-xs text-secondary">
+                      {k.value.slice(0,1).toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-1 bg-surface-secondary border border-main rounded text-xs text-secondary">
+                      {k.value}
+                    </span>
+                    <button className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
+                      Usuń
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-xs">
                 <thead>
                   <tr className="text-left text-secondary bg-surface">
-                    <th className="px-3 py-2">ID</th>
-                    <th className="px-3 py-2">Nazwa</th>
-                    <th className="px-3 py-2">Opis</th>
+                    <th className="px-2 py-1.5 w-12">ID</th>
+                    <th className="px-2 py-1.5">Wartość</th>
+                    <th className="px-2 py-1.5">Przedmioty</th>
+                    <th className="px-2 py-1.5">Akcje</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((i, idx) => (
-                    <tr key={i.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
-                      <td className="px-3 py-2 text-secondary align-top">{i.id}</td>
-                      <td className="px-3 py-2 text-main align-top">{i.name}</td>
-                      <td className="px-3 py-2 text-secondary align-top">{i.description ?? '-'}</td>
+                  {filteredKeywords.map((k, idx) => (
+                    <tr key={k.id} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
+                      <td className="px-2 py-2 text-secondary align-top font-mono">#{k.id}</td>
+                      <td className="px-2 py-2 text-main align-top font-medium">{k.value}</td>
+                      <td className="px-2 py-2 text-secondary align-top">{k.itemsCount ?? 0}</td>
+                      <td className="px-2 py-2 text-secondary align-top">
+                        <button className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
+                          Usuń
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -245,13 +375,13 @@ const CategoriesPreview: FC = () => {
 
       {/* Modal */}
       <CreateCategoryOrKeywordModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)} // Zamknij modal
-        onSubmit={handleAddCategoryOrKeyword} // Obsługa dodawania
-        categories={categories} // Przekaż istniejące kategorie
-      />
-    </main>
-  )
-}
+         isOpen={isModalOpen}
+         onClose={() => setIsModalOpen(false)} // Zamknij modal
+         onSubmit={handleAddCategoryOrKeyword} // Obsługa dodawania
+         categories={categories.filter(c => c.id != null).map(c => ({ id: c.id!, name: c.name }))} // Przekaż istniejące kategorie
+       />
+     </main>
+   )
+ }
 
-export default CategoriesPreview
+ export default CategoriesPreview

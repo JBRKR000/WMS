@@ -31,6 +31,7 @@ type Item = {
   qrCode?: string | null
   createdAt?: string | null // ISO
   updatedAt?: string | null // ISO
+  keywords?: string[] | null
 }
 
 type Transaction = {
@@ -275,9 +276,25 @@ const SummaryPage: FC = () => {
                   <tbody>
                     {section.data.map((item, idx) => (
                       <tr key={idx} className="border-t border-main">
-                        {Object.values(item).map((value, idy) => (
-                          <td key={idy} className="px-3 py-2 text-secondary">{value || '-'}</td>
-                        ))}
+                        {Object.values(item).map((value, idy) => {
+                          let display = '-'
+                          if (value !== null && value !== undefined && value !== '') {
+                            if (Array.isArray(value)) {
+                              display = value.length ? value.join(', ') : '-'
+                            } else if (typeof value === 'object') {
+                              try {
+                                display = JSON.stringify(value)
+                              } catch (e) {
+                                display = String(value)
+                              }
+                            } else {
+                              display = String(value)
+                            }
+                          }
+                          return (
+                            <td key={idy} className="px-3 py-2 text-secondary">{display}</td>
+                          )
+                        })}
                       </tr>
                     ))}
                   </tbody>

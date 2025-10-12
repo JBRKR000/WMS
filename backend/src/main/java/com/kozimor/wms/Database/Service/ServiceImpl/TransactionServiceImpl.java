@@ -100,15 +100,18 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional(readOnly = true)
     public Page<TransactionDTO> getTransactionsPaginated(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // Format bez "T"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return transactionRepository.findAll(pageable).map(transaction -> {
             TransactionDTO dto = new TransactionDTO();
             dto.setId(transaction.getId());
             dto.setTransactionDate(transaction.getTransactionDate() != null 
                 ? transaction.getTransactionDate().format(formatter) 
-                : null); // Formatowanie daty
+                : null);
             dto.setTransactionType(transaction.getTransactionType().name());
             dto.setItemName(transaction.getItem() != null ? transaction.getItem().getName() : null);
+            dto.setCategoryName(transaction.getItem() != null && transaction.getItem().getCategory() != null
+                ? transaction.getItem().getCategory().getName()
+                : null);
             dto.setQuantity(transaction.getQuantity());
             dto.setUserName(transaction.getUser() != null ? transaction.getUser().getUsername() : null);
             dto.setDescription(transaction.getDescription());
