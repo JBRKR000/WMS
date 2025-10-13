@@ -1,5 +1,5 @@
-import { type FC, useMemo, useState } from 'react'
 import { Search, ShoppingCart, Box, Eye, Star, X } from 'lucide-react'
+import { type FC, useMemo, useState, useEffect } from 'react'
 
 // There is no dedicated Product model in backend — reuse Item fields for Products UI
 type Category = { id?: number | null; name: string }
@@ -27,24 +27,71 @@ const EmptyState: FC<{ label?: string }> = ({ label = 'Brak produktów' }) => (
 
 const Products: FC = () => {
   const [query, setQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('') // holds selected category name
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [preview, setPreview] = useState<Product | null>(null)
 
-  // placeholder - will be replaced by GET /api/items
-  const products: Product[] = []
+  // fetched products list
+  const [products, setProducts] = useState<Product[]>([])
+  // fetched categories for filtering
+  const [categories, setCategories] = useState<Category[]>([])
 
-  const categories = useMemo(() => {
-    const map = new Map<number, string>()
-    products.forEach(p => { if (p.category?.id != null) map.set(p.category.id, p.category.name) })
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
-  }, [products])
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) return
+        const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+        if (!res.ok) throw new Error('Failed to load products')
+        const data = await res.json()
+        const prods: Product[] = data.content
+          .filter((item: any) => item.itemType === 'PRODUCT')
+          .map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            category: item.categoryName ? { name: item.categoryName } : null,
+            unit: item.unit,
+            currentQuantity: item.currentQuantity,
+            qrCode: item.qrCode,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+          }))
+        setProducts(prods)
+      } catch (error) {
+        console.error('Error loading products:', error)
+      }
+    }
+    loadProducts()
+  }, [])
+
+  // fetch categories for filter
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) return
+        const res = await fetch('/api/categories', {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+        if (!res.ok) throw new Error('Failed to fetch categories')
+        const data = await res.json()
+        const mapped: Category[] = data.map((c: any) => ({ id: c.id, name: c.name }))
+        setCategories(mapped)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+      }
+    }
+    loadCategories()
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return products.filter(p => {
-      if (categoryFilter && String(p.category?.id) !== categoryFilter) return false
+      if (categoryFilter && p.category?.name !== categoryFilter) return false
       if (favoriteOnly) return false // placeholder: no favorite flag in model
       if (!q) return true
       return (
@@ -56,10 +103,6 @@ const Products: FC = () => {
     })
   }, [products, query, categoryFilter, favoriteOnly])
 
-  const formatDate = (iso?: string | null) => {
-    if (!iso) return '-'
-    try { return new Date(iso).toLocaleString() } catch { return iso }
-  }
 
   return (
     <main className="p-4 md:p-6 lg:p-8">
@@ -77,7 +120,7 @@ const Products: FC = () => {
 
           <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 bg-white border border-main rounded-2xl text-sm text-main">
             <option value="">Wszystkie kategorie</option>
-            {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
 
           <div className="flex items-center gap-2">

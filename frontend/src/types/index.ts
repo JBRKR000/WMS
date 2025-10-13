@@ -10,6 +10,7 @@ export interface Item {
   name: string;
   quantity: number;
   category: string;
+  type: 'COMPONENT' | 'PRODUCT';
 }
 
 export interface Category {

@@ -64,4 +64,6 @@ public interface ItemService {
     long getItemCount();
 
     Page<ItemDTO> getItemsPaginated(int page, int size);
+    Page<ItemDTO> getProductsAndComponentsPaginated(int page, int size);
+    String buildQrUrl(Item item);
 } 

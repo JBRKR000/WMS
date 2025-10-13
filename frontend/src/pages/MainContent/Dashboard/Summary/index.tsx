@@ -1,4 +1,5 @@
 import { useEffect, useState, type FC } from 'react'
+import QRCode from 'react-qr-code'
 
 // Types mirroring backend models
 type Category = {
@@ -29,6 +30,7 @@ type Item = {
   unit?: string | null
   currentQuantity: number
   qrCode?: string | null
+  itemType?: string | null
   createdAt?: string | null // ISO
   updatedAt?: string | null // ISO
   keywords?: string[] | null
@@ -58,6 +60,7 @@ const SummaryPage: FC = () => {
   const [loading, setLoading] = useState(true)
 
   const [items, setItems] = useState<Item[]>([])
+  const [modalQr, setModalQr] = useState<string | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [pageItems, setPageItems] = useState(0) // Current page for items
   const [pageTransactions, setPageTransactions] = useState(0) // Current page for transactions
@@ -183,39 +186,19 @@ const SummaryPage: FC = () => {
     fetchTransactions()
   }, [pageTransactions, sizeTransactions]) // Fetch transactions when page or size changes
 
-  const handleNextPage = (type: 'items' | 'transactions') => {
-    if (type === 'items' && pageItems < totalPagesItems - 1) {
-      setPageItems(prevPage => prevPage + 1)
-    } else if (type === 'transactions' && pageTransactions < totalPagesTransactions - 1) {
-      setPageTransactions(prevPage => prevPage + 1)
-    }
-  }
-
-  const handlePreviousPage = (type: 'items' | 'transactions') => {
-    if (type === 'items' && pageItems > 0) {
-      setPageItems(prevPage => prevPage - 1)
-    } else if (type === 'transactions' && pageTransactions > 0) {
-      setPageTransactions(prevPage => prevPage - 1)
-    }
-  }
-
-  const handleSizeChange = (type: 'items' | 'transactions', event: React.ChangeEvent<HTMLInputElement>) => {
-    const newSize = parseInt(event.target.value, 10)
-    if (newSize > 0) {
-      if (type === 'items') {
-        setSizeItems(newSize)
-        setPageItems(0) // Resetuj stronę do 0 po zmianie rozmiaru
-      } else if (type === 'transactions') {
-        setSizeTransactions(newSize)
-        setPageTransactions(0) // Resetuj stronę do 0 po zmianie rozmiaru
-      }
-    }
-  }
 
   const countKeys = ['categories', 'items', 'users', 'transactions'] as const;
 
   return (
     <main className="p-4 md:p-6 lg:p-8 space-y-6 bg-surface text-main">
+      {/* QR code modal overlay */}
+      {modalQr && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setModalQr(null)}>
+          <div className="bg-white p-4 rounded" onClick={e => e.stopPropagation()}>
+            <QRCode value={modalQr} size={256} />
+          </div>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold">Podsumowanie magazynu</h2>
@@ -276,7 +259,17 @@ const SummaryPage: FC = () => {
                   <tbody>
                     {section.data.map((item, idx) => (
                       <tr key={idx} className="border-t border-main">
-                        {Object.values(item).map((value, idy) => {
+                        {Object.entries(item).map(([key, value], idy) => {
+                          // Render QR code using QRCode component
+                          if (key === 'qrCode' && value) {
+                            return (
+                              <td key={idy} className="px-3 py-2">
+                                <div onClick={() => setModalQr(String(value))} className="cursor-pointer inline-block">
+                                  <QRCode value={String(value)} size={64} />
+                                </div>
+                              </td>
+                            )
+                          }
                           let display = '-'
                           if (value !== null && value !== undefined && value !== '') {
                             if (Array.isArray(value)) {
@@ -284,7 +277,7 @@ const SummaryPage: FC = () => {
                             } else if (typeof value === 'object') {
                               try {
                                 display = JSON.stringify(value)
-                              } catch (e) {
+                              } catch {
                                 display = String(value)
                               }
                             } else {

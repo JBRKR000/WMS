@@ -1,18 +1,20 @@
-import { type FC, useMemo, useState } from 'react'
 import { Search, Tag, Box, Eye, X, Download } from 'lucide-react'
+import { type FC, useMemo, useState, useEffect } from 'react'
 
+// DTO model from backend for paginated PRODUCTS and COMPONENTS
 // Item model from backend (fields only)
-type Category = { id?: number | null; name: string }
-type Item = {
-  id?: number | null
+export type ItemDTO = {
+  id: number
   name: string
   description?: string | null
-  category?: Category | null
+  categoryName?: string | null
   unit?: string | null
   currentQuantity?: number
   qrCode?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+  itemType: 'PRODUCT' | 'COMPONENT'
+  keywords: string[]
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak komponentów' }) => (
@@ -26,39 +28,54 @@ const EmptyState: FC<{ label?: string }> = ({ label = 'Brak komponentów' }) => 
 )
 
 const ComponentList: FC = () => {
-  // UI-only: placeholder list (replace with GET /api/items later)
+  // replace placeholder with fetched components
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [view, setView] = useState<'cards' | 'compact'>('cards')
-  const [modal, setModal] = useState<Item | null>(null)
+  const [modal, setModal] = useState<ItemDTO | null>(null)
+  const [items, setItems] = useState<ItemDTO[]>([])
 
-  const items: Item[] = []
+  // fetch paginated items and filter only COMPONENTS
+  useEffect(() => {
+    const loadComponents = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) return
+        const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+        if (!res.ok) throw new Error('Failed to load components')
+        const data = await res.json()
+        const comps: ItemDTO[] = data.content.filter((item: ItemDTO) => item.itemType === 'COMPONENT')
+        setItems(comps)
+      } catch (error) {
+        console.error('Error loading components:', error)
+      }
+    }
+    loadComponents()
+  }, [])
 
   const categories = useMemo(() => {
     const map = new Map<number, string>()
-    items.forEach(i => { if (i.category?.id != null) map.set(i.category.id, i.category.name) })
+    items.forEach(i => { if (i.categoryName != null) map.set(i.id, i.categoryName) })
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [items])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter(i => {
-      if (categoryFilter && String(i.category?.id) !== categoryFilter) return false
       if (!q) return true
       return (
-        (String(i.id ?? '')).includes(q) ||
+        (String(i.id)).includes(q) ||
         i.name.toLowerCase().includes(q) ||
         (i.description ?? '').toLowerCase().includes(q) ||
         (i.qrCode ?? '').toLowerCase().includes(q) ||
-        (i.category?.name ?? '').toLowerCase().includes(q)
+        (i.categoryName ?? '').toLowerCase().includes(q)
       )
     })
-  }, [items, query, categoryFilter])
+  }, [items, query])
 
-  const formatDate = (iso?: string | null) => {
-    if (!iso) return '-'
-    try { return new Date(iso).toLocaleString() } catch { return iso }
-  }
+  // Removed unused formatDate function
 
   return (
     <main className="p-4 md:p-6 lg:p-8">
@@ -101,7 +118,7 @@ const ComponentList: FC = () => {
                 <div>
                   <div className="text-sm text-secondary">#{it.id}</div>
                   <div className="text-main font-medium">{it.name}</div>
-                  <div className="text-xs text-secondary">{it.category?.name ?? '-'} • {it.currentQuantity ?? '-'} {it.unit ?? ''}</div>
+                  <div className="text-xs text-secondary">{it.categoryName ?? '-'} • {it.currentQuantity ?? '-'} {it.unit ?? ''}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
@@ -127,7 +144,7 @@ const ComponentList: FC = () => {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs text-secondary">Kategoria: {it.category?.name ?? '-'}</div>
+                  <div className="text-xs text-secondary">Kategoria: {it.categoryName ?? '-'}</div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                     <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
                     <button className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Download className="w-4 h-4"/>CSV</button>
@@ -146,7 +163,7 @@ const ComponentList: FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-semibold text-main">{modal.name}</h3>
-                <div className="text-xs text-secondary">ID: {modal.id} • Kategoria: {modal.category?.name ?? '-'}</div>
+                <div className="text-xs text-secondary">ID: {modal.id} • Kategoria: {modal.categoryName ?? '-'}</div>
               </div>
               <button onClick={() => setModal(null)} className="p-2 rounded-md text-secondary"><X className="w-5 h-5"/></button>
             </div>

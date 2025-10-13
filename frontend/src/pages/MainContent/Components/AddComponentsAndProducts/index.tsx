@@ -1,6 +1,8 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useMemo, useState, useEffect } from 'react'
 import { PlusCircle, Box, X } from 'lucide-react'
 
+// Type for fetched keywords
+type KeywordDTO = { id: number; value: string; itemsCount: number }
 type Category = { id?: number | null; name: string }
 type ItemForm = {
   name: string
@@ -9,16 +11,65 @@ type ItemForm = {
   unit?: string
   currentQuantity?: number | ''
   qrCode?: string
+  type?: 'COMPONENT' | 'PRODUCT'
 }
 
 const AddComponentsAndProducts: FC = () => {
-  // form state (UI only)
-  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '' })
+  // status popup
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  // auto-dismiss status
+  useEffect(() => {
+    if (!statusMessage) return
+    const timer = setTimeout(() => setStatusMessage(null), 3000)
+    return () => clearTimeout(timer)
+  }, [statusMessage])
+
+  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '', type: 'COMPONENT' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [preview, setPreview] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  // keyword states
+  const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
+  const [keywordSearch, setKeywordSearch] = useState<string>('')
+  const [selectedKeywords, setSelectedKeywords] = useState<KeywordDTO[]>([])
 
-  // placeholder categories — replace with GET /api/categories later
-  const categories: Category[] = []
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          setCategories([])
+          return
+        }
+        const res = await fetch('/api/categories', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        })
+        if (!res.ok) throw new Error('Failed to fetch categories')
+        const data = await res.json()
+        const mapped: Category[] = (data ?? []).map((c: any) => ({ id: c.id, name: c.name }))
+        setCategories(mapped)
+      } catch (err) {
+        console.error('Error fetching categories:', err)
+      }
+    }
+    fetchCategories()
+  }, [])
+  // fetch keywords list
+  useEffect(() => {
+    const fetchKeywords = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) return
+        const res = await fetch('/api/keywords', { headers: { Authorization: `Bearer ${authToken}` } })
+        if (!res.ok) throw new Error('Failed to fetch keywords')
+        const data = await res.json()
+        setAvailableKeywords(data)
+      } catch (err) {
+        console.error('Error fetching keywords:', err)
+      }
+    }
+    fetchKeywords()
+  }, [])
 
   const validate = (f: ItemForm) => {
     const e: Record<string, string> = {}
@@ -27,20 +78,46 @@ const AddComponentsAndProducts: FC = () => {
     return e
   }
 
-  const onSave = () => {
+  const onSave = async () => {
     const e = validate(form)
     setErrors(e)
-    if (Object.keys(e).length === 0) {
-      // UI-only: show preview success toast (placeholder)
+    if (Object.keys(e).length > 0) return
+    try {
+      const authToken = localStorage.getItem('authToken')
+      if (!authToken) throw new Error('No auth token')
+      const payload = {
+        name: form.name,
+        description: form.description,
+        unit: form.unit,
+        currentQuantity: form.currentQuantity === '' ? 0 : Number(form.currentQuantity),
+        category: { id: form.categoryId },
+        type: form.type, // use 'type' to match entity field
+        keywords: selectedKeywords.map(k => ({ value: k.value })),
+      }
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Failed to save item')
+      // success
       setPreview(true)
-      // In future: POST /api/items with proper body and auth
+      setStatusMessage('Dodano przedmiot pomyślnie')
+    } catch (err) {
+      console.error('Error saving item:', err)
+      setStatusMessage('Błąd dodawania przedmiotu')
     }
   }
 
   const onClear = () => {
-    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '' })
+    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '', type: 'COMPONENT' })
     setErrors({})
     setPreview(false)
+    setKeywordSearch('')
+    setSelectedKeywords([])
   }
 
   const filledPreview = useMemo(() => ({
@@ -51,10 +128,17 @@ const AddComponentsAndProducts: FC = () => {
     unit: form.unit || '-',
     currentQuantity: form.currentQuantity === '' ? null : Number(form.currentQuantity),
     qrCode: form.qrCode || '-',
-  }), [form, categories])
+    keywords: selectedKeywords,
+    itemType: form.type || 'COMPONENT'
+  }), [form, categories, selectedKeywords])
 
   return (
     <main className="p-4 md:p-6 lg:p-8">
+      {statusMessage && (
+        <div className="fixed top-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded shadow">
+          {statusMessage}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-main">Dodaj komponent lub produkt</h1>
@@ -90,7 +174,13 @@ const AddComponentsAndProducts: FC = () => {
 
             <div>
               <label className="block text-xs text-secondary">Jednostka</label>
-              <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="w-full px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm" />
+              <select value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="w-full px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm">
+                <option value="">Wybierz jednostkę</option>
+                <option value="PCS">Sztuki</option>
+                <option value="KG">Kilogramy</option>
+                <option value="LITER">Litry</option>
+                <option value="METER">Metry</option>
+              </select>
             </div>
 
             <div>
@@ -100,12 +190,53 @@ const AddComponentsAndProducts: FC = () => {
             </div>
           </div>
 
+          {/* Keywords multi-select autocomplete */}
           <div>
-            <label className="block text-xs text-secondary">QR Code</label>
-            <input value={form.qrCode} onChange={e => setForm({ ...form, qrCode: e.target.value })} className="w-full px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm" />
+            <label className="block text-xs text-secondary">Słowa kluczowe</label>
+            <div className="flex flex-wrap gap-2 items-center">
+              {selectedKeywords.map(k => (
+                <div key={k.id} className="flex items-center bg-emerald-200 text-main px-3 py-1 rounded-full text-sm">
+                  {k.value}
+                  <button onClick={() => setSelectedKeywords(prev => prev.filter(x => x.id !== k.id))} className="ml-1 text-secondary hover:text-red-500">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <div className="relative">
+                <input
+                  value={keywordSearch}
+                  onChange={e => setKeywordSearch(e.target.value)}
+                  placeholder="Wyszukaj słowo kluczowe"
+                  className="px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                />
+                {keywordSearch && (
+                  <ul className="absolute z-10 bg-white border border-main rounded mt-1 max-h-40 overflow-auto w-full">
+                    {availableKeywords.filter(k => k.value.toLowerCase().includes(keywordSearch.toLowerCase()) && !selectedKeywords.some(s => s.id === k.id)).map(k => (
+                      <li key={k.id} onClick={() => { setSelectedKeywords(prev => [...prev, k]); setKeywordSearch('') }} className="px-3 py-1 hover:bg-surface-secondary cursor-pointer text-sm">
+                        {k.value}
+                      </li>
+                    ))}
+                    {!availableKeywords.some(k => k.value.toLowerCase().includes(keywordSearch.toLowerCase()) && !selectedKeywords.some(s => s.id === k.id)) && (
+                      <li className="px-3 py-1 text-sm text-secondary">Brak wyników</li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="text-sm text-secondary">Po kliknięciu Zapisz zobaczysz podgląd (UI-only). W przyszłości formularz wyśle POST /api/items.</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* category, unit, quantity fields */}
+          </div>
+          <div>
+            <label className="block text-xs text-secondary">Typ pozycji</label>
+            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'COMPONENT' | 'PRODUCT' })} className="w-full px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm">
+              <option value="COMPONENT">Komponent</option>
+              <option value="PRODUCT">Produkt</option>
+            </select>
+          </div>
+
+          <div className="text-sm text-secondary">Po zapisaniu przedmiotu zobaczysz podgląd dodanego produktu</div>
         </form>
 
         <aside className="bg-surface-secondary border border-main rounded-lg p-6">
@@ -136,11 +267,9 @@ const AddComponentsAndProducts: FC = () => {
                 </div>
               </div>
 
-              <div className="text-xs text-secondary">QR</div>
-              <div className="text-main">{filledPreview.qrCode}</div>
-
-              <div className="mt-4">
-                <button className="px-4 py-2 rounded-full border border-main bg-white">Zapisz produkt</button>
+              <div>
+                <div className="text-xs text-secondary">Słowa kluczowe</div>
+                <div className="text-main">{selectedKeywords.length ? selectedKeywords.map(k => k.value).join(', ') : '-'}</div>
               </div>
             </div>
           ) : (
@@ -148,7 +277,7 @@ const AddComponentsAndProducts: FC = () => {
               <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-white border border-main flex items-center justify-center text-secondary">
                 <Box className="w-6 h-6" />
               </div>
-              <div className="text-sm text-secondary">Włącz podgląd, aby zobaczyć jak będzie wyglądać pozycja</div>
+              
             </div>
           )}
         </aside>

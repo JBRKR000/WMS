@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+
 @Entity
-@Table(name = "items",
-       indexes = {
-           @Index(name = "idx_items_category", columnList = "category_id"),
-           @Index(name = "idx_items_qr", columnList = "qr_code")
-       })
+@Table(name = "items", indexes = {
+        @Index(name = "idx_items_category", columnList = "category_id"),
+        @Index(name = "idx_items_qr", columnList = "qr_code")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,8 +37,9 @@ public class Item {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(name = "unit", length = 20)
-    private String unit; // JEDNOSTKA MIARY, e.g., pcs, kg, liters
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unit", nullable = false, length = 20)
+    private UnitType unit;
 
     @Column(name = "current_quantity", nullable = false)
     private Integer currentQuantity; // AKTUALNA ILOŚĆ
@@ -54,13 +55,13 @@ public class Item {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "item_keywords",
-            joinColumns = @JoinColumn(name = "item_id"),
-            inverseJoinColumns = @JoinColumn(name = "keyword_id"),
-            indexes = {@Index(name = "idx_item_keywords_item", columnList = "item_id"),
-                       @Index(name = "idx_item_keywords_keyword", columnList = "keyword_id")}
-    )
+    @JoinTable(name = "item_keywords", joinColumns = @JoinColumn(name = "item_id"), inverseJoinColumns = @JoinColumn(name = "keyword_id"), indexes = {
+            @Index(name = "idx_item_keywords_item", columnList = "item_id"),
+            @Index(name = "idx_item_keywords_keyword", columnList = "keyword_id") })
     private Set<Keyword> keywords = new HashSet<>();
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 20)
+    private ItemType type = ItemType.PRODUCT;
 }
