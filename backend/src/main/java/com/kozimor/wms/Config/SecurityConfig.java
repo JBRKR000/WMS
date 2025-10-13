@@ -48,6 +48,7 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/register").hasAnyAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
@@ -56,6 +57,11 @@ public class SecurityConfig {
                 .jwt(jwt -> {
                     JwtAuthenticationConverter conv = new JwtAuthenticationConverter();
                     conv.setJwtGrantedAuthoritiesConverter(jwtToken -> {
+                        String tokenType = jwtToken.getClaimAsString("tokenType");
+                        if (!"access".equals(tokenType)) {
+                            return List.of();
+                        }
+                        
                         List<String> roles = jwtToken.getClaimAsStringList("roles");
                         if (roles == null) return List.of();
                         return roles.stream()

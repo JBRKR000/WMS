@@ -14,11 +14,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.regex.Pattern;
+import java.util.List;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 record LoginRequest(String username, String password) {
 }
 
-record LoginResponse(String token, long expiresInMs) {
+record LoginResponse(String token, String refreshToken, long expiresInMs, long refreshExpiresInMs) {
+}
+
+record RefreshRequest(String refreshToken) {
+}
+
+record RefreshResponse(String token, long expiresInMs) {
 }
 
 record RegisterRequest(String username, String password, String role, String email, String firstName, String lastName) {
@@ -31,6 +39,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final long expirationMs;
+    private final long refreshExpirationMs;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -38,12 +47,14 @@ public class AuthController {
     public AuthController(AuthenticationManager authenticationManager,
             JwtService jwtService,
             @org.springframework.beans.factory.annotation.Value("${jwt.expiration-ms}") long expirationMs,
+            @org.springframework.beans.factory.annotation.Value("${jwt.refresh-expiration-ms}") long refreshExpirationMs,
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.expirationMs = expirationMs;
+        this.refreshExpirationMs = refreshExpirationMs;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -54,8 +65,42 @@ public class AuthController {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
         String token = jwtService.generateToken(authentication);
+        String refreshToken = jwtService.generateRefreshToken(authentication);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(new LoginResponse(token, expirationMs));
+                .body(new LoginResponse(token, refreshToken, expirationMs, refreshExpirationMs));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshRequest request) {
+        if (request.refreshToken() == null || request.refreshToken().isBlank()) {
+            return ResponseEntity.badRequest().body("Refresh token is required");
+        }
+
+        if (!jwtService.validateRefreshToken(request.refreshToken())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+        }
+
+        String username = jwtService.getUsernameFromToken(request.refreshToken());
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+        }
+
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+        }
+
+        // Stwórz nowy authentication object dla użytkownika
+        User user = userOpt.get();
+        List<SimpleGrantedAuthority> authorities = user.getRole() != null
+            ? List.of(new SimpleGrantedAuthority(user.getRole().getRoleName()))
+            : List.of();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                username, null, authorities);
+
+        String newToken = jwtService.generateToken(authentication);
+        return ResponseEntity.ok(new RefreshResponse(newToken, expirationMs));
     }
 
     @PostMapping("/register")

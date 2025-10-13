@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { jwtDecode } from 'jwt-decode';
 import { fetchApi } from './api';
 import { AuthService } from '../services/authService';
+
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -29,41 +30,68 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AuthService.isAuthenticated());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
   useEffect(() => {
     const initUser = async () => {
-      if (AuthService.isAuthenticated()) {
-        const token = AuthService.getToken();
+      const authenticated = AuthService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+
+      if (authenticated) {
+        let token = AuthService.getToken();
+        if (!token) {
+          token = await AuthService.refreshToken();
+        }
+
         if (token) {
-          type JwtPayload = { userId: number };
-          const decoded = jwtDecode<JwtPayload>(token);
-          const userId = decoded.userId;
           try {
+            type JwtPayload = { userId: number };
+            const decoded = jwtDecode<JwtPayload>(token);
+            const userId = decoded.userId;
+
             const user = await fetchApi<{ username: string }>(`/users/${userId}`);
             setUsername(user.username);
-          } catch {
-            setUsername(null);
-          }
-          try {
+
             const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
             setIsAdmin(admin);
-          } catch {
-            setIsAdmin(false);
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+            logout();
           }
+        } else {
+          logout();
         }
       } else {
         setUsername(null);
         setIsAdmin(false);
       }
     };
+
     initUser();
-  }, [isAuthenticated]);
+  }, []);
 
   const login = async (username: string, password: string) => {
     await AuthService.login({ username, password });
     setIsAuthenticated(true);
+
+    const token = AuthService.getToken();
+    if (token) {
+      try {
+        type JwtPayload = { userId: number };
+        const decoded = jwtDecode<JwtPayload>(token);
+        const userId = decoded.userId;
+
+        const user = await fetchApi<{ username: string }>(`/users/${userId}`);
+        setUsername(user.username);
+
+        const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
+        setIsAdmin(admin);
+      } catch (error) {
+        console.error('Error fetching user data after login:', error);
+      }
+    }
   };
 
   const register = async (userData: {
