@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 interface CreateCategoryOrKeywordModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { type: 'category' | 'keyword'; name: string; description?: string; categoryId?: number }) => void
+  onSubmit: (data: { type: 'category' | 'keyword'; name: string; description?: string }) => void
   categories: { id: number; name: string }[] // Lista istniejących kategorii
 }
 
@@ -13,7 +13,6 @@ const CreateCategoryOrKeywordModal: FC<CreateCategoryOrKeywordModalProps> = ({ i
   const [type, setType] = useState<'category' | 'keyword'>('category')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [categoryId, setCategoryId] = useState<number | null>(null)
 
   if (!isOpen) return null
 
@@ -76,26 +75,6 @@ const CreateCategoryOrKeywordModal: FC<CreateCategoryOrKeywordModalProps> = ({ i
           </div>
         )}
 
-        {type === 'keyword' && (
-          <div className="mb-4">
-            <label className="block text-sm text-secondary mb-2">Przypisz do kategorii</label>
-            <select
-              value={categoryId ?? ''}
-              onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary-hover"
-            >
-              <option value="" disabled>
-                Wybierz kategorię
-              </option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div className="flex items-center justify-end gap-4">
           <button
             onClick={onClose}
@@ -105,10 +84,9 @@ const CreateCategoryOrKeywordModal: FC<CreateCategoryOrKeywordModalProps> = ({ i
           </button>
           <button
             onClick={() => {
-              onSubmit({ type, name, description: type === 'category' ? description : undefined, categoryId: type === 'keyword' ? categoryId ?? undefined : undefined })
+              onSubmit({ type, name, description: type === 'category' ? description : undefined })
               setName('')
               setDescription('')
-              setCategoryId(null)
               onClose()
             }}
             className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover"

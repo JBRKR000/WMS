@@ -2,6 +2,7 @@ package com.kozimor.wms.Database.Service.ServiceImpl;
 
 import com.kozimor.wms.Database.Model.Keyword;
 import com.kozimor.wms.Database.Repository.KeywordRepository;
+import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Service.KeywordService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
@@ -15,9 +16,11 @@ import java.util.Optional;
 public class KeywordServiceImpl implements KeywordService {
 
     private final KeywordRepository keywordRepository;
+    private final ItemRepository itemRepository;
 
-    public KeywordServiceImpl(KeywordRepository keywordRepository) {
+    public KeywordServiceImpl(KeywordRepository keywordRepository, ItemRepository itemRepository) {
         this.keywordRepository = keywordRepository;
+        this.itemRepository = itemRepository;
     }
 
     @Override
@@ -58,6 +61,11 @@ public class KeywordServiceImpl implements KeywordService {
         if (!keywordRepository.existsById(id)) {
             throw new EntityNotFoundException("Keyword not found with id: " + id);
         }
+        List<com.kozimor.wms.Database.Model.Item> items = itemRepository.findAllByKeywords_Id(id);
+        for (com.kozimor.wms.Database.Model.Item item : items) {
+            item.getKeywords().removeIf(k -> k.getId().equals(id));
+        }
+        itemRepository.saveAll(items);
         keywordRepository.deleteById(id);
     }
 

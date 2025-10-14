@@ -15,9 +15,11 @@ import java.util.Optional;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final com.kozimor.wms.Database.Repository.ItemRepository itemRepository;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, com.kozimor.wms.Database.Repository.ItemRepository itemRepository) {
         this.categoryRepository = categoryRepository;
+        this.itemRepository = itemRepository;
     }
 
     @Override
@@ -59,6 +61,11 @@ public class CategoryServiceImpl implements CategoryService {
         if (!categoryRepository.existsById(id)) {
             throw new EntityNotFoundException("Category not found with id: " + id);
         }
+        List<com.kozimor.wms.Database.Model.Item> items = itemRepository.findAllByCategory_Id(id);
+        for (com.kozimor.wms.Database.Model.Item item : items) {
+            item.setCategory(null);
+        }
+        itemRepository.saveAll(items);
         categoryRepository.deleteById(id);
     }
 

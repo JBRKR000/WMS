@@ -1,4 +1,4 @@
-import { Search, Tag, Box, Eye, X, Download } from 'lucide-react'
+import { Search, Tag, Box, Eye, X, Download, Edit3 } from 'lucide-react'
 import { type FC, useMemo, useState, useEffect } from 'react'
 
 // DTO model from backend for paginated PRODUCTS and COMPONENTS
@@ -122,6 +122,7 @@ const ComponentList: FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
+                  <button onClick={() => { /* TODO: edit component */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
                   <button className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Download className="w-4 h-4"/>CSV</button>
                 </div>
               </li>
@@ -147,6 +148,7 @@ const ComponentList: FC = () => {
                   <div className="text-xs text-secondary">Kategoria: {it.categoryName ?? '-'}</div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                     <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
+                    <button onClick={() => { /* TODO: edit component */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
                     <button className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Download className="w-4 h-4"/>CSV</button>
                   </div>
                 </div>

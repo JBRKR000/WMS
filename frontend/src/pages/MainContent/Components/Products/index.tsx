@@ -1,4 +1,4 @@
-import { Search, ShoppingCart, Box, Eye, Star, X } from 'lucide-react'
+import { Search, ShoppingCart, Box, Eye, Star, X, Edit3 } from 'lucide-react'
 import { type FC, useMemo, useState, useEffect } from 'react'
 
 // There is no dedicated Product model in backend — reuse Item fields for Products UI
@@ -144,6 +144,7 @@ const Products: FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
+                  <button onClick={() => { /* TODO: edit product */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
                 </div>
               </li>
             ))}
@@ -167,6 +168,7 @@ const Products: FC = () => {
                   <div className="text-xs text-secondary">Kategoria: {p.category?.name ?? '-'}</div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
+                    <button onClick={() => { /* TODO: edit product */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
                   </div>
                 </div>
               </article>

@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 import java.util.Collection;
 import java.util.Optional;
 
@@ -20,4 +22,12 @@ public interface ItemRepository extends JpaRepository<Item, Long>
     Page<Item> findAllWithCategory(Pageable pageable);
     Page<Item> findAllByType(ItemType type, Pageable pageable);
     Page<Item> findAllByTypeIn(Collection<ItemType> types, Pageable pageable);
+    /**
+     * Find all items associated with a given category ID
+     */
+    List<Item> findAllByCategory_Id(Long categoryId);
+    /**
+     * Find all items associated with a given keyword ID
+     */
+    List<Item> findAllByKeywords_Id(Long keywordId);
 }

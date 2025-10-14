@@ -1,6 +1,8 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
-import { Search, PlusCircle, FileText, LayoutGrid, List, X } from 'lucide-react'
+import { Search, PlusCircle, FileText, LayoutGrid, List, X, Edit3, Trash2 } from 'lucide-react'
 import CreateCategoryOrKeywordModal from '../../../../components/Category-previewComponents/addKeywordModal'
+import EditCategoryModal from '../../../../components/Category-previewComponents/EditCategoryModal'
+import EditKeywordModal from '../../../../components/Category-previewComponents/EditKeywordModal'
 
 type Category = {
   id?: number | null
@@ -34,6 +36,20 @@ const CategoriesPreview: FC = () => {
   const [keywords, setKeywords] = useState<Keyword[]>([]) // Zmieniono z items na keywords
   const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [keywordsLoading, setKeywordsLoading] = useState(false)
+  // State for editing category via modal
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  // State for editing keyword via modal
+  const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null)
+  const [isEditKeywordModalOpen, setIsEditKeywordModalOpen] = useState(false)
+  // status popup for deletion/addition
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  // auto-dismiss status popup
+  useEffect(() => {
+    if (!statusMessage) return
+    const timer = setTimeout(() => setStatusMessage(null), 3000)
+    return () => clearTimeout(timer)
+  }, [statusMessage])
   
   useEffect(() => {
     const fetchCategories = async () => {
@@ -100,15 +116,6 @@ const CategoriesPreview: FC = () => {
     fetchKeywords()
   }, [])
 
-  // helpery do dodawania/usuwania słów kluczowych
-  const handleAddKeyword = (category: Category, keyword: string) => {
-    if (!keyword || !category?.id) return
-    setCategories(prev =>
-      prev.map(c =>
-        c.id === category.id ? { ...c, keywords: [...(c.keywords ?? []), keyword] } : c
-      )
-    )
-  }
 
   const handleRemoveKeyword = (category: Category, keyword: string) => {
     if (!category?.id) return
@@ -139,29 +146,191 @@ const CategoriesPreview: FC = () => {
     )
   }, [query, keywords])
 
-  const handleAddCategoryOrKeyword = (data: { type: 'category' | 'keyword'; name: string; description?: string; categoryId?: number }) => {
+  // replace handleAddCategoryOrKeyword to use API for categories
+  const handleAddCategoryOrKeyword = async (data: { type: 'category' | 'keyword'; name: string; description?: string; categoryId?: number }) => {
+    const authToken = localStorage.getItem('authToken')
     if (data.type === 'category') {
-      setCategories(prev => [
-        ...prev,
-        {
-          id: (prev.length ? Math.max(...prev.map(p => p.id ?? 0)) + 1 : 1),
-          name: data.name,
-          description: data.description,
-          keywords: [],
-        },
-      ])
-    } else if (data.type === 'keyword' && data.categoryId) {
-      setCategories(prev =>
-        prev.map(c =>
-          c.id === data.categoryId ? { ...c, keywords: [...(c.keywords ?? []), data.name] } : c
-        )
-      )
+      if (!authToken) {
+        console.error('Brak tokenu autoryzacji')
+        return
+      }
+      try {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ name: data.name, description: data.description }),
+        })
+        if (!res.ok) throw new Error('Failed to create category')
+        const created = await res.json()
+        setCategories(prev => [
+          ...prev,
+          { id: created.id, name: created.name, description: created.description, keywords: [] },
+        ])
+      } catch (err) {
+        console.error('Error creating category:', err)
+      }
+    } else if (data.type === 'keyword') {
+      if (!authToken) {
+        console.error('Brak tokenu autoryzacji')
+        return
+      }
+      try {
+        const res = await fetch('/api/keywords', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ value: data.name.toLowerCase() }),
+        })
+        if (!res.ok) throw new Error('Failed to create keyword')
+        const created = await res.json()
+        setKeywords(prev => [
+          ...prev,
+          { id: created.id, value: created.value.toLowerCase(), itemsCount: 0 },
+        ])
+      } catch (err) {
+        console.error('Error creating keyword:', err)
+      }
     }
     setIsModalOpen(false)
   }
 
+  // Open edit modal for category
+  const handleEditCategory = (category: Category) => {
+    if (!category.id) return
+    setEditingCategory(category)
+    setIsEditModalOpen(true)
+  }
+
+  // Update category via API and state
+  const handleUpdateCategory = async (data: { id: number; name: string; description?: string }) => {
+    const authToken = localStorage.getItem('authToken')
+    if (!authToken) {
+      console.error('Brak tokenu autoryzacji')
+      return
+    }
+    try {
+      const res = await fetch(`/api/categories/${data.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ name: data.name, description: data.description }),
+      })
+      if (!res.ok) throw new Error('Failed to update category')
+      const updated = await res.json()
+      setCategories(prev =>
+        prev.map(c =>
+          c.id === updated.id ? { ...c, name: updated.name, description: updated.description, keywords: c.keywords } : c
+        )
+      )
+    } catch (err) {
+      console.error('Error updating category:', err)
+    } finally {
+      setIsEditModalOpen(false)
+      setEditingCategory(null)
+    }
+  }
+
+  // Delete category via API
+  const handleDeleteCategory = async (category: Category) => {
+    if (!category.id) return
+  // confirmation handled in modal
+    const authToken = localStorage.getItem('authToken')
+    if (!authToken) {
+      console.error('Brak tokenu autoryzacji')
+      return
+    }
+    try {
+      const res = await fetch(`/api/categories/${category.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
+      if (!res.ok) throw new Error('Failed to delete category')
+      setCategories(prev => prev.filter(c => c.id !== category.id))
+    } catch (err) {
+      console.error('Error deleting category:', err)
+    }
+  }
+  const handleDeleteCategoryById = async (id: number) => {
+    const category = categories.find(c => c.id === id)
+    if (category) {
+      await handleDeleteCategory(category)
+      setIsEditModalOpen(false)
+      setEditingCategory(null)
+      setStatusMessage('Usunięto kategorię pomyślnie')
+    }
+  }
+  // Update keyword via API and state
+  const handleUpdateKeyword = async (data: { id: number; value: string }) => {
+    const authToken = localStorage.getItem('authToken')
+    if (!authToken) {
+      console.error('Brak tokenu autoryzacji')
+      return
+    }
+    try {
+      const res = await fetch(`/api/keywords/${data.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ value: data.value }),
+      })
+      if (!res.ok) throw new Error('Failed to update keyword')
+      const updated = await res.json()
+      setKeywords(prev =>
+        prev.map(k => (k.id === updated.id ? { ...k, value: updated.value } : k))
+      )
+      setStatusMessage('Zaktualizowano słowo kluczowe pomyślnie')
+    } catch (err) {
+      console.error('Error updating keyword:', err)
+    } finally {
+      setIsEditKeywordModalOpen(false)
+      setEditingKeyword(null)
+    }
+  }
+
+  // Delete keyword via API
+  const handleDeleteKeyword = async (id: number) => {
+    const authToken = localStorage.getItem('authToken')
+    if (!authToken) {
+      console.error('Brak tokenu autoryzacji')
+      return
+    }
+    try {
+      const res = await fetch(`/api/keywords/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
+      if (!res.ok) throw new Error('Failed to delete keyword')
+      setKeywords(prev => prev.filter(k => k.id !== id))
+      setStatusMessage('Usunięto słowo kluczowe pomyślnie')
+    } catch (err) {
+      console.error('Error deleting keyword:', err)
+    } finally {
+      setIsEditKeywordModalOpen(false)
+      setEditingKeyword(null)
+    }
+  }
+
   return (
     <main className="p-4 md:p-6 lg:p-8">
+      {/* Status popup */}
+      {statusMessage && (
+        <div className="fixed top-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded shadow">
+          {statusMessage}
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-main">Kategorie i słowa kluczowe</h2>
@@ -213,7 +382,11 @@ const CategoriesPreview: FC = () => {
             <div className="text-sm text-secondary">Ilość: {filteredCategories.length}</div>
           </div>
 
-          {filteredCategories.length === 0 ? (
+          {categoriesLoading ? (
+            <div className="py-8 text-center text-sm text-secondary">
+              Ładowanie kategorii...
+            </div>
+          ) : filteredCategories.length === 0 ? (
             <EmptyState label="Brak kategorii w bazie" />
           ) : view === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -247,8 +420,16 @@ const CategoriesPreview: FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleEditCategory(c)} className="p-1 text-secondary hover:text-main">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
+                        className="p-1 text-red-500 hover:text-red-700"
+                      >
+                        
+                      </button>
                       <button className="px-2 py-1 bg-primary text-white rounded text-xs">+</button>
                     </div>
                   </div>
@@ -263,6 +444,7 @@ const CategoriesPreview: FC = () => {
                     <th className="px-2 py-1.5 w-12">ID</th>
                     <th className="px-2 py-1.5">Nazwa</th>
                     <th className="px-2 py-1.5">Opis</th>
+                    <th className="px-2 py-1.5">Akcje</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,8 +469,16 @@ const CategoriesPreview: FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleEditCategory(c)} className="p-1 text-secondary hover:text-main">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
+                            className="p-1 text-red-500 hover:text-red-700"
+                          >
+                            
+                          </button>
                           <button className="px-1.5 py-0.5 bg-primary text-white rounded text-xs">+</button>
                         </div>
                       </td>
@@ -332,12 +522,13 @@ const CategoriesPreview: FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-1 bg-surface-secondary border border-main rounded text-xs text-secondary">
-                      {k.value}
-                    </span>
-                    <button className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
-                      Usuń
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button className="p-1 text-red-500 hover:text-red-700">
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -360,9 +551,13 @@ const CategoriesPreview: FC = () => {
                       <td className="px-2 py-2 text-main align-top font-medium">{k.value}</td>
                       <td className="px-2 py-2 text-secondary align-top">{k.itemsCount ?? 0}</td>
                       <td className="px-2 py-2 text-secondary align-top">
-                        <button className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
-                          Usuń
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button className="p-1 text-red-500 hover:text-red-700">
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -373,13 +568,31 @@ const CategoriesPreview: FC = () => {
         </section>
       </div>
 
-      {/* Modal */}
+      {/* Modale */}
       <CreateCategoryOrKeywordModal
-         isOpen={isModalOpen}
-         onClose={() => setIsModalOpen(false)} // Zamknij modal
-         onSubmit={handleAddCategoryOrKeyword} // Obsługa dodawania
-         categories={categories.filter(c => c.id != null).map(c => ({ id: c.id!, name: c.name }))} // Przekaż istniejące kategorie
-       />
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)} // Zamknij modal
+        onSubmit={handleAddCategoryOrKeyword} // Obsługa dodawania
+        categories={categories.filter(c => c.id != null).map(c => ({ id: c.id!, name: c.name }))} // Przekaż istniejące kategorie
+      />
+      {editingCategory && (
+        <EditCategoryModal
+          isOpen={isEditModalOpen}
+          onClose={() => { setIsEditModalOpen(false); setEditingCategory(null); }}
+          category={{ id: editingCategory.id!, name: editingCategory.name, description: editingCategory.description }}
+          onSubmit={handleUpdateCategory}
+          onDelete={handleDeleteCategoryById}
+        />
+      )}
+      {editingKeyword && (
+        <EditKeywordModal
+          isOpen={isEditKeywordModalOpen}
+          onClose={() => { setIsEditKeywordModalOpen(false); setEditingKeyword(null); }}
+          keyword={{ id: editingKeyword.id, value: editingKeyword.value }}
+          onSubmit={handleUpdateKeyword}
+          onDelete={handleDeleteKeyword}
+        />
+      )}
      </main>
    )
  }
