@@ -4,12 +4,16 @@ import com.kozimor.wms.Database.Model.Keyword;
 import com.kozimor.wms.Database.Model.DTO.KeywordResponseDTO;
 import com.kozimor.wms.Database.Service.KeywordService;
 import jakarta.validation.Valid;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/keywords")
@@ -81,4 +85,18 @@ public class KeywordController {
         long count = keywordService.getKeywordCount();
         return ResponseEntity.ok(count);
     }
+
+    @GetMapping("/byItemId/{id}")
+    public ResponseEntity<List<KeywordResponseDTO>> getKeywordsByItemId(@PathVariable Long id) {
+        try {
+            List<Keyword> keywords = keywordService.getKeywordsByItemId(id);
+            List<KeywordResponseDTO> response = keywords.stream()
+                    .map(KeywordResponseDTO::fromKeyword)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
 }

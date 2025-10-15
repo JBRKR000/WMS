@@ -86,7 +86,10 @@ public class ItemServiceImpl implements ItemService {
         item.setCategory(itemDetails.getCategory());
         item.setUnit(itemDetails.getUnit());
         item.setCurrentQuantity(itemDetails.getCurrentQuantity());
-        item.setQrCode(itemDetails.getQrCode());
+        // item.setType(itemDetails.getType());
+        // DO NOT update qrCode - it should remain unchanged
+        // item.setQrCode(itemDetails.getQrCode()); 
+        
         // update keywords if provided
         if (itemDetails.getKeywords() != null) {
             java.util.Set<Keyword> resolved = itemDetails.getKeywords().stream().map(k -> {

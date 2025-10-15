@@ -62,4 +62,10 @@ public interface KeywordService {
      * @return List of keywords containing the specified value
      */
     List<Keyword> findKeywordsByValueContaining(String value);
+    /**
+     * Get all keywords associated with an item by its ID
+     * @param itemId The ID of the item
+     * @return List of keywords for the given item
+     */
+    List<Keyword> getKeywordsByItemId(Long itemId);
 }

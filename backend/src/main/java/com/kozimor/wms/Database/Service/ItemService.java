@@ -45,7 +45,7 @@ public interface ItemService {
      * @param item The updated item data
      * @return The updated item
      */
-    Item updateItem(Long id, Item item);
+    Item updateItem(Long id, Item itemDetails);
 
     /**
      * Update item quantity
@@ -66,4 +66,4 @@ public interface ItemService {
     Page<ItemDTO> getItemsPaginated(int page, int size);
     Page<ItemDTO> getProductsAndComponentsPaginated(int page, int size);
     String buildQrUrl(Item item);
-} 
+}

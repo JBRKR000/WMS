@@ -1,4 +1,5 @@
-import { Search, ShoppingCart, Box, Eye, Star, X, Edit3 } from 'lucide-react'
+import { Search, ShoppingCart, Box, Eye, Star, X, Edit3, Trash2 } from 'lucide-react'
+import EditItemModal from '../../../../components/items/editModal'
 import { type FC, useMemo, useState, useEffect } from 'react'
 
 // There is no dedicated Product model in backend — reuse Item fields for Products UI
@@ -29,42 +30,46 @@ const Products: FC = () => {
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('') // holds selected category name
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [favoriteOnly, setFavoriteOnly] = useState(false)
+  const [favoriteOnly] = useState(false)
   const [preview, setPreview] = useState<Product | null>(null)
+  const [editingItem, setEditingItem] = useState<Product | null>(null)
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false)
+  const [deletingItemId, setDeletingItemId] = useState<number | null>(null)
 
   // fetched products list
   const [products, setProducts] = useState<Product[]>([])
   // fetched categories for filtering
   const [categories, setCategories] = useState<Category[]>([])
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) return
-        const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        })
-        if (!res.ok) throw new Error('Failed to load products')
-        const data = await res.json()
-        const prods: Product[] = data.content
-          .filter((item: any) => item.itemType === 'PRODUCT')
-          .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            category: item.categoryName ? { name: item.categoryName } : null,
-            unit: item.unit,
-            currentQuantity: item.currentQuantity,
-            qrCode: item.qrCode,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt
-          }))
-        setProducts(prods)
-      } catch (error) {
-        console.error('Error loading products:', error)
-      }
+  const loadProducts = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken')
+      if (!authToken) return
+      const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      if (!res.ok) throw new Error('Failed to load products')
+      const data = await res.json()
+      const prods: Product[] = data.content
+        .filter((item: any) => item.itemType === 'PRODUCT')
+        .map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          category: item.categoryName ? { name: item.categoryName } : null,
+          unit: item.unit,
+          currentQuantity: item.currentQuantity,
+          qrCode: item.qrCode,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt
+        }))
+      setProducts(prods)
+    } catch (error) {
+      console.error('Error loading products:', error)
     }
+  }
+
+  useEffect(() => {
     loadProducts()
   }, [])
 
@@ -102,6 +107,26 @@ const Products: FC = () => {
       )
     })
   }, [products, query, categoryFilter, favoriteOnly])
+
+  const handleDeleteItem = async (itemId: number) => {
+    try {
+      const authToken = localStorage.getItem('authToken')
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      
+      if (!response.ok) throw new Error('Failed to delete item')
+      
+      // Refresh products list
+      setDeletingItemId(null)
+      await loadProducts()
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      alert('Błąd podczas usuwania produktu')
+      setDeletingItemId(null)
+    }
+  }
 
 
   return (
@@ -144,7 +169,20 @@ const Products: FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
-                  <button onClick={() => { /* TODO: edit product */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                  <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                  <button 
+                    onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                      deletingItemId === p.id 
+                        ? 'border-red-700 bg-red-600 text-white w-32' 
+                        : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4"/>
+                    <span className={`transition-all duration-300 ${deletingItemId === p.id ? 'opacity-100' : 'opacity-100'}`}>
+                      {deletingItemId === p.id ? 'Potwierdź' : 'Usuń'}
+                    </span>
+                  </button>
                 </div>
               </li>
             ))}
@@ -168,7 +206,20 @@ const Products: FC = () => {
                   <div className="text-xs text-secondary">Kategoria: {p.category?.name ?? '-'}</div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
-                    <button onClick={() => { /* TODO: edit product */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button 
+                      onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        deletingItemId === p.id 
+                          ? 'border-red-700 bg-red-600 text-white w-32' 
+                          : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                      }`}
+                    >
+                      <Trash2 className="w-4 h-4"/>
+                      <span className={`transition-all duration-300 ${deletingItemId === p.id ? 'opacity-100' : 'opacity-100'}`}>
+                        {deletingItemId === p.id ? 'Potwierdź' : 'Usuń'}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </article>
@@ -177,8 +228,8 @@ const Products: FC = () => {
         )}
       </section>
 
-      {/* Preview modal UI-only */}
-      {preview && (
+  {/* Preview modal UI-only */}
+  {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg p-6 shadow-xl">
             <div className="flex items-start justify-between gap-3">
@@ -208,6 +259,28 @@ const Products: FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {/* Edit Item Modal UI */}
+      {editingItem && (
+        <EditItemModal
+          isOpen={isEditItemModalOpen}
+          onClose={() => { setIsEditItemModalOpen(false); setEditingItem(null); }}
+          item={{
+            id: editingItem.id!,
+            name: editingItem.name,
+            description: editingItem.description ?? null,
+            categoryName: editingItem.category?.name ?? null,
+            unit: editingItem.unit ?? null,
+            currentQuantity: editingItem.currentQuantity ?? 0,
+            qrCode: editingItem.qrCode ?? null,
+            itemType: 'PRODUCT',
+          }}
+          onSubmit={async () => {
+            setIsEditItemModalOpen(false);
+            setEditingItem(null);
+            await loadProducts(); // Refresh products list
+          }}
+        />
       )}
     </main>
   )

@@ -80,4 +80,12 @@ public class KeywordServiceImpl implements KeywordService {
     public List<Keyword> findKeywordsByValueContaining(String value) {
         return keywordRepository.findByValueContainingIgnoreCase(value);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Keyword> getKeywordsByItemId(Long itemId) {
+        return itemRepository.findById(itemId)
+                .map(item -> List.copyOf(item.getKeywords()))
+                .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + itemId));
+    }
 }

@@ -85,14 +85,33 @@ public class ItemController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Item> updateItem(@PathVariable Long id, @Valid @RequestBody Item item) {
-        try {
-            Item updatedItem = itemService.updateItem(id, item);
-            return ResponseEntity.ok(updatedItem);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @RequestBody Item item) {
+    try {
+        Item updatedItem = itemService.updateItem(id, item);
+        
+        // Convert to DTO
+        ItemDTO dto = new ItemDTO();
+        dto.setId(updatedItem.getId());
+        dto.setName(updatedItem.getName());
+        dto.setDescription(updatedItem.getDescription());
+        dto.setCategoryName(updatedItem.getCategory() != null ? updatedItem.getCategory().getName() : null);
+        dto.setUnit(updatedItem.getUnit());
+        dto.setCurrentQuantity(updatedItem.getCurrentQuantity());
+        dto.setQrCode(updatedItem.getQrCode());
+        dto.setItemType(updatedItem.getType());
+        dto.setCreatedAt(
+                updatedItem.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        dto.setUpdatedAt(
+                updatedItem.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        dto.setKeywords(updatedItem.getKeywords() != null
+                ? updatedItem.getKeywords().stream().map(k -> k.getValue()).collect(java.util.stream.Collectors.toSet())
+                : java.util.Collections.emptySet());
+        
+        return ResponseEntity.ok(dto);
+    } catch (Exception e) {
+        return ResponseEntity.notFound().build();
     }
+}
 
     @PatchMapping("/{id}/quantity")
     public ResponseEntity<Item> updateItemQuantity(

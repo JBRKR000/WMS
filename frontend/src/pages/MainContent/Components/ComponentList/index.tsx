@@ -1,4 +1,5 @@
-import { Search, Tag, Box, Eye, X, Download, Edit3 } from 'lucide-react'
+import { Search, Tag, Box, Eye, X, Edit3, Trash2 } from 'lucide-react'
+import EditItemModal from '../../../../components/items/editModal'
 import { type FC, useMemo, useState, useEffect } from 'react'
 
 // DTO model from backend for paginated PRODUCTS and COMPONENTS
@@ -34,24 +35,28 @@ const ComponentList: FC = () => {
   const [view, setView] = useState<'cards' | 'compact'>('cards')
   const [modal, setModal] = useState<ItemDTO | null>(null)
   const [items, setItems] = useState<ItemDTO[]>([])
+  const [editingItem, setEditingItem] = useState<ItemDTO | null>(null)
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false)
+  const [deletingItemId, setDeletingItemId] = useState<number | null>(null)
 
   // fetch paginated items and filter only COMPONENTS
-  useEffect(() => {
-    const loadComponents = async () => {
-      try {
-        const authToken = localStorage.getItem('authToken')
-        if (!authToken) return
-        const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        })
-        if (!res.ok) throw new Error('Failed to load components')
-        const data = await res.json()
-        const comps: ItemDTO[] = data.content.filter((item: ItemDTO) => item.itemType === 'COMPONENT')
-        setItems(comps)
-      } catch (error) {
-        console.error('Error loading components:', error)
-      }
+  const loadComponents = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken')
+      if (!authToken) return
+      const res = await fetch(`/api/items/getProductsAndComponentsPaginated?page=0&size=100`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      if (!res.ok) throw new Error('Failed to load components')
+      const data = await res.json()
+      const comps: ItemDTO[] = data.content.filter((item: ItemDTO) => item.itemType === 'COMPONENT')
+      setItems(comps)
+    } catch (error) {
+      console.error('Error loading components:', error)
     }
+  }
+
+  useEffect(() => {
     loadComponents()
   }, [])
 
@@ -74,6 +79,26 @@ const ComponentList: FC = () => {
       )
     })
   }, [items, query])
+
+  const handleDeleteItem = async (itemId: number) => {
+    try {
+      const authToken = localStorage.getItem('authToken')
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      
+      if (!response.ok) throw new Error('Failed to delete item')
+      
+      // Refresh components list
+      setDeletingItemId(null)
+      await loadComponents()
+    } catch (error) {
+      console.error('Error deleting component:', error)
+      alert('Błąd podczas usuwania komponentu')
+      setDeletingItemId(null)
+    }
+  }
 
   // Removed unused formatDate function
 
@@ -122,8 +147,20 @@ const ComponentList: FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
-                  <button onClick={() => { /* TODO: edit component */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
-                  <button className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Download className="w-4 h-4"/>CSV</button>
+                  <button onClick={() => { setEditingItem(it); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                  <button 
+                    onClick={() => deletingItemId === it.id ? handleDeleteItem(it.id) : setDeletingItemId(it.id)}
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                      deletingItemId === it.id 
+                        ? 'border-red-700 bg-red-600 text-white w-32' 
+                        : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4"/>
+                    <span className={`transition-all duration-300 ${deletingItemId === it.id ? 'opacity-100' : 'opacity-100'}`}>
+                      {deletingItemId === it.id ? 'Potwierdź' : 'Usuń'}
+                    </span>
+                  </button>
                 </div>
               </li>
             ))}
@@ -148,8 +185,20 @@ const ComponentList: FC = () => {
                   <div className="text-xs text-secondary">Kategoria: {it.categoryName ?? '-'}</div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                     <button onClick={() => setModal(it)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Szczegóły</button>
-                    <button onClick={() => { /* TODO: edit component */ }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
-                    <button className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Download className="w-4 h-4"/>CSV</button>
+                    <button onClick={() => { setEditingItem(it); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button 
+                      onClick={() => deletingItemId === it.id ? handleDeleteItem(it.id) : setDeletingItemId(it.id)}
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        deletingItemId === it.id 
+                          ? 'border-red-700 bg-red-600 text-white w-32' 
+                          : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                      }`}
+                    >
+                      <Trash2 className="w-4 h-4"/>
+                      <span className={`transition-all duration-300 ${deletingItemId === it.id ? 'opacity-100' : 'opacity-100'}`}>
+                        {deletingItemId === it.id ? 'Potwierdź' : 'Usuń'}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </article>
@@ -189,6 +238,30 @@ const ComponentList: FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <EditItemModal
+          isOpen={isEditItemModalOpen}
+          onClose={() => { setIsEditItemModalOpen(false); setEditingItem(null); }}
+          item={{
+            id: editingItem.id,
+            name: editingItem.name,
+            description: editingItem.description ?? null,
+            categoryName: editingItem.categoryName ?? null,
+            unit: editingItem.unit ?? null,
+            currentQuantity: editingItem.currentQuantity ?? 0,
+            qrCode: editingItem.qrCode ?? null,
+            itemType: 'COMPONENT',
+            keywords: editingItem.keywords ?? [],
+          }}
+          onSubmit={async () => {
+            setIsEditItemModalOpen(false);
+            setEditingItem(null);
+            await loadComponents(); // Refresh components list
+          }}
+        />
       )}
     </main>
   )
