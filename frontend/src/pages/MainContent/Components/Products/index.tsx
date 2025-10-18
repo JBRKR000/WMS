@@ -159,29 +159,51 @@ const Products: FC = () => {
         {filtered.length === 0 ? (
           <EmptyState />
         ) : view === 'list' ? (
-          <ul className="divide-y divide-main">
+          <ul className="space-y-2">
             {filtered.map((p, idx) => (
-              <li key={p.id ?? idx} className="flex items-center justify-between py-3 px-2 hover:bg-surface-hover rounded-md">
-                <div>
-                  <div className="text-sm text-secondary">#{p.id}</div>
-                  <div className="text-main font-medium">{p.name}</div>
-                  <div className="text-xs text-secondary">{p.category?.name ?? '-'} • {p.currentQuantity ?? '-'} {p.unit ?? ''}</div>
+              <li key={p.id ?? idx} className="group flex items-center justify-between gap-4 px-4 py-3 bg-surface border border-main rounded-lg hover:border-primary hover:shadow-md transition">
+                {/* Lewa strona - informacje */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-4">
+                    {/* ID badge */}
+                    <div className="flex-shrink-0 bg-primary/10 text-primary px-3 py-2 rounded-lg font-bold text-sm">
+                      #{p.id}
+                    </div>
+                    
+                    {/* Główne info */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-main line-clamp-1">{p.name}</h4>
+                      <p className="text-sm text-secondary line-clamp-1 mt-0.5">{p.description ?? 'Brak opisu'}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-secondary">
+                        <span className="inline-flex items-center gap-1 bg-surface-secondary px-2 py-1 rounded">
+                          <span className="font-medium">Kategoria:</span> {p.category?.name ?? '-'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-surface-secondary px-2 py-1 rounded font-bold text-primary">
+                          {p.currentQuantity ?? 0} <span className="text-secondary">{p.unit ?? ''}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Eye className="w-4 h-4"/>Podgląd</button>
-                  <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Edit3 className="w-4 h-4"/>Edytuj</button>
+
+                {/* Prawa strona - akcje */}
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <button onClick={() => setPreview(p)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Eye className="w-4 h-4"/>Podgląd</button>
+                  <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
                   <button 
                     onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border transition-all duration-300 text-sm font-medium ${
                       deletingItemId === p.id 
-                        ? 'border-error bg-error text-white w-32' 
-                        : 'border-error text-error-text bg-surface hover:bg-error-bg w-auto'
+                        ? 'border-error bg-error text-white' 
+                        : 'border-error text-error-text bg-surface hover:bg-error hover:text-white'
                     }`}
                   >
                     <Trash2 className="w-4 h-4"/>
-                    <span className={`transition-all duration-300 ${deletingItemId === p.id ? 'opacity-100' : 'opacity-100'}`}>
-                      {deletingItemId === p.id ? 'Potwierdź' : 'Usuń'}
-                    </span>
+                    <span className="hidden sm:inline">{deletingItemId === p.id ? 'Potwierdź?' : 'Usuń'}</span>
+                  </button>
+                  {/* Mobile: menu ikona */}
+                  <button onClick={() => setPreview(p)} className="sm:hidden p-2 text-secondary hover:text-main">
+                    <Eye className="w-5 h-5"/>
                   </button>
                 </div>
               </li>
@@ -190,35 +212,51 @@ const Products: FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((p, idx) => (
-              <article key={p.id ?? idx} className="p-4 rounded-xl bg-surface border border-main shadow-sm hover:shadow-md transition">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-main">{p.name}</h3>
-                    <p className="text-xs text-secondary mt-1 line-clamp-2">{p.description ?? '-'}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-main">{p.currentQuantity ?? '-'}</div>
-                    <div className="text-xs text-secondary">{p.unit ?? ''}</div>
-                  </div>
+              <article key={p.id ?? idx} className="group relative bg-surface border border-main rounded-xl shadow-sm hover:shadow-lg transform transition hover:-translate-y-1 overflow-hidden">
+                {/* Header bar z kategorią */}
+                <div className="bg-primary/10 px-4 py-2 border-b border-main/20">
+                  <div className="text-xs font-medium text-primary uppercase tracking-wide">{p.category?.name ?? 'Brak kategorii'}</div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs text-secondary">Kategoria: {p.category?.name ?? '-'}</div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Eye className="w-4 h-4"/>Podgląd</button>
-                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                {/* Główna zawartość */}
+                <div className="p-4">
+                  {/* ID i nazwa */}
+                  <div className="mb-3">
+                    <div className="text-xs text-secondary mb-1">ID #{p.id}</div>
+                    <h3 className="text-base font-bold text-main line-clamp-2">{p.name}</h3>
+                  </div>
+
+                  {/* Opis */}
+                  <p className="text-sm text-secondary line-clamp-2 mb-4">{p.description ?? 'Brak opisu'}</p>
+
+                  {/* Info row - ilość i jednostka */}
+                  <div className="bg-surface-secondary rounded-lg p-3 mb-4 border border-main/10">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-secondary uppercase tracking-wide">Dostępna ilość</div>
+                        <div className="text-2xl font-bold text-main mt-1">{p.currentQuantity ?? 0}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-secondary uppercase tracking-wide">Jednostka</div>
+                        <div className="text-lg font-semibold text-primary mt-1">{p.unit ?? '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Akcje */}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                    <button onClick={() => setPreview(p)} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Eye className="w-4 h-4"/>Podgląd</button>
+                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
                     <button 
                       onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                      className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg border transition-all duration-300 text-sm font-medium ${
                         deletingItemId === p.id 
-                          ? 'border-error bg-error text-white w-32' 
-                          : 'border-error text-error-text bg-surface hover:bg-error-bg w-auto'
+                          ? 'border-error bg-error text-white' 
+                          : 'border-error text-error-text bg-surface hover:bg-error hover:text-white'
                       }`}
                     >
                       <Trash2 className="w-4 h-4"/>
-                      <span className={`transition-all duration-300 ${deletingItemId === p.id ? 'opacity-100' : 'opacity-100'}`}>
-                        {deletingItemId === p.id ? 'Potwierdź' : 'Usuń'}
-                      </span>
+                      <span>{deletingItemId === p.id ? 'Potwierdź?' : 'Usuń'}</span>
                     </button>
                   </div>
                 </div>
