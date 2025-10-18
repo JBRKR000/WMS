@@ -66,4 +66,27 @@ public interface ItemService {
     Page<ItemDTO> getItemsPaginated(int page, int size);
     Page<ItemDTO> getProductsAndComponentsPaginated(int page, int size);
     String buildQrUrl(Item item);
+
+    /**
+     * Advanced search with multiple criteria
+     * @param itemType Filter by item type (PRODUCT, COMPONENT, MATERIAL) - optional
+     * @param categoryId Filter by category ID - optional
+     * @param unit Filter by unit (PCS, KG, LITER, METER) - optional
+     * @param minQuantity Filter by minimum quantity - optional
+     * @param maxQuantity Filter by maximum quantity - optional
+     * @param keywords Filter by keywords (comma-separated or single) - optional
+     * @param page Page number (default 0)
+     * @param size Page size (default 10)
+     * @return Page of ItemDTO matching the criteria
+     */
+    Page<ItemDTO> searchItems(
+            String itemType,
+            Long categoryId,
+            String unit,
+            Integer minQuantity,
+            Integer maxQuantity,
+            String keywords,
+            int page,
+            int size
+    );
 }

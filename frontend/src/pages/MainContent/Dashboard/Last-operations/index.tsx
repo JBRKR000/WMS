@@ -1,5 +1,5 @@
 import { type FC, useEffect, useState } from 'react';
-import { Search, Download, FileText } from 'lucide-react';
+import { Search, FileText } from 'lucide-react';
 
 // Minimal types matching backend Transaction model
 type Category = { id?: number | null; name: string }
@@ -123,13 +123,13 @@ const LastOperations: FC = () => {
           <p className="text-sm text-secondary mt-1">Lista transakcji (receipt / issue / return) z bazy danych</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center bg-white dark:bg-transparent border border-main rounded-2xl px-2 py-1 w-full sm:w-64">
+          <div className="flex items-center bg-surface border border-main rounded-2xl px-2 py-1 w-full sm:w-64">
             <Search className="h-4 w-4 text-secondary mr-2" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Szukaj po ID, item, user, typ"
-              className="w-full px-4 py-2 bg-white dark:bg-gray-800/30 backdrop-blur-sm border border-main dark:border-gray-600/30 rounded-2xl text-main dark:text-gray-100 placeholder-secondary dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 focus:border-emerald-400/50 dark:focus:border-emerald-500/50 transition-all duration-300 text-sm"
+              className="w-full px-4 py-2 bg-surface rounded-2xl text-main placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300 text-sm"
             />
           </div>
         </div>
@@ -148,7 +148,7 @@ const LastOperations: FC = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-secondary bg-surface">
+                <tr className="text-left text-secondary bg-surface-secondary">
                   <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Data</th>
                   <th className="px-3 py-2">Typ</th>
@@ -163,16 +163,16 @@ const LastOperations: FC = () => {
                 {filtered.map((t, idx) => (
                   <tr
                     key={t.id ?? idx}
-                    className="border-t border-main hover:bg-surface-hover odd:bg-white even:bg-surface dark:odd:bg-gray-800 dark:even:bg-gray-900"
+                    className="border-t border-main hover:bg-surface-hover odd:bg-surface even:bg-surface-secondary"
                   >
-                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.id ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{formatDate(t.transactionDate)}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.id ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{formatDate(t.transactionDate)}</td>
                     <td className="px-3 py-2 align-top">{typeBadge(t.transactionType)}</td>
-                    <td className="px-3 py-2 text-main dark:text-gray-100 align-top">{t.item?.name ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.item?.category?.name?? '-'}</td>
-                    <td className="px-3 py-2 text-main dark:text-gray-100 align-top">{t.quantity}</td>
-                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.user?.username ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary dark:text-gray-400 align-top">{t.description ?? '-'}</td>
+                    <td className="px-3 py-2 text-main align-top">{t.item?.name ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.item?.category?.name?? '-'}</td>
+                    <td className="px-3 py-2 text-main align-top">{t.quantity}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.user?.username ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top">{t.description ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>

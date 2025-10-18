@@ -327,7 +327,7 @@ const CategoriesPreview: FC = () => {
     <main className="p-4 md:p-6 lg:p-8">
       {/* Status popup */}
       {statusMessage && (
-        <div className="fixed top-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded shadow">
+        <div className="fixed top-4 right-4 bg-success text-white px-4 py-2 rounded shadow">
           {statusMessage}
         </div>
       )}
@@ -338,13 +338,13 @@ const CategoriesPreview: FC = () => {
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="flex items-center bg-white dark:bg-transparent border border-main rounded-2xl px-2 py-1 w-full lg:w-64">
+          <div className="flex items-center bg-surface border border-main rounded-2xl px-2 py-1 w-full lg:w-64">
             <Search className="h-4 w-4 text-secondary mr-2" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Szukaj nazwy, opisu lub słów kluczowych"
-              className="w-full px-4 py-2 bg-white dark:bg-gray-800/30 border border-transparent rounded-2xl text-main dark:text-gray-100 placeholder-secondary dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/50 transition-all duration-300 text-sm"
+              className="w-full px-4 py-2 bg-surface border border-transparent rounded-2xl text-main placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300 text-sm"
             />
           </div>
 
@@ -391,7 +391,7 @@ const CategoriesPreview: FC = () => {
           ) : view === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredCategories.map((c, idx) => (
-                <div key={c.id ?? idx} className="bg-white border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div key={c.id ?? idx} className="bg-surface border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -409,7 +409,7 @@ const CategoriesPreview: FC = () => {
                       {(c.keywords ?? []).slice(0, 3).map((keyword, i) => (
                         <span key={i} className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary flex items-center gap-1">
                           {keyword.length > 8 ? keyword.slice(0, 8) + '...' : keyword}
-                          <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-red-500 hover:text-red-700">
+                          <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-error-text hover:text-error">
                             <X className="w-2.5 h-2.5" />
                           </button>
                         </span>
@@ -426,9 +426,9 @@ const CategoriesPreview: FC = () => {
                       </button>
                       <button
                         onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
-                        className="p-1 text-red-500 hover:text-red-700"
+                        className="p-1 text-error-text hover:text-error"
                       >
-                        
+                        <Trash2 className="w-4 h-4" />
                       </button>
                       <button className="px-2 py-1 bg-primary text-white rounded text-xs">+</button>
                     </div>
@@ -440,7 +440,7 @@ const CategoriesPreview: FC = () => {
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
                 <thead>
-                  <tr className="text-left text-secondary bg-surface">
+                  <tr className="text-left text-secondary bg-surface-secondary">
                     <th className="px-2 py-1.5 w-12">ID</th>
                     <th className="px-2 py-1.5">Nazwa</th>
                     <th className="px-2 py-1.5">Opis</th>
@@ -449,7 +449,7 @@ const CategoriesPreview: FC = () => {
                 </thead>
                 <tbody>
                   {filteredCategories.map((c, idx) => (
-                    <tr key={c.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
+                    <tr key={c.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-surface' : 'bg-surface-secondary'} hover:bg-surface-hover`}>
                       <td className="px-2 py-2 text-secondary align-top font-mono">#{c.id}</td>
                       <td className="px-2 py-2 text-main align-top font-medium">{c.name}</td>
                       <td className="px-2 py-2 text-secondary align-top max-w-32 truncate">{c.description ?? '-'}</td>
@@ -458,7 +458,7 @@ const CategoriesPreview: FC = () => {
                           {(c.keywords ?? []).slice(0, 4).map((keyword, i) => (
                             <span key={i} className="px-1.5 py-0.5 bg-surface-secondary border border-main rounded text-xs text-secondary flex items-center gap-1">
                               {keyword.length > 10 ? keyword.slice(0, 10) + '...' : keyword}
-                              <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-red-500 hover:text-red-700">
+                              <button onClick={() => handleRemoveKeyword(c, keyword)} className="text-error-text hover:text-error">
                                 <X className="w-2.5 h-2.5" />
                               </button>
                             </span>
@@ -475,9 +475,9 @@ const CategoriesPreview: FC = () => {
                           </button>
                           <button
                             onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
-                            className="p-1 text-red-500 hover:text-red-700"
+                            className="p-1 text-error-text hover:text-error"
                           >
-                            
+                            <Trash2 className="w-4 h-4" />
                           </button>
                           <button className="px-1.5 py-0.5 bg-primary text-white rounded text-xs">+</button>
                         </div>
@@ -506,7 +506,7 @@ const CategoriesPreview: FC = () => {
           ) : view === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredKeywords.map((k) => (
-                <div key={k.id} className="bg-white border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                <div key={k.id} className="bg-surface border border-main rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -526,7 +526,8 @@ const CategoriesPreview: FC = () => {
                       <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button className="p-1 text-red-500 hover:text-red-700">
+                      <button onClick={() => handleDeleteKeyword(k.id)} className="p-1 text-error-text hover:text-error">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -537,7 +538,7 @@ const CategoriesPreview: FC = () => {
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
                 <thead>
-                  <tr className="text-left text-secondary bg-surface">
+                  <tr className="text-left text-secondary bg-surface-secondary">
                     <th className="px-2 py-1.5 w-12">ID</th>
                     <th className="px-2 py-1.5">Wartość</th>
                     <th className="px-2 py-1.5">Przedmioty</th>
@@ -546,7 +547,7 @@ const CategoriesPreview: FC = () => {
                 </thead>
                 <tbody>
                   {filteredKeywords.map((k, idx) => (
-                    <tr key={k.id} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
+                    <tr key={k.id} className={`border-t border-main ${idx % 2 === 0 ? 'bg-surface' : 'bg-surface-secondary'} hover:bg-surface-hover`}>
                       <td className="px-2 py-2 text-secondary align-top font-mono">#{k.id}</td>
                       <td className="px-2 py-2 text-main align-top font-medium">{k.value}</td>
                       <td className="px-2 py-2 text-secondary align-top">{k.itemsCount ?? 0}</td>
@@ -555,7 +556,8 @@ const CategoriesPreview: FC = () => {
                           <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
                             <Edit3 className="w-4 h-4" />
                           </button>
-                          <button className="p-1 text-red-500 hover:text-red-700">
+                          <button onClick={() => handleDeleteKeyword(k.id)} className="p-1 text-error-text hover:text-error">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

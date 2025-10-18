@@ -2,25 +2,6 @@ import { useEffect, useState, type FC } from 'react'
 import QRCode from 'react-qr-code'
 
 // Types mirroring backend models
-type Category = {
-  id: number | null
-  name: string
-  description?: string | null
-}
-
-type Role = {
-  id: number | null
-  roleName: string
-}
-
-type User = {
-  id: number | null
-  username: string
-  email: string
-  firstName?: string | null
-  lastName?: string | null
-  role?: Role | null
-}
 
 type Item = {
   id: number | null
@@ -194,7 +175,7 @@ const SummaryPage: FC = () => {
       {/* QR code modal overlay */}
       {modalQr && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setModalQr(null)}>
-          <div className="bg-white p-4 rounded" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface p-4 rounded border border-main" onClick={e => e.stopPropagation()}>
             <QRCode value={modalQr} size={256} />
           </div>
         </div>
@@ -236,7 +217,7 @@ const SummaryPage: FC = () => {
                       section.setPage(0);
                     }
                   }}
-                  className="border border-main rounded px-2 py-1 text-sm bg-surface text-main"
+                  className="border border-main rounded px-2 py-1 text-sm bg-surface text-main focus:ring-2 focus:ring-primary/40 focus:outline-none"
                   min="1"
                 />
               </div>
@@ -299,7 +280,7 @@ const SummaryPage: FC = () => {
               <button
                 onClick={() => section.setPage(section.page - 1)}
                 disabled={section.page === 0}
-                className={`px-4 py-2 rounded transition-colors ${section.page === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
+                className={`px-4 py-2 rounded transition-colors ${section.page === 0 ? 'bg-surface-secondary text-secondary cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
               >
                 Poprzednia
               </button>
@@ -309,7 +290,7 @@ const SummaryPage: FC = () => {
               <button
                 onClick={() => section.setPage(section.page + 1)}
                 disabled={section.page === section.totalPages - 1}
-                className={`px-4 py-2 rounded transition-colors ${section.page === section.totalPages - 1 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
+                className={`px-4 py-2 rounded transition-colors ${section.page === section.totalPages - 1 ? 'bg-surface-secondary text-secondary cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
               >
                 Następna
               </button>

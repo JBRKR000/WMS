@@ -173,6 +173,37 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
         Page<ItemDTO> products = itemService.getProductsAndComponentsPaginated(page, size);
         return ResponseEntity.ok(products);
     }
-    
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ItemDTO>> searchItems(
+            @RequestParam(required = false) String itemType,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String unit,
+            @RequestParam(required = false) Integer minQuantity,
+            @RequestParam(required = false) Integer maxQuantity,
+            @RequestParam(required = false) String keywords,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String unitEnum = null;
+        if (unit != null && !unit.isEmpty()) {
+            try {
+                unitEnum = unit; 
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        
+        Page<ItemDTO> results = itemService.searchItems(
+                itemType,
+                categoryId,
+                unitEnum,
+                minQuantity,
+                maxQuantity,
+                keywords,
+                page,
+                size
+        );
+        return ResponseEntity.ok(results);
+    }
 
 }

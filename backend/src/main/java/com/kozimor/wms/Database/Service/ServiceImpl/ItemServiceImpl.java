@@ -4,6 +4,7 @@ import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.Keyword;
 import com.kozimor.wms.Database.Model.DTO.ItemDTO;
 import com.kozimor.wms.Database.Model.ItemType;
+import com.kozimor.wms.Database.Model.UnitType;
 import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Repository.KeywordRepository;
 import com.kozimor.wms.Database.Service.ItemService;
@@ -181,6 +182,79 @@ public class ItemServiceImpl implements ItemService {
                 dto.setKeywords(kw);
                 return dto;
             });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ItemDTO> searchItems(
+            String itemType,
+            Long categoryId,
+            String unit,
+            Integer minQuantity,
+            Integer maxQuantity,
+            String keywords,
+            int page,
+            int size) {
+        
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        PageRequest pageable = PageRequest.of(page, size);
+        
+        // Convert itemType string to enum, null if not provided
+        ItemType type = null;
+        if (itemType != null && !itemType.isBlank()) {
+            try {
+                type = ItemType.valueOf(itemType.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                type = null;
+            }
+        }
+        
+        // Convert unit string to UnitType enum, null if not provided
+        UnitType unitEnum = null;
+        if (unit != null && !unit.isBlank()) {
+            try {
+                unitEnum = UnitType.valueOf(unit.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                unitEnum = null;
+            }
+        }
+        
+        // Format keywords with wildcards for ILIKE search
+        String keywordsPattern = null;
+        if (keywords != null && !keywords.isBlank()) {
+            keywordsPattern = "%" + keywords + "%";
+        }
+        
+        // Search items using repository query
+        Page<Item> results = itemRepository.searchItems(
+                type,
+                categoryId,
+                unitEnum,
+                minQuantity,
+                maxQuantity,
+                keywordsPattern,
+                pageable
+        );
+        
+        // Convert to DTO
+        return results.map(item -> {
+            ItemDTO dto = new ItemDTO();
+            dto.setId(item.getId());
+            dto.setName(item.getName());
+            dto.setDescription(item.getDescription());
+            dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+            dto.setUnit(item.getUnit());
+            dto.setCurrentQuantity(item.getCurrentQuantity());
+            dto.setQrCode(item.getQrCode());
+            dto.setItemType(item.getType());
+            dto.setCreatedAt(item.getCreatedAt().format(fmt));
+            dto.setUpdatedAt(item.getUpdatedAt().format(fmt));
+            Set<String> kw = item.getKeywords() == null
+                ? java.util.Collections.emptySet()
+                : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
+            dto.setKeywords(kw);
+            return dto;
+        });
     }
 
 }

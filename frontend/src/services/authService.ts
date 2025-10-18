@@ -26,6 +26,10 @@ interface RefreshResponse {
   expiresInMs: number;
 }
 
+// Flaga aby uniknąć wielokrotnych requestów refresh jednocześnie
+let isRefreshingToken = false;
+let refreshPromise: Promise<string | null> | null = null;
+
 export const AuthService = {
 
   // LOGOWANIE
@@ -43,29 +47,59 @@ export const AuthService = {
     return response;
   },
 
-  // REFRESH TOKEN
+  // REFRESH TOKEN - pobiera nowy access token z backendu
   refreshToken: async (): Promise<string | null> => {
     const refreshToken = localStorage.getItem('refreshToken');
     const refreshExpiry = localStorage.getItem('refreshTokenExpiry');
     
+    // 1. Sprawdź czy refresh token wygasł
     if (!refreshToken || !refreshExpiry || Date.now() >= Number(refreshExpiry)) {
+      console.warn('Refresh token expired or missing');
       AuthService.logout();
       return null;
     }
 
+    // 2. Jeśli już trwa refresh, czekaj na wynik zamiast requestować ponownie
+    if (isRefreshingToken && refreshPromise) {
+      return refreshPromise;
+    }
+
+    isRefreshingToken = true;
     try {
-      const response = await fetchApi<RefreshResponse>('/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken }),
-      });
-      
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('tokenExpiry', String(Date.now() + response.expiresInMs));
-      
-      return response.token;
-    } catch (error) {
-      AuthService.logout();
-      return null;
+      // 3. Wyślij refresh token na backend aby uzyskać nowy access token
+      refreshPromise = (async () => {
+        try {
+          const response = await fetch('http://localhost:8080/api/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          if (!response.ok) {
+            console.error('Refresh token request failed:', response.status);
+            AuthService.logout();
+            return null;
+          }
+
+          const data = await response.json() as RefreshResponse;
+          
+          // 4. Zapisz nowy access token
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('tokenExpiry', String(Date.now() + data.expiresInMs));
+          
+          return data.token;
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          AuthService.logout();
+          return null;
+        }
+      })();
+
+      const result = await refreshPromise;
+      return result;
+    } finally {
+      isRefreshingToken = false;
+      refreshPromise = null;
     }
   },
 
@@ -83,8 +117,11 @@ export const AuthService = {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('tokenExpiry');
     localStorage.removeItem('refreshTokenExpiry');
+    isRefreshingToken = false;
+    refreshPromise = null;
   },
 
+  // Zwróć token jeśli jest ważny, ALBO null jeśli wygasł
   getToken: (): string | null => {
     const token = localStorage.getItem('authToken');
     const expiry = localStorage.getItem('tokenExpiry');
@@ -93,12 +130,18 @@ export const AuthService = {
       return token;
     }
     
-    // Token wygasł - spróbuj odświeżyć
     return null;
   },
 
+  isTokenExpiringSoon: (): boolean => {
+    const expiry = localStorage.getItem('tokenExpiry');
+    if (!expiry) return true;
+    
+    const timeUntilExpiry = Number(expiry) - Date.now();
+    return timeUntilExpiry < 60000;
+  },
+
   isAuthenticated: (): boolean => {
-    // Sprawdź czy refresh token jest ważny
     const refreshToken = localStorage.getItem('refreshToken');
     const refreshExpiry = localStorage.getItem('refreshTokenExpiry');
     

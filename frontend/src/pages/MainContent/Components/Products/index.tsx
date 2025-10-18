@@ -138,19 +138,19 @@ const Products: FC = () => {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center bg-white dark:bg-transparent border border-main rounded-2xl px-3 py-1 w-full md:w-80">
+          <div className="flex items-center bg-surface border border-main rounded-2xl px-3 py-1 w-full md:w-80">
             <Search className="h-4 w-4 text-secondary mr-2" />
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Szukaj produktów" className="w-full bg-white dark:bg-gray-800/30 text-main placeholder-secondary text-sm focus:outline-none" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Szukaj produktów" className="w-full bg-surface text-main placeholder-secondary text-sm focus:outline-none" />
           </div>
 
-          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 bg-white border border-main rounded-2xl text-sm text-main">
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 bg-surface border border-main rounded-2xl text-sm text-main">
             <option value="">Wszystkie kategorie</option>
             {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setView('grid')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'grid' ? 'bg-surface-hover' : 'bg-white'}`}><Box className="w-4 h-4"/></button>
-            <button onClick={() => setView('list')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'list' ? 'bg-surface-hover' : 'bg-white'}`}><Star className="w-4 h-4"/></button>
+            <button onClick={() => setView('grid')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'grid' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Box className="w-4 h-4"/></button>
+            <button onClick={() => setView('list')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'list' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Star className="w-4 h-4"/></button>
           </div>
         </div>
       </div>
@@ -168,14 +168,14 @@ const Products: FC = () => {
                   <div className="text-xs text-secondary">{p.category?.name ?? '-'} • {p.currentQuantity ?? '-'} {p.unit ?? ''}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
-                  <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                  <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Eye className="w-4 h-4"/>Podgląd</button>
+                  <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Edit3 className="w-4 h-4"/>Edytuj</button>
                   <button 
                     onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
                     className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
                       deletingItemId === p.id 
-                        ? 'border-red-700 bg-red-600 text-white w-32' 
-                        : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                        ? 'border-error bg-error text-white w-32' 
+                        : 'border-error text-error-text bg-surface hover:bg-error-bg w-auto'
                     }`}
                   >
                     <Trash2 className="w-4 h-4"/>
@@ -190,7 +190,7 @@ const Products: FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((p, idx) => (
-              <article key={p.id ?? idx} className="p-4 rounded-xl bg-white border border-main shadow-sm hover:shadow-md transition">
+              <article key={p.id ?? idx} className="p-4 rounded-xl bg-surface border border-main shadow-sm hover:shadow-md transition">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-main">{p.name}</h3>
@@ -205,14 +205,14 @@ const Products: FC = () => {
                 <div className="mt-3 flex items-center justify-between">
                   <div className="text-xs text-secondary">Kategoria: {p.category?.name ?? '-'}</div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Eye className="w-4 h-4"/>Podgląd</button>
-                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-white"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button onClick={() => setPreview(p)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Eye className="w-4 h-4"/>Podgląd</button>
+                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-main text-main bg-surface hover:bg-surface-hover"><Edit3 className="w-4 h-4"/>Edytuj</button>
                     <button 
                       onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-300 ease-in-out transform hover:scale-105 ${
                         deletingItemId === p.id 
-                          ? 'border-red-700 bg-red-600 text-white w-32' 
-                          : 'border-red-500 text-red-500 bg-white hover:bg-red-50 w-auto'
+                          ? 'border-error bg-error text-white w-32' 
+                          : 'border-error text-error-text bg-surface hover:bg-error-bg w-auto'
                       }`}
                     >
                       <Trash2 className="w-4 h-4"/>
@@ -231,7 +231,7 @@ const Products: FC = () => {
   {/* Preview modal UI-only */}
   {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg p-6 shadow-xl">
+          <div className="w-full max-w-2xl bg-surface border border-main rounded-lg p-6 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-semibold text-main">{preview.name}</h3>
@@ -254,8 +254,8 @@ const Products: FC = () => {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setPreview(null)} className="px-4 py-2 rounded-full border border-main text-main bg-white">Zamknij</button>
-              <button className="px-4 py-2 rounded-full border border-main text-white bg-emerald-500">Eksportuj</button>
+              <button onClick={() => setPreview(null)} className="px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover">Zamknij</button>
+              <button className="px-4 py-2 rounded-full border border-main text-white bg-primary hover:bg-primary-hover">Eksportuj</button>
             </div>
           </div>
         </div>
