@@ -59,4 +59,13 @@ public interface ItemRepository extends JpaRepository<Item, Long>
             @Param("keywords") String keywords,
             Pageable pageable
     );
+
+    /**
+     * Search items by name (case-insensitive)
+     */
+    @EntityGraph(attributePaths = {"category", "keywords"})
+    @Query("SELECT i FROM Item i " +
+           "WHERE i.name ILIKE :name " +
+           "ORDER BY i.name ASC, i.id DESC")
+    Page<Item> searchItemsByName(@Param("name") String name, Pageable pageable);
 }

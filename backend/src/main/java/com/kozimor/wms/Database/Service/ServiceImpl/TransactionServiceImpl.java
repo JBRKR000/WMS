@@ -14,7 +14,9 @@ import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
 import com.kozimor.wms.Database.Repository.TransactionRepository;
+import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Service.TransactionService;
+import com.kozimor.wms.Database.Model.Item;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -23,14 +25,54 @@ import jakarta.persistence.EntityNotFoundException;
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final ItemRepository itemRepository;
 
-    public TransactionServiceImpl(TransactionRepository transactionRepository) {
+    public TransactionServiceImpl(TransactionRepository transactionRepository, ItemRepository itemRepository) {
         this.transactionRepository = transactionRepository;
+        this.itemRepository = itemRepository;
     }
 
     @Override
     public Transaction createTransaction(Transaction transaction) {
-        return transactionRepository.save(transaction);
+        if (transaction.getQuantity() == null || transaction.getQuantity() <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+        if (transaction.getItem() == null || transaction.getItem().getId() == null) {
+            throw new IllegalArgumentException("Item is required");
+        }
+        if (transaction.getUser() == null || transaction.getUser().getId() == null) {
+            throw new IllegalArgumentException("User is required");
+        }
+        Transaction saved = transactionRepository.save(transaction);
+        Item item = itemRepository.findById(transaction.getItem().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + transaction.getItem().getId()));
+        
+        Integer currentQuantity = item.getCurrentQuantity() != null ? item.getCurrentQuantity() : 0;
+        Integer newQuantity = currentQuantity;
+        
+        switch (transaction.getTransactionType()) {
+            case RECEIPT:
+                newQuantity = currentQuantity + transaction.getQuantity();
+                break;
+            case ISSUE_TO_PRODUCTION:
+            case ISSUE_TO_SALES:
+                if (currentQuantity < transaction.getQuantity()) {
+                    throw new IllegalArgumentException("Insufficient quantity. Available: " + currentQuantity + ", Requested: " + transaction.getQuantity());
+                }
+                newQuantity = currentQuantity - transaction.getQuantity();
+                break;
+            case RETURN:
+                newQuantity = currentQuantity + transaction.getQuantity();
+                break;
+        }
+        if (newQuantity < 0) {
+            newQuantity = 0;
+        }
+        
+        item.setCurrentQuantity(newQuantity);
+        itemRepository.save(item);
+        
+        return saved;
     }
 
     @Override

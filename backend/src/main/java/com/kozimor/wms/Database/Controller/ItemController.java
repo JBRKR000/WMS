@@ -206,4 +206,13 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping("/search/byname")
+    public ResponseEntity<Page<ItemDTO>> searchItemsByName(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<ItemDTO> results = itemService.searchItemsByName(name, page, size);
+        return ResponseEntity.ok(results);
+    }
+
 }
