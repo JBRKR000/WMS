@@ -3,6 +3,7 @@ package com.kozimor.wms.Database.Controller;
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
+import com.kozimor.wms.Database.Model.DTO.TransactionForOrderDTO;
 import com.kozimor.wms.Database.Service.TransactionService;
 import jakarta.validation.Valid;
 
@@ -100,10 +101,16 @@ public class TransactionController {
     }
 
     @GetMapping("/paginated")
-public ResponseEntity<Page<TransactionDTO>> getTransactionsPaginated(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size) {
-    Page<TransactionDTO> transactions = transactionService.getTransactionsPaginated(page, size);
-    return ResponseEntity.ok(transactions);
-}
+    public ResponseEntity<Page<TransactionDTO>> getTransactionsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<TransactionDTO> transactions = transactionService.getTransactionsPaginated(page, size);
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<TransactionForOrderDTO>> getOrderTransactions() {
+        List<TransactionForOrderDTO> transactions = transactionService.getOrderTransactions();
+        return ResponseEntity.ok(transactions);
+    }
 }

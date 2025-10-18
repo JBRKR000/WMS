@@ -18,4 +18,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t WHERE t.transactionDate BETWEEN :startDate AND :endDate")
     List<Transaction> findByDateRange(@Param("startDate") OffsetDateTime startDate, 
                                     @Param("endDate") OffsetDateTime endDate);
+    
+    List<Transaction> findByTransactionTypeOrderByTransactionDateDesc(TransactionType type);
 }

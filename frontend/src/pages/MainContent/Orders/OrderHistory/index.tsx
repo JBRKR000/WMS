@@ -1,17 +1,29 @@
-import { type FC, useMemo, useState } from 'react'
-import { Search, Archive, Eye, Download } from 'lucide-react'
+import { type FC, useEffect, useMemo, useState } from 'react'
+import { Search, Archive, Eye, Download, Clock, CheckCircle, AlertCircle, XCircle, Truck } from 'lucide-react'
+import { TransactionService, type TransactionForOrder } from '../../../../services/transactionService'
 
-// We don't have an Order model in backend. Use Transaction/Item/User fields to build Order-like history UI (UI-only).
-type Item = { id?: number | null; name: string }
-type User = { id?: number | null; username: string }
-type Transaction = {
-  id?: number | null
-  transactionDate?: string | null
-  transactionType: string
-  item?: Item | null
-  quantity: number
-  user?: User | null
-  description?: string | null
+type Transaction = TransactionForOrder & {
+  item?: { id?: number | null; name: string } | null
+  user?: { id?: number | null; username: string } | null
+}
+
+const StatusBadge: FC<{ status: string | null }> = ({ status }) => {
+  const statusMap: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+    PENDING: { label: 'Oczekujące', color: 'text-amber-700', bg: 'bg-amber-100', icon: <Clock className="w-4 h-4" /> },
+    COMPLETED: { label: 'Zrealizowane', color: 'text-green-700', bg: 'bg-green-100', icon: <CheckCircle className="w-4 h-4" /> },
+    IN_PROGRESS: { label: 'W realizacji', color: 'text-blue-700', bg: 'bg-blue-100', icon: <Truck className="w-4 h-4" /> },
+    CANCELLED: { label: 'Anulowane', color: 'text-red-700', bg: 'bg-red-100', icon: <XCircle className="w-4 h-4" /> },
+    FAILED: { label: 'Błąd', color: 'text-red-700', bg: 'bg-red-100', icon: <AlertCircle className="w-4 h-4" /> },
+  }
+  
+  const config = statusMap[status || ''] || { label: status || '-', color: 'text-gray-700', bg: 'bg-gray-100', icon: null }
+  
+  return (
+    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
+      {config.icon}
+      {config.label}
+    </span>
+  )
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak rekordów' }) => (
@@ -33,27 +45,54 @@ const OrderHistory: FC = () => {
   const [to, setTo] = useState('')
   const [view, setView] = useState<'table' | 'timeline'>('table')
   const [detail, setDetail] = useState<Transaction | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
 
-  // placeholder: replace with GET /api/transactions and GET /api/items,GET /api/users
-  const transactions: Transaction[] = []
-  const items: Item[] = []
-  const users: User[] = []
+  useEffect(() => {
+    const fetchOrderTransactions = async () => {
+      try {
+        const data = await TransactionService.getOrderTransactions()
+        // Filtruj tylko zrealizowane i anulowane zamówienia
+        const filteredData = data.filter(t => 
+          t.transactionStatus === 'COMPLETED' || t.transactionStatus === 'CANCELLED'
+        )
+        const mappedData: Transaction[] = filteredData.map(t => ({
+          ...t,
+          item: t.itemId && t.itemName ? { id: t.itemId, name: t.itemName } : null,
+          user: t.userId && t.userName ? { id: t.userId, username: t.userName } : null,
+        }))
+        setTransactions(mappedData)
+      } catch (error) {
+        console.error('Failed to fetch orders:', error)
+      }
+    }
+    fetchOrderTransactions()
+  }, [])
+
+  const items = useMemo(() => 
+    [...new Map(transactions.filter(t => t.item).map(t => [t.item!.id, t.item!])).values()],
+    [transactions]
+  )
+
+  const users = useMemo(() => 
+    [...new Map(transactions.filter(t => t.user).map(t => [t.user!.id, t.user!])).values()],
+    [transactions]
+  )
 
   const results = useMemo(() => {
     const qq = q.trim().toLowerCase()
     return transactions.filter(t => {
-      if (typeFilter && t.transactionType !== typeFilter) return false
-      if (itemFilter && String(t.item?.id) !== itemFilter) return false
-      if (userFilter && String(t.user?.id) !== userFilter) return false
+      if (typeFilter && t.transactionStatus !== typeFilter) return false
+      if (itemFilter && String(t.itemId) !== itemFilter) return false
+      if (userFilter && String(t.userId) !== userFilter) return false
       if (from) { if (!t.transactionDate) return false; if (new Date(t.transactionDate) < new Date(from)) return false }
       if (to) { if (!t.transactionDate) return false; const toD = new Date(to); toD.setHours(23,59,59,999); if (new Date(t.transactionDate) > toD) return false }
       if (!qq) return true
       return (
         String(t.id).includes(qq) ||
-        (t.item?.name ?? '').toLowerCase().includes(qq) ||
-        (t.user?.username ?? '').toLowerCase().includes(qq) ||
+        (t.itemName ?? '').toLowerCase().includes(qq) ||
+        (t.userName ?? '').toLowerCase().includes(qq) ||
         (t.description ?? '').toLowerCase().includes(qq) ||
-        (t.transactionType ?? '').toLowerCase().includes(qq)
+        (t.transactionStatus ?? '').toLowerCase().includes(qq)
       )
     })
   }, [transactions, q, typeFilter, itemFilter, userFilter, from, to])
@@ -68,7 +107,7 @@ const OrderHistory: FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-main">Historia zamówień</h1>
-          <p className="text-sm text-secondary mt-1">Widok oparty na modelu Transaction (id, date, type, item, quantity, user, description). Filtry wielokryterialne po lewej.</p>
+          <p className="text-sm text-secondary mt-1">Archiwum zrealizowanych i anulowanych zamówień. Transakcje pobierane z API (/api/transactions/orders).</p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -84,13 +123,11 @@ const OrderHistory: FC = () => {
       <div className="bg-white border border-main rounded-lg p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-1">
-            <label className="text-xs text-secondary">Typ</label>
+            <label className="text-xs text-secondary">Status</label>
             <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm">
               <option value="">Wszystkie</option>
-              <option value="RECEIPT">PRZYJĘCIE</option>
-              <option value="ISSUE_TO_PRODUCTION">WYDANIE_PROD</option>
-              <option value="ISSUE_TO_SALES">WYDANIE_SPRZED</option>
-              <option value="RETURN">ZWROT</option>
+              <option value="COMPLETED">Zrealizowane</option>
+              <option value="CANCELLED">Anulowane</option>
             </select>
           </div>
           <div className="md:col-span-1">
@@ -125,7 +162,7 @@ const OrderHistory: FC = () => {
 
       <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
         {results.length === 0 ? (
-          <EmptyState label="Brak transakcji" />
+          <EmptyState label="Brak zakończonych transakcji" />
         ) : view === 'table' ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -133,7 +170,7 @@ const OrderHistory: FC = () => {
                 <tr className="text-left text-secondary bg-surface">
                   <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Data</th>
-                  <th className="px-3 py-2">Typ</th>
+                  <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Pozycja</th>
                   <th className="px-3 py-2">Ilość</th>
                   <th className="px-3 py-2">Użytkownik</th>
@@ -143,38 +180,46 @@ const OrderHistory: FC = () => {
               </thead>
               <tbody>
                 {results.map((t, idx) => (
-                  <tr key={t.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover`}>
-                    <td className="px-3 py-2 text-secondary align-top">{t.id}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{formatDate(t.transactionDate)}</td>
-                    <td className="px-3 py-2 align-top">{t.transactionType}</td>
-                    <td className="px-3 py-2 text-main align-top">{t.item?.name ?? '-'}</td>
-                    <td className="px-3 py-2 text-main align-top">{t.quantity}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.user?.username ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top">{t.description ?? '-'}</td>
-                    <td className="px-3 py-2 text-main align-top"><button onClick={() => setDetail(t)} className="px-3 py-1 rounded-full border border-main text-main bg-white inline-flex items-center gap-2"><Eye className="w-4 h-4"/>Szczegóły</button></td>
+                  <tr key={t.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover transition-colors`}>
+                    <td className="px-3 py-2 text-secondary align-top font-mono text-xs">{t.id}</td>
+                    <td className="px-3 py-2 text-secondary align-top text-xs whitespace-nowrap">{formatDate(t.transactionDate)}</td>
+                    <td className="px-3 py-2 align-top"><StatusBadge status={t.transactionStatus} /></td>
+                    <td className="px-3 py-2 text-main align-top font-medium">{t.itemName ?? '-'}</td>
+                    <td className="px-3 py-2 text-main align-top font-semibold">{t.quantity} szt.</td>
+                    <td className="px-3 py-2 text-secondary align-top text-sm">{t.userName ?? '-'}</td>
+                    <td className="px-3 py-2 text-secondary align-top text-xs truncate max-w-xs">{t.description ?? '-'}</td>
+                    <td className="px-3 py-2 text-main align-top"><button onClick={() => setDetail(t)} className="px-2 py-1 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3"/>Szczegóły</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {results.map((t, idx) => (
-              <div key={t.id ?? idx} className="flex items-start gap-4">
-                <div className="w-12 text-xs text-secondary text-right">{formatDate(t.transactionDate)}</div>
-                <div className="flex-1 p-4 rounded-lg bg-white border border-main shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm text-secondary">{t.transactionType}</div>
-                      <div className="text-lg font-semibold text-main">{t.item?.name ?? '-'}</div>
+              <div key={t.id ?? idx} className="flex items-start gap-4 p-4 rounded-lg bg-white border border-main hover:shadow-md transition-shadow">
+                <div className="flex-shrink-0">
+                  <StatusBadge status={t.transactionStatus} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="text-sm font-mono text-secondary">ID #{t.id}</div>
+                      <div className="text-lg font-semibold text-main mt-1">{t.itemName ?? '-'}</div>
+                      <div className="text-xs text-secondary mt-1">{t.categoryName && `${t.categoryName} •`} {formatDate(t.transactionDate)}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold text-main">{t.quantity}</div>
-                      <div className="text-xs text-secondary">{t.user?.username ?? '-'}</div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-2xl font-bold text-main">{t.quantity}</div>
+                      <div className="text-xs text-secondary">szt.</div>
                     </div>
                   </div>
-                  <div className="mt-2 text-sm text-secondary">{t.description ?? '-'}</div>
-                  <div className="mt-3 text-right"><button onClick={() => setDetail(t)} className="px-3 py-1 rounded-full border border-main text-main bg-white inline-flex items-center gap-2"><Eye className="w-4 h-4"/>Szczegóły</button></div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="text-sm text-secondary">
+                      <span className="font-medium">Użytkownik:</span> {t.userName ?? '-'}
+                    </div>
+                    <button onClick={() => setDetail(t)} className="px-3 py-1 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3"/>Szczegóły</button>
+                  </div>
+                  {t.description && <div className="mt-2 text-sm text-secondary bg-surface rounded px-2 py-1">{t.description}</div>}
                 </div>
               </div>
             ))}
@@ -183,38 +228,61 @@ const OrderHistory: FC = () => {
       </section>
 
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-xl font-semibold text-main">Szczegóły transakcji / zamówienia</h3>
-                <div className="text-xs text-secondary">ID: {detail.id} • {formatDate(detail.transactionDate)}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-main/10 to-main/5 px-6 py-4 border-b border-main">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-semibold text-main">Szczegóły zamówienia</h3>
+                  <div className="text-xs text-secondary mt-1">ID: #{detail.id} • {formatDate(detail.transactionDate)}</div>
+                </div>
+                <button onClick={() => setDetail(null)} className="p-2 hover:bg-main hover:text-white rounded-md text-secondary transition-colors">
+                  <XCircle className="w-5 h-5" />
+                </button>
               </div>
-              <button onClick={() => setDetail(null)} className="p-2 rounded-md text-secondary">Zamknij</button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-secondary">
-              <div>
-                <div className="text-xs text-secondary">Typ</div>
-                <div className="text-main">{detail.transactionType}</div>
-
-                <div className="text-xs text-secondary mt-3">Pozycja</div>
-                <div className="text-main">{detail.item?.name ?? '-'}</div>
-
-                <div className="text-xs text-secondary mt-3">Ilość</div>
-                <div className="text-main">{detail.quantity}</div>
-              </div>
-              <div>
-                <div className="text-xs text-secondary">Użytkownik</div>
-                <div className="text-main">{detail.user?.username ?? '-'}</div>
-
-                <div className="text-xs text-secondary mt-3">Opis</div>
-                <div className="text-secondary">{detail.description ?? '-'}</div>
+              <div className="mt-3">
+                <StatusBadge status={detail.transactionStatus} />
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-full border border-main text-main bg-white">Zamknij</button>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="bg-surface rounded-lg p-4">
+                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Pozycja</div>
+                    <div className="text-lg font-semibold text-main mt-2">{detail.itemName ?? '-'}</div>
+                    {detail.categoryName && <div className="text-sm text-secondary mt-1">Kategoria: {detail.categoryName}</div>}
+                  </div>
+
+                  <div className="bg-surface rounded-lg p-4">
+                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Ilość</div>
+                    <div className="text-3xl font-bold text-main mt-2">{detail.quantity} <span className="text-lg text-secondary">szt.</span></div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-surface rounded-lg p-4">
+                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Użytkownik</div>
+                    <div className="text-lg font-semibold text-main mt-2">{detail.userName ?? '-'}</div>
+                  </div>
+
+                  <div className="bg-surface rounded-lg p-4">
+                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Data zamówienia</div>
+                    <div className="text-sm text-main mt-2">{formatDate(detail.transactionDate)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {detail.description && (
+                <div className="mt-6 bg-surface rounded-lg p-4">
+                  <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Opis</div>
+                  <div className="text-sm text-main mt-2">{detail.description}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-surface-secondary border-t border-main px-6 py-4 flex justify-end gap-3">
+              <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors font-medium">Zamknij</button>
             </div>
           </div>
         </div>

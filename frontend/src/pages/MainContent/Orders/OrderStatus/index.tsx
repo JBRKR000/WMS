@@ -1,39 +1,44 @@
-import { type FC, useMemo, useState } from 'react'
-import { CheckCircle, Clock, Truck, Package, XCircle, Eye, Download } from 'lucide-react'
+import { type FC, useEffect, useMemo, useState } from 'react'
+import { Clock, Truck, Package, Eye } from 'lucide-react'
+import { TransactionService, type TransactionForOrder } from '../../../../services/transactionService'
 
-type Item = { id?: number | null; name: string }
-type User = { id?: number | null; username: string }
-type Transaction = {
-  id?: number | null
-  transactionDate?: string | null
-  transactionType: string
-  item?: Item | null
-  quantity: number
-  user?: User | null
-  description?: string | null
+type Transaction = TransactionForOrder & {
+  item?: { id?: number | null; name: string } | null
+  user?: { id?: number | null; username: string } | null
 }
 
-const badgeFor = (type: string) => {
-  switch (type) {
-    case 'RECEIPT': return { label: 'Przyjęte', tone: 'bg-green-100 text-green-700' }
-    case 'ISSUE_TO_PRODUCTION': return { label: 'Wydane (prod)', tone: 'bg-orange-100 text-orange-700' }
-    case 'ISSUE_TO_SALES': return { label: 'Wydane (sprzedaż)', tone: 'bg-red-100 text-red-700' }
-    case 'RETURN': return { label: 'Zwrot', tone: 'bg-blue-100 text-blue-700' }
-    default: return { label: type ?? 'Nieznany', tone: 'bg-gray-100 text-gray-700' }
+const badgeFor = (status: string | null) => {
+  switch (status) {
+    case 'PENDING': return { label: 'Oczekujące', tone: 'bg-amber-100 text-amber-700' }
+    case 'IN_PROGRESS': return { label: 'W realizacji', tone: 'bg-blue-100 text-blue-700' }
+    case 'COMPLETED': return { label: 'Zrealizowane', tone: 'bg-green-100 text-green-700' }
+    case 'CANCELLED': return { label: 'Anulowane', tone: 'bg-red-100 text-red-700' }
+    case 'FAILED': return { label: 'Błąd', tone: 'bg-red-100 text-red-700' }
+    default: return { label: status ?? 'Nieznany', tone: 'bg-gray-100 text-gray-700' }
   }
 }
-
-const sampleTransactions: Transaction[] = [
-  { id: 1023, transactionDate: new Date().toISOString(), transactionType: 'RECEIPT', item: { id: 1, name: 'Śruba M6' }, quantity: 500, user: { id: 2, username: 'jan.k' }, description: 'Dostawa ze sprawdzeniem jakości' },
-  { id: 1024, transactionDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), transactionType: 'ISSUE_TO_PRODUCTION', item: { id: 2, name: 'Pasek napędowy' }, quantity: 20, user: { id: 3, username: 'ewa.m' }, description: 'Wydanie do produkcji - zlecenie #A12' },
-  { id: 1025, transactionDate: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), transactionType: 'RETURN', item: { id: 3, name: 'Panele boczne' }, quantity: 5, user: { id: 4, username: 'adam.z' }, description: 'Zwrot od klienta - uszkodzone' },
-]
 
 const OrderStatus: FC = () => {
   const [q, setQ] = useState('')
   const [selected, setSelected] = useState<Transaction | null>(null)
-  // In real app replace sampleTransactions with GET /api/transactions
-  const transactions = sampleTransactions
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+
+  useEffect(() => {
+    const fetchOrderTransactions = async () => {
+      try {
+        const data = await TransactionService.getOrderTransactions()
+        const mappedData: Transaction[] = data.map(t => ({
+          ...t,
+          item: t.itemId && t.itemName ? { id: t.itemId, name: t.itemName } : null,
+          user: t.userId && t.userName ? { id: t.userId, username: t.userName } : null,
+        }))
+        setTransactions(mappedData)
+      } catch (error) {
+        console.error('Failed to fetch orders:', error)
+      }
+    }
+    fetchOrderTransactions()
+  }, [])
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase()
@@ -57,13 +62,12 @@ const OrderStatus: FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-main">Status zamówień</h2>
-          <p className="text-sm text-secondary mt-1">Szybki przegląd statusów oparty na transakcjach magazynowych. (UI-only)</p>
+          <p className="text-sm text-secondary mt-1">Przegląd wszystkich zamówień pobranych z API.</p>
         </div>
         <div className="flex gap-3 items-center">
           <div className="flex items-center gap-2 bg-white border border-main rounded-3xl px-3 py-1">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Szukaj po ID / pozycji / użytkowniku" className="text-sm placeholder-secondary focus:outline-none" />
           </div>
-          <button className="px-3 py-2 rounded-full border border-main bg-white inline-flex items-center gap-2"><Download className="w-4 h-4"/>Eksport</button>
         </div>
       </div>
 
@@ -102,12 +106,11 @@ const OrderStatus: FC = () => {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-surface-secondary border border-main rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-main">Lista ostatnich zamówień</h3>
-            <div className="text-sm text-secondary">Widok oparty na Transaction</div>
-          </div>
+      <section className="bg-surface-secondary border border-main rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-main">Lista zamówień</h3>
+          <div className="text-sm text-secondary">{transactions.length} zamówień</div>
+        </div>
 
           {filtered.length === 0 ? (
             <div className="p-8"><div className="text-center text-secondary">Brak zamówień</div></div>
@@ -133,16 +136,6 @@ const OrderStatus: FC = () => {
               })}
             </ul>
           )}
-        </div>
-
-        <aside className="bg-white border border-main rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-main">Szybkie akcje</h4>
-          <div className="mt-3 space-y-3">
-            <button className="w-full text-left px-3 py-2 rounded-2xl border border-main bg-white flex items-center justify-between"><span>Generuj raport dzienny</span><Download className="w-4 h-4"/></button>
-            <button className="w-full text-left px-3 py-2 rounded-2xl border border-main bg-white flex items-center justify-between"><span>Filtruj zwroty</span><XCircle className="w-4 h-4 text-red-500"/></button>
-            <button className="w-full text-left px-3 py-2 rounded-2xl border border-main bg-white flex items-center justify-between"><span>Zaznacz wszystkie</span><CheckCircle className="w-4 h-4 text-green-500"/></button>
-          </div>
-        </aside>
       </section>
 
       {selected && (

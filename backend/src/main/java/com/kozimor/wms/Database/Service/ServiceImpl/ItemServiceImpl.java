@@ -257,4 +257,37 @@ public class ItemServiceImpl implements ItemService {
         });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ItemDTO> searchItemsByName(String name, int page, int size) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        PageRequest pageable = PageRequest.of(page, size);
+        
+        // Format name with wildcards for ILIKE search
+        String namePattern = "%" + name + "%";
+        
+        // Search items by name using repository query
+        Page<Item> results = itemRepository.searchItemsByName(namePattern, pageable);
+        
+        // Convert to DTO
+        return results.map(item -> {
+            ItemDTO dto = new ItemDTO();
+            dto.setId(item.getId());
+            dto.setName(item.getName());
+            dto.setDescription(item.getDescription());
+            dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+            dto.setUnit(item.getUnit());
+            dto.setCurrentQuantity(item.getCurrentQuantity());
+            dto.setQrCode(item.getQrCode());
+            dto.setItemType(item.getType());
+            dto.setCreatedAt(item.getCreatedAt().format(fmt));
+            dto.setUpdatedAt(item.getUpdatedAt().format(fmt));
+            Set<String> kw = item.getKeywords() == null
+                ? java.util.Collections.emptySet()
+                : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
+            dto.setKeywords(kw);
+            return dto;
+        });
+    }
+
 }

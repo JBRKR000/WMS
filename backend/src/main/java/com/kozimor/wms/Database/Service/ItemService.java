@@ -89,4 +89,13 @@ public interface ItemService {
             int page,
             int size
     );
+
+    /**
+     * Search items by name
+     * @param name The name or partial name to search for (case-insensitive)
+     * @param page Page number (default 0)
+     * @param size Page size (default 10)
+     * @return Page of ItemDTO matching the name
+     */
+    Page<ItemDTO> searchItemsByName(String name, int page, int size);
 }

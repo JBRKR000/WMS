@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
+import com.kozimor.wms.Database.Model.DTO.TransactionForOrderDTO;
 
 @Service
 public interface TransactionService {
@@ -79,4 +80,10 @@ public interface TransactionService {
 
     long getTransactionCount();
     Page<TransactionDTO> getTransactionsPaginated(int page, int size);
+
+    /**
+     * Get all transactions with ORDER type
+     * @return List of ORDER transactions as TransactionForOrderDTO
+     */
+    List<TransactionForOrderDTO> getOrderTransactions();
 }

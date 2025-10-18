@@ -43,6 +43,10 @@ public class Transaction {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_status", nullable = true, length = 50)
+    private TransactionStatus transactionStatus;
+
     @Column(name = "description", columnDefinition = "text")
     private String description;
 }

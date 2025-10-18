@@ -19,11 +19,16 @@ export interface Category {
   description?: string;
 }
 
+export type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'ISSUE_TO_SALES' | 'ORDER' | 'RETURN';
+export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+
 export interface Transaction {
-  id: number;
-  type: 'IN' | 'OUT';
+  id?: number;
+  transactionDate?: Date;
+  transactionType: TransactionType;
   itemId: number;
   quantity: number;
-  timestamp: Date;
-  userId: number;
+  userId?: number;
+  transactionStatus: TransactionStatus;
+  description?: string;
 }
