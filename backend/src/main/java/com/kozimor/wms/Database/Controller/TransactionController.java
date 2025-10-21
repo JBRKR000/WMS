@@ -113,4 +113,18 @@ public class TransactionController {
         List<TransactionForOrderDTO> transactions = transactionService.getOrderTransactions();
         return ResponseEntity.ok(transactions);
     }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<TransactionForOrderDTO> updateTransactionStatus(
+            @PathVariable Long id,
+            @RequestParam String status) {
+        try {
+            TransactionForOrderDTO updatedTransaction = transactionService.updateTransactionStatus(id, status);
+            return ResponseEntity.ok(updatedTransaction);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

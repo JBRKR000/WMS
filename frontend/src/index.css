@@ -91,6 +91,15 @@
   .bg-success-bg { background-color: var(--color-success-bg); }
   .text-success-text { color: var(--color-success-text); }
   
+  .bg-warning-bg { background-color: var(--color-warning-bg); }
+  .text-warning-text { color: var(--color-warning-text); }
+  
+  .bg-error-bg { background-color: var(--color-error-bg); }
+  .text-error-text { color: var(--color-error-text); }
+  
   .border-main { border-color: var(--color-border); }
   .border-strong { border-color: var(--color-border-strong); }
+  .border-success { border-color: var(--color-success); }
+  .border-warning { border-color: var(--color-warning); }
+  .border-error { border-color: var(--color-error); }
 }

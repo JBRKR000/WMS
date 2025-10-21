@@ -80,6 +80,7 @@ const IssueHistory: FC = () => {
   const results = useMemo(() => {
     const qq = q.trim().toLowerCase()
     const f = transactions.filter(t => {
+      if (t.transactionType === 'ORDER') return false
       if (typeFilter && t.transactionType !== typeFilter) return false
       if (itemFilter && t.itemName !== itemFilter) return false
       if (userFilter && t.userName !== userFilter) return false
@@ -114,7 +115,6 @@ const IssueHistory: FC = () => {
       case 'RECEIPT': return 'Przyjęcie'
       case 'ISSUE_TO_PRODUCTION': return 'Produkcja'
       case 'ISSUE_TO_SALES': return 'Sprzedaż'
-      case 'RETURN': return 'Zwrot'
       default: return type
     }
   }
@@ -125,7 +125,6 @@ const IssueHistory: FC = () => {
       case 'RECEIPT': return <CheckCircle2 className={iconProps} />
       case 'ISSUE_TO_PRODUCTION': return <Factory className={iconProps} />
       case 'ISSUE_TO_SALES': return <ShoppingCart className={iconProps} />
-      case 'RETURN': return <RotateCcw className={iconProps} />
       default: return <Package className={iconProps} />
     }
   }
@@ -153,7 +152,7 @@ const IssueHistory: FC = () => {
         </div>
 
         {/* Search and Quick Filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           <div className="lg:col-span-2 flex items-center bg-surface border border-main rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
             <Search className="w-5 h-5 text-primary mr-3 flex-shrink-0" />
             <input
@@ -164,17 +163,23 @@ const IssueHistory: FC = () => {
             />
           </div>
 
-          <select
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="px-4 py-3 bg-surface border border-main rounded-xl text-sm text-main font-medium hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">Wszystkie typy</option>
-            <option value="RECEIPT">✓ Przyjęcie</option>
-            <option value="ISSUE_TO_PRODUCTION">▪ Produkcja</option>
-            <option value="ISSUE_TO_SALES">• Sprzedaż</option>
-            <option value="RETURN">⟲ Zwrot</option>
-          </select>
+          <div className="relative">
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="w-full px-4 py-3 bg-surface border border-main rounded-xl text-sm text-main font-medium hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none pr-10"
+            >
+              <option value="">Wszystkie typy</option>
+              <option value="RECEIPT">Przyjęcie</option>
+              <option value="ISSUE_TO_PRODUCTION">Produkcja</option>
+              <option value="ISSUE_TO_SALES">Sprzedaż</option>
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary">
+              {typeFilter === 'RECEIPT' && <CheckCircle2 className="w-4 h-4" />}
+              {typeFilter === 'ISSUE_TO_PRODUCTION' && <Factory className="w-4 h-4" />}
+              {typeFilter === 'ISSUE_TO_SALES' && <ShoppingCart className="w-4 h-4" />}
+            </div>
+          </div>
 
           <select
             value={userFilter}

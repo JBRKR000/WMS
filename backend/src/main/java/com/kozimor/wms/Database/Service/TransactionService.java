@@ -86,4 +86,12 @@ public interface TransactionService {
      * @return List of ORDER transactions as TransactionForOrderDTO
      */
     List<TransactionForOrderDTO> getOrderTransactions();
+
+    /**
+     * Update transaction status
+     * @param id The ID of the transaction to update
+     * @param status The new status value
+     * @return The updated transaction as TransactionForOrderDTO
+     */
+    TransactionForOrderDTO updateTransactionStatus(Long id, String status);
 }

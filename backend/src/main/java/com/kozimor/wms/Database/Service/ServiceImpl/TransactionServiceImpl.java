@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
+import com.kozimor.wms.Database.Model.TransactionStatus;
 import com.kozimor.wms.Database.Model.DTO.TransactionDTO;
 import com.kozimor.wms.Database.Model.DTO.TransactionForOrderDTO;
 import com.kozimor.wms.Database.Repository.TransactionRepository;
@@ -197,5 +198,43 @@ public class TransactionServiceImpl implements TransactionService {
                 : null);
             return dto;
         }).toList();
+    }
+
+    @Override
+    public TransactionForOrderDTO updateTransactionStatus(Long id, String status) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Transaction not found with id: " + id));
+        
+        try {
+            TransactionStatus transactionStatus = TransactionStatus.valueOf(status.toUpperCase());
+            transaction.setTransactionStatus(transactionStatus);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid transaction status: " + status);
+        }
+        
+        Transaction saved = transactionRepository.save(transaction);
+        
+        // Convert to DTO
+        TransactionForOrderDTO dto = new TransactionForOrderDTO();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        dto.setId(saved.getId());
+        dto.setTransactionDate(saved.getTransactionDate() != null 
+            ? saved.getTransactionDate().format(formatter) 
+            : null);
+        dto.setTransactionType(saved.getTransactionType().name());
+        dto.setItemId(saved.getItem() != null ? saved.getItem().getId() : null);
+        dto.setItemName(saved.getItem() != null ? saved.getItem().getName() : null);
+        dto.setCategoryName(saved.getItem() != null && saved.getItem().getCategory() != null
+            ? saved.getItem().getCategory().getName()
+            : null);
+        dto.setQuantity(saved.getQuantity());
+        dto.setUserId(saved.getUser() != null ? saved.getUser().getId() : null);
+        dto.setUserName(saved.getUser() != null ? saved.getUser().getUsername() : null);
+        dto.setDescription(saved.getDescription());
+        dto.setTransactionStatus(saved.getTransactionStatus() != null 
+            ? saved.getTransactionStatus().name() 
+            : null);
+        
+        return dto;
     }
 }

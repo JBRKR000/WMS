@@ -1,5 +1,5 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
-import { Search, Archive, Eye, Download, Clock, CheckCircle, AlertCircle, XCircle, Truck } from 'lucide-react'
+import { Search, Archive, Eye, Clock, CheckCircle, AlertCircle, XCircle, Truck, Calendar, User, Filter } from 'lucide-react'
 import { TransactionService, type TransactionForOrder } from '../../../../services/transactionService'
 
 type Transaction = TransactionForOrder & {
@@ -39,7 +39,6 @@ const EmptyState: FC<{ label?: string }> = ({ label = 'Brak rekordów' }) => (
 const OrderHistory: FC = () => {
   const [q, setQ] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [itemFilter, setItemFilter] = useState('')
   const [userFilter, setUserFilter] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -68,11 +67,6 @@ const OrderHistory: FC = () => {
     fetchOrderTransactions()
   }, [])
 
-  const items = useMemo(() => 
-    [...new Map(transactions.filter(t => t.item).map(t => [t.item!.id, t.item!])).values()],
-    [transactions]
-  )
-
   const users = useMemo(() => 
     [...new Map(transactions.filter(t => t.user).map(t => [t.user!.id, t.user!])).values()],
     [transactions]
@@ -82,7 +76,6 @@ const OrderHistory: FC = () => {
     const qq = q.trim().toLowerCase()
     return transactions.filter(t => {
       if (typeFilter && t.transactionStatus !== typeFilter) return false
-      if (itemFilter && String(t.itemId) !== itemFilter) return false
       if (userFilter && String(t.userId) !== userFilter) return false
       if (from) { if (!t.transactionDate) return false; if (new Date(t.transactionDate) < new Date(from)) return false }
       if (to) { if (!t.transactionDate) return false; const toD = new Date(to); toD.setHours(23,59,59,999); if (new Date(t.transactionDate) > toD) return false }
@@ -95,7 +88,7 @@ const OrderHistory: FC = () => {
         (t.transactionStatus ?? '').toLowerCase().includes(qq)
       )
     })
-  }, [transactions, q, typeFilter, itemFilter, userFilter, from, to])
+  }, [transactions, q, typeFilter, userFilter, from, to])
 
   const formatDate = (iso?: string | null) => {
     if (!iso) return '-'
@@ -103,123 +96,161 @@ const OrderHistory: FC = () => {
   }
 
   return (
-    <main className="p-4 md:p-6 lg:p-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-main">Historia zamówień</h1>
-          <p className="text-sm text-secondary mt-1">Archiwum zrealizowanych i anulowanych zamówień. Transakcje pobierane z API (/api/transactions/orders).</p>
+    <main className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-surface via-surface-secondary to-surface min-h-screen">
+      <div className="mb-8">
+        <div className="mb-6">
+          <h2 className="text-4xl font-bold text-main">Historia Zamówień</h2>
+          <p className="text-secondary text-sm mt-2">Przegląd zrealizowanych i anulowanych zamówień z możliwością filtrowania</p>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center bg-white border border-main rounded-2xl px-3 py-1 w-full md:w-96">
-            <Search className="w-4 h-4 text-secondary mr-2" />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Szukaj po ID, item, user, opis" className="w-full bg-white text-main placeholder-secondary text-sm focus:outline-none" />
+        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary pointer-events-none" />
+            <input 
+              value={q} 
+              onChange={e => setQ(e.target.value)} 
+              placeholder="Szukaj po ID, item, user, opis..." 
+              className="w-full pl-12 pr-4 py-3 bg-surface border-2 border-main rounded-xl text-main placeholder-muted focus:outline-none focus:border-primary transition-colors"
+            />
           </div>
 
-          <button onClick={() => setView(view === 'table' ? 'timeline' : 'table')} className="px-3 py-2 rounded-full border border-main bg-white text-sm">Przełącz widok</button>
-        </div>
-      </div>
-
-      <div className="bg-white border border-main rounded-lg p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-1">
-            <label className="text-xs text-secondary">Status</label>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm">
-              <option value="">Wszystkie</option>
-              <option value="COMPLETED">Zrealizowane</option>
-              <option value="CANCELLED">Anulowane</option>
-            </select>
-          </div>
-          <div className="md:col-span-1">
-            <label className="text-xs text-secondary">Pozycja</label>
-            <select value={itemFilter} onChange={e => setItemFilter(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm">
-              <option value="">Wszystkie</option>
-              {items.map(it => <option key={it.id} value={String(it.id)}>{it.name}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-1">
-            <label className="text-xs text-secondary">Użytkownik</label>
-            <select value={userFilter} onChange={e => setUserFilter(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm">
-              <option value="">Wszyscy</option>
-              {users.map(u => <option key={u.id} value={String(u.id)}>{u.username}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-2 flex gap-2">
-            <div className="flex-1">
-              <label className="text-xs text-secondary">Data od</label>
-              <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm" />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs text-secondary">Data do</label>
-              <input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main text-sm" />
-            </div>
-          </div>
-          <div className="md:col-span-1 flex items-end justify-end">
-            <button className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-main bg-white text-sm"><Download className="w-4 h-4"/>Export</button>
-          </div>
+          <button 
+            onClick={() => setView(view === 'table' ? 'timeline' : 'table')} 
+            className="px-6 py-3 bg-primary text-white hover:bg-primary/90 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
+          >
+            {view === 'table' ? <Truck className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            Przełącz widok
+          </button>
         </div>
       </div>
 
-      <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
+      <section className="bg-surface border-2 border-main rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-main bg-surface-secondary">
+          <Filter className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-bold text-main">Filtry</h3>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Status Zamówienia</label>
+              <select 
+                value={typeFilter} 
+                onChange={e => setTypeFilter(e.target.value)} 
+                className="w-full px-4 py-2 rounded-lg border-2 border-main bg-surface text-main font-medium focus:outline-none focus:border-primary transition-colors"
+              >
+                <option value="">Wszystkie statusy</option>
+                <option value="COMPLETED">✓ Zrealizowane</option>
+                <option value="CANCELLED">✗ Anulowane</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Użytkownik</label>
+              <select 
+                value={userFilter} 
+                onChange={e => setUserFilter(e.target.value)} 
+                className="w-full px-4 py-2 rounded-lg border-2 border-main bg-surface text-main font-medium focus:outline-none focus:border-primary transition-colors"
+              >
+                <option value="">Wszyscy użytkownicy</option>
+                {users.map(u => <option key={u.id} value={String(u.id)}>{u.username}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Data Od</label>
+              <input 
+                type="date" 
+                value={from} 
+                onChange={e => setFrom(e.target.value)} 
+                className="w-full px-4 py-2 rounded-lg border-2 border-main bg-surface text-main focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wide mb-2">Data Do</label>
+              <input 
+                type="date" 
+                value={to} 
+                onChange={e => setTo(e.target.value)} 
+                className="w-full px-4 py-2 rounded-lg border-2 border-main bg-surface text-main focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-surface border-2 border-main rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-main">
+          <h3 className="text-lg font-bold text-main">Zamówienia ({results.length})</h3>
+          <div className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+            {results.length} z {transactions.length}
+          </div>
+        </div>
+
         {results.length === 0 ? (
-          <EmptyState label="Brak zakończonych transakcji" />
+          <EmptyState label="Brak zamówień" />
         ) : view === 'table' ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-secondary bg-surface">
-                  <th className="px-3 py-2">ID</th>
-                  <th className="px-3 py-2">Data</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Pozycja</th>
-                  <th className="px-3 py-2">Ilość</th>
-                  <th className="px-3 py-2">Użytkownik</th>
-                  <th className="px-3 py-2">Opis</th>
-                  <th className="px-3 py-2">Akcje</th>
+                <tr className="text-left text-secondary bg-surface border-b-2 border-main">
+                  <th className="px-4 py-3 font-semibold">ID</th>
+                  <th className="px-4 py-3 font-semibold">Data</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Pozycja</th>
+                  <th className="px-4 py-3 font-semibold">Ilość</th>
+                  <th className="px-4 py-3 font-semibold">Użytkownik</th>
+                  <th className="px-4 py-3 font-semibold">Opis</th>
+                  <th className="px-4 py-3 font-semibold text-center">Akcja</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-main">
                 {results.map((t, idx) => (
-                  <tr key={t.id ?? idx} className={`border-t border-main ${idx % 2 === 0 ? 'bg-white' : 'bg-surface'} hover:bg-surface-hover transition-colors`}>
-                    <td className="px-3 py-2 text-secondary align-top font-mono text-xs">{t.id}</td>
-                    <td className="px-3 py-2 text-secondary align-top text-xs whitespace-nowrap">{formatDate(t.transactionDate)}</td>
-                    <td className="px-3 py-2 align-top"><StatusBadge status={t.transactionStatus} /></td>
-                    <td className="px-3 py-2 text-main align-top font-medium">{t.itemName ?? '-'}</td>
-                    <td className="px-3 py-2 text-main align-top font-semibold">{t.quantity} szt.</td>
-                    <td className="px-3 py-2 text-secondary align-top text-sm">{t.userName ?? '-'}</td>
-                    <td className="px-3 py-2 text-secondary align-top text-xs truncate max-w-xs">{t.description ?? '-'}</td>
-                    <td className="px-3 py-2 text-main align-top"><button onClick={() => setDetail(t)} className="px-2 py-1 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3"/>Szczegóły</button></td>
+                  <tr key={t.id ?? idx} className={`${idx % 2 === 0 ? 'bg-surface' : 'bg-surface/50'} hover:bg-primary/5 transition-colors`}>
+                    <td className="px-4 py-3 text-secondary font-mono text-xs">#{t.id}</td>
+                    <td className="px-4 py-3 text-secondary text-xs whitespace-nowrap">{formatDate(t.transactionDate)}</td>
+                    <td className="px-4 py-3"><StatusBadge status={t.transactionStatus} /></td>
+                    <td className="px-4 py-3 text-main font-medium">{t.itemName ?? '—'}</td>
+                    <td className="px-4 py-3 text-main font-semibold">{t.quantity} szt.</td>
+                    <td className="px-4 py-3 text-secondary">{t.userName ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary text-xs truncate max-w-xs">{t.description ?? '—'}</td>
+                    <td className="px-4 py-3 text-center"><button onClick={() => setDetail(t)} className="px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white font-medium text-xs transition-all inline-flex items-center gap-1"><Eye className="w-3 h-3"/>Szczegóły</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-main">
             {results.map((t, idx) => (
-              <div key={t.id ?? idx} className="flex items-start gap-4 p-4 rounded-lg bg-white border border-main hover:shadow-md transition-shadow">
-                <div className="flex-shrink-0">
-                  <StatusBadge status={t.transactionStatus} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-mono text-secondary">ID #{t.id}</div>
-                      <div className="text-lg font-semibold text-main mt-1">{t.itemName ?? '-'}</div>
-                      <div className="text-xs text-secondary mt-1">{t.categoryName && `${t.categoryName} •`} {formatDate(t.transactionDate)}</div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-2xl font-bold text-main">{t.quantity}</div>
-                      <div className="text-xs text-secondary">szt.</div>
-                    </div>
+              <div key={t.id ?? idx} className="p-4 hover:bg-primary/5 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 pt-1">
+                    <StatusBadge status={t.transactionStatus} />
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <div className="text-sm text-secondary">
-                      <span className="font-medium">Użytkownik:</span> {t.userName ?? '-'}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <div className="text-xs font-mono text-secondary mb-1">ID #{t.id}</div>
+                        <div className="text-lg font-bold text-main">{t.itemName ?? '—'}</div>
+                        {t.categoryName && <div className="text-xs text-secondary mt-1">{t.categoryName}</div>}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-2xl font-bold text-main">{t.quantity}</div>
+                        <div className="text-xs text-secondary">szt.</div>
+                      </div>
                     </div>
-                    <button onClick={() => setDetail(t)} className="px-3 py-1 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3"/>Szczegóły</button>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <div className="flex items-center gap-4 text-secondary">
+                        <span>{formatDate(t.transactionDate)}</span>
+                        <span>•</span>
+                        <span>{t.userName ?? '—'}</span>
+                      </div>
+                      <button onClick={() => setDetail(t)} className="px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white font-medium text-xs transition-all inline-flex items-center gap-1"><Eye className="w-3 h-3"/>Szczegóły</button>
+                    </div>
+                    {t.description && <div className="mt-3 text-sm text-secondary bg-surface rounded-lg px-3 py-2">{t.description}</div>}
                   </div>
-                  {t.description && <div className="mt-2 text-sm text-secondary bg-surface rounded px-2 py-1">{t.description}</div>}
                 </div>
               </div>
             ))}
@@ -228,61 +259,75 @@ const OrderHistory: FC = () => {
       </section>
 
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-main/10 to-main/5 px-6 py-4 border-b border-main">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-semibold text-main">Szczegóły zamówienia</h3>
-                  <div className="text-xs text-secondary mt-1">ID: #{detail.id} • {formatDate(detail.transactionDate)}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl bg-surface border-2 border-main rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-gradient-to-r from-primary/10 to-accent/10 border-b-2 border-main px-6 py-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-main">Szczegóły Zamówienia</h3>
+                  <div className="text-sm text-secondary mt-2">ID: <span className="font-mono font-semibold text-primary">#{detail.id}</span> • {formatDate(detail.transactionDate)}</div>
                 </div>
-                <button onClick={() => setDetail(null)} className="p-2 hover:bg-main hover:text-white rounded-md text-secondary transition-colors">
-                  <XCircle className="w-5 h-5" />
+                <button 
+                  onClick={() => setDetail(null)} 
+                  className="p-2 hover:bg-primary/20 rounded-lg text-primary transition-colors flex-shrink-0"
+                >
+                  <XCircle className="w-6 h-6" />
                 </button>
               </div>
-              <div className="mt-3">
+              <div className="mt-4">
                 <StatusBadge status={detail.transactionStatus} />
               </div>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="bg-surface rounded-lg p-4">
-                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Pozycja</div>
-                    <div className="text-lg font-semibold text-main mt-2">{detail.itemName ?? '-'}</div>
-                    {detail.categoryName && <div className="text-sm text-secondary mt-1">Kategoria: {detail.categoryName}</div>}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-surface-secondary rounded-lg p-4 border border-main">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Pozycja
                   </div>
-
-                  <div className="bg-surface rounded-lg p-4">
-                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Ilość</div>
-                    <div className="text-3xl font-bold text-main mt-2">{detail.quantity} <span className="text-lg text-secondary">szt.</span></div>
-                  </div>
+                  <div className="text-lg font-bold text-main">{detail.itemName ?? '—'}</div>
+                  {detail.categoryName && <div className="text-sm text-secondary mt-2">Kategoria: {detail.categoryName}</div>}
                 </div>
 
-                <div className="space-y-4">
-                  <div className="bg-surface rounded-lg p-4">
-                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Użytkownik</div>
-                    <div className="text-lg font-semibold text-main mt-2">{detail.userName ?? '-'}</div>
+                <div className="bg-surface-secondary rounded-lg p-4 border border-main">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Ilość
                   </div>
+                  <div className="text-lg font-bold text-primary">{detail.quantity} szt.</div>
+                </div>
 
-                  <div className="bg-surface rounded-lg p-4">
-                    <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Data zamówienia</div>
-                    <div className="text-sm text-main mt-2">{formatDate(detail.transactionDate)}</div>
+                <div className="bg-surface-secondary rounded-lg p-4 border border-main">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <User className="w-4 h-4" /> Użytkownik
                   </div>
+                  <div className="text-lg font-bold text-main">{detail.userName ?? '—'}</div>
+                </div>
+
+                <div className="bg-surface-secondary rounded-lg p-4 border border-main">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" /> Data Zamówienia
+                  </div>
+                  <div className="text-sm text-main">{formatDate(detail.transactionDate)}</div>
                 </div>
               </div>
 
               {detail.description && (
-                <div className="mt-6 bg-surface rounded-lg p-4">
-                  <div className="text-xs text-secondary font-semibold uppercase tracking-wide">Opis</div>
-                  <div className="text-sm text-main mt-2">{detail.description}</div>
+                <div className="bg-surface-secondary rounded-lg p-4 border border-main">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Opis
+                  </div>
+                  <div className="text-main leading-relaxed whitespace-pre-wrap">{detail.description}</div>
                 </div>
               )}
             </div>
 
-            <div className="bg-surface-secondary border-t border-main px-6 py-4 flex justify-end gap-3">
-              <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-full border border-main text-main bg-white hover:bg-main hover:text-white transition-colors font-medium">Zamknij</button>
+            <div className="bg-surface-secondary border-t-2 border-main px-6 py-4 flex justify-end gap-3">
+              <button 
+                onClick={() => setDetail(null)} 
+                className="px-6 py-2 rounded-lg border-2 border-main text-main hover:bg-main hover:text-white font-medium transition-all"
+              >
+                Zamknij
+              </button>
             </div>
           </div>
         </div>
