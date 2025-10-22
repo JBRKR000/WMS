@@ -65,9 +65,26 @@ public class ItemController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Item>> getAllItems() {
+    public ResponseEntity<List<ItemDTO>> getAllItems() {
         List<Item> items = itemService.getAllItems();
-        return ResponseEntity.ok(items);
+        List<ItemDTO> dtos = items.stream().map(item -> {
+            ItemDTO dto = new ItemDTO();
+            dto.setId(item.getId());
+            dto.setName(item.getName());
+            dto.setDescription(item.getDescription());
+            dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+            dto.setUnit(item.getUnit());
+            dto.setCurrentQuantity(item.getCurrentQuantity());
+            dto.setQrCode(item.getQrCode());
+            dto.setItemType(item.getType());
+            dto.setCreatedAt(item.getCreatedAt() != null ? item.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            dto.setUpdatedAt(item.getUpdatedAt() != null ? item.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            dto.setKeywords(item.getKeywords() != null
+                    ? item.getKeywords().stream().map(k -> k.getValue()).collect(java.util.stream.Collectors.toSet())
+                    : java.util.Collections.emptySet());
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")

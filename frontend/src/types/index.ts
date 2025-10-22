@@ -5,18 +5,27 @@ export interface User {
   role: string;
 }
 
+export interface Category {
+  id?: number;
+  name: string;
+  description?: string;
+}
+
+export type ItemType = 'COMPONENT' | 'PRODUCT';
+export type UnitType = 'PCS' | 'KG' | 'LITER' | 'METER';
+
 export interface Item {
   id: number;
   name: string;
-  quantity: number;
-  category: string;
-  type: 'COMPONENT' | 'PRODUCT';
-}
-
-export interface Category {
-  id: number;
-  name: string;
   description?: string;
+  categoryName?: string;
+  currentQuantity: number;
+  unit: UnitType;
+  type: ItemType;
+  qrCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  keywords?: string[];
 }
 
 export type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'ISSUE_TO_SALES' | 'ORDER' | 'RETURN';
