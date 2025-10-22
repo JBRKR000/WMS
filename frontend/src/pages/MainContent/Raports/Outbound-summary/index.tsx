@@ -1,15 +1,10 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useMemo, useState, useEffect } from 'react'
 import { Package, Search, Eye, Download } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 type Item = { id?: number | null; name: string }
 type User = { id?: number | null; username: string }
 type Transaction = { id?: number | null; transactionDate?: string | null; transactionType: string; item?: Item | null; quantity: number; user?: User | null; description?: string | null }
-
-const sample: Transaction[] = [
-  { id: 3001, transactionDate: new Date().toISOString(), transactionType: 'ISSUE_TO_SALES', item: { id: 21, name: 'Monitor 24"' }, quantity: 10, user: { id: 8, username: 'log1' }, description: 'Wysyłka do klienta Z' },
-  { id: 3002, transactionDate: new Date(Date.now() - 1000*60*60*24).toISOString(), transactionType: 'ISSUE_TO_SALES', item: { id: 22, name: 'Kabel HDMI' }, quantity: 50, user: { id: 9, username: 'log2' }, description: 'Zamówienie online' },
-  { id: 3003, transactionDate: new Date(Date.now() - 1000*60*60*48).toISOString(), transactionType: 'ISSUE_TO_PRODUCTION', item: { id: 23, name: 'Panel LCD' }, quantity: 5, user: { id: 7, username: 'mag3' }, description: 'Wydanie do montażu' },
-]
 
 const formatDate = (iso?: string | null) => iso ? new Date(iso).toLocaleString() : '-'
 
@@ -17,8 +12,55 @@ const OutboundSummary: FC = () => {
   const [q, setQ] = useState('')
   const [view, setView] = useState<'table'|'timeline'>('table')
   const [selected, setSelected] = useState<Transaction | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const transactions = sample
+  // Fetch transakcji typu ISSUE_TO_SALES i ISSUE_TO_PRODUCTION
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true)
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          setError('Brak autoryzacji')
+          return
+        }
+
+        // Fetch wszystkie transakcje, potem filtrujemy na frontendzie
+        const res = await fetch('http://localhost:8080/api/transactions', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        })
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+        const data = await res.json()
+        
+        // Mapujemy dane z backendu na nasz typ
+        const mapped: Transaction[] = (data ?? [])
+          .filter((t: any) => t.transactionType === 'ISSUE_TO_SALES' || t.transactionType === 'ISSUE_TO_PRODUCTION')
+          .map((t: any) => ({
+            id: t.id,
+            transactionDate: t.transactionDate,
+            transactionType: t.transactionType,
+            item: t.item ? { id: t.item.id, name: t.item.name } : null,
+            quantity: t.quantity,
+            user: t.user ? { id: t.user.id, username: t.user.username } : null,
+            description: t.description,
+          }))
+
+        setTransactions(mapped)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching transactions:', err)
+        setError('Błąd podczas pobierania danych')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [])
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase()
@@ -35,12 +77,46 @@ const OutboundSummary: FC = () => {
   const shipped = transactions.filter(t => t.transactionType === 'ISSUE_TO_SALES').reduce((s, t) => s + t.quantity, 0)
   const toProduction = transactions.filter(t => t.transactionType === 'ISSUE_TO_PRODUCTION').reduce((s, t) => s + t.quantity, 0)
 
+  // Dane do wykresu liniowego - transakcje w czasie
+  const timelineData = useMemo(() => {
+    const map = new Map<string, { date: string; ISSUE_TO_SALES: number; ISSUE_TO_PRODUCTION: number }>()
+    for (const t of transactions) {
+      const date = t.transactionDate ? new Date(t.transactionDate).toLocaleDateString('pl-PL') : 'Nieznana'
+      if (!map.has(date)) {
+        map.set(date, { date, ISSUE_TO_SALES: 0, ISSUE_TO_PRODUCTION: 0 })
+      }
+      const entry = map.get(date)!
+      if (t.transactionType === 'ISSUE_TO_SALES') {
+        entry.ISSUE_TO_SALES += t.quantity
+      } else if (t.transactionType === 'ISSUE_TO_PRODUCTION') {
+        entry.ISSUE_TO_PRODUCTION += t.quantity
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [transactions])
+
+  // Dane do wykresu kołowego - rozkład typów
+  const typeDistribution = useMemo(() => [
+    { name: 'Wysłane do klientów', value: shipped, fill: '#3b82f6' },
+    { name: 'Wydane do produkcji', value: toProduction, fill: '#10b981' }
+  ], [shipped, toProduction])
+
+  // Top pozycje
+  const topItems = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of transactions) {
+      const name = t.item?.name ?? 'Nieznany'
+      map.set(name, (map.get(name) ?? 0) + (t.quantity || 0))
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, quantity]) => ({ name, quantity }))
+  }, [transactions])
+
   return (
     <main className="p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-main">Podsumowanie wysyłek</h1>
-          <p className="text-sm text-secondary mt-1">Szybki widok wysyłek i wydania towaru — UI-only, dane oparte na modelach Transaction/Item/User.</p>
+          <p className="text-sm text-secondary mt-1">Widok wysyłek i wydania towaru do klientów oraz produkcji.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-white border border-main rounded-3xl px-3 py-1">
@@ -52,6 +128,16 @@ const OutboundSummary: FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center text-secondary py-12">Ładowanie danych...</div>
+      ) : (
+        <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-main rounded-lg p-4">
           <div className="flex items-center justify-between">
@@ -75,6 +161,59 @@ const OutboundSummary: FC = () => {
           <div className="text-sm text-secondary mt-2">Ilość przekazana do działu produkcji</div>
         </div>
       </div>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="lg:col-span-2 bg-white border border-main rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-main mb-4">Wysyłki w czasie</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={timelineData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="date" stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '8px' }} />
+              <Legend />
+              <Line type="monotone" dataKey="ISSUE_TO_SALES" stroke="#3b82f6" strokeWidth={2} name="Do klientów" dot={{ fill: '#3b82f6', r: 5 }} />
+              <Line type="monotone" dataKey="ISSUE_TO_PRODUCTION" stroke="#10b981" strokeWidth={2} name="Do produkcji" dot={{ fill: '#10b981', r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white border border-main rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-main mb-4">Rozkład wysyłek</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={typeDistribution}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, value }) => `${name}: ${value}`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {typeDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="bg-white border border-main rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-main mb-4">Top 5 pozycji</h3>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={topItems}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="name" stroke="#6b7280" />
+            <YAxis stroke="#6b7280" />
+            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '8px' }} />
+            <Bar dataKey="quantity" fill="#3b82f6" name="Ilość" radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </section>
 
       <section className="bg-surface-secondary border border-main rounded-lg p-4">
         {filtered.length === 0 ? (
@@ -166,6 +305,8 @@ const OutboundSummary: FC = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </main>
   )
