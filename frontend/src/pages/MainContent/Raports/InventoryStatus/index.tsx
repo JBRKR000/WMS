@@ -1,8 +1,6 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
-import { Layers, Search, Eye, Download, AlertCircle, Loader, ChevronLeft, ChevronRight } from 'lucide-react'
-import { PDFDownloadLink } from '@react-pdf/renderer'
+import { Layers, Search, Eye, AlertCircle, Loader, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Item, ItemType as ItemTypeEnum, UnitType } from '../../../../types'
-import InventoryStatusPDF from './InventoryStatusPDF'
 
 // Unit type display names mapping
 const unitDisplay: Record<UnitType, string> = {
@@ -53,7 +51,6 @@ const InventoryStatus: FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
-  const [refreshKey, setRefreshKey] = useState(0)
 
   // Fetch items from API
   useEffect(() => {
@@ -169,25 +166,6 @@ const InventoryStatus: FC = () => {
             <Search className="w-4 h-4 text-secondary" />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Szukaj pozycji" className="text-sm placeholder-secondary focus:outline-none" />
           </div>
-          <PDFDownloadLink
-            key={refreshKey}
-            document={<InventoryStatusPDF items={items} categories={categories} criticalCount={criticalItems.length} totalQuantity={totalQuantity} averageQuantity={averageQuantity} />}
-            fileName={`inventory-status-${new Date().toISOString().split('T')[0]}.pdf`}
-          >
-            {({ loading: pdfLoading, url }) => (
-              <button 
-                onClick={() => {
-                  setRefreshKey(k => k + 1)
-                  if (url) window.open(url, '_blank')
-                }}
-                disabled={pdfLoading}
-                className="px-4 py-2 rounded-full border border-main bg-white inline-flex items-center gap-2 text-sm hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                {pdfLoading ? 'Generuję...' : 'Eksport PDF'}
-              </button>
-            )}
-          </PDFDownloadLink>
         </div>
       </div>
 

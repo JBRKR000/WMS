@@ -37,6 +37,9 @@ public class Item {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(name = "threshold", nullable = true)
+    private Long threshold; // MINIMALNA ILOŚĆ
+
     @Enumerated(EnumType.STRING)
     @Column(name = "unit", nullable = false, length = 20)
     private UnitType unit;
