@@ -24,6 +24,7 @@ public class ItemDTO {
     private String categoryName;
     private UnitType unit;
     private Integer currentQuantity;
+    private Long threshold;
     private String qrCode;
     private String createdAt;
     private String updatedAt;

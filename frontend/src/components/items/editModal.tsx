@@ -15,6 +15,7 @@ export interface EditItemModalProps {
     categoryName?: string | null
     unit?: string | null
     currentQuantity?: number
+    threshold?: number
     qrCode?: string | null
     keywords?: string[]
     itemType?: string | null
@@ -28,8 +29,8 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [unit, setUnit] = useState(item.unit ?? '')
   const [currentQuantity, setCurrentQuantity] = useState(item.currentQuantity ?? 0)
+  const [threshold, setThreshold] = useState(item.threshold ?? null)
   const [qrCode, setQrCode] = useState(item.qrCode ?? '')
-  const [itemType, setItemType] = useState(item.itemType ?? 'PRODUCT')
   const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
   const [selectedKeywords, setSelectedKeywords] = useState<KeywordDTO[]>([])
   const [keywordSearch, setKeywordSearch] = useState<string>('')
@@ -44,8 +45,8 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
       setDescription(item.description ?? '')
       setUnit(item.unit ?? '')
       setCurrentQuantity(item.currentQuantity ?? 0)
+      setThreshold(item.threshold ?? null)
       setQrCode(item.qrCode ?? '')
-      setItemType(item.itemType ?? 'PRODUCT')
       setKeywordSearch('')
       setConfirmSave(false)
       setError(null)
@@ -91,6 +92,7 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
         category: categoryId ? { id: categoryId } : null,
         unit,
         currentQuantity,
+        threshold: threshold ?? null,
         keywords: selectedKeywords.map(k => ({ value: k.value }))
       }
 
@@ -192,6 +194,16 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
               type="number"
               value={currentQuantity}
               onChange={e => setCurrentQuantity(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-secondary mb-1">Próg minimalny (threshold)</label>
+            <input
+              type="number"
+              value={threshold ?? ''}
+              onChange={e => setThreshold(e.target.value ? Number(e.target.value) : null)}
               className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
               disabled={loading}
             />

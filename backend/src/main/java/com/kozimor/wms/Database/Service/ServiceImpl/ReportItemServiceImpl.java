@@ -25,8 +25,6 @@ public class ReportItemServiceImpl implements ReportItemService {
 
     @Override
     public ReportItem createReportItem(ReportItem reportItem) {
-
-        Item reportItemEntity = new Item();
         return reportItemRepository.save(reportItem);
     }
 

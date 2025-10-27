@@ -10,6 +10,7 @@ type ItemForm = {
   categoryId?: number | ''
   unit?: string
   currentQuantity?: number | ''
+  threshold?: number | ''
   qrCode?: string
   type?: 'COMPONENT' | 'PRODUCT'
 }
@@ -24,7 +25,7 @@ const AddComponentsAndProducts: FC = () => {
     return () => clearTimeout(timer)
   }, [statusMessage])
 
-  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '', type: 'COMPONENT' })
+  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [preview, setPreview] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -75,6 +76,7 @@ const AddComponentsAndProducts: FC = () => {
     const e: Record<string, string> = {}
     if (!f.name.trim()) e.name = 'Nazwa jest wymagana'
     if (f.currentQuantity !== '' && Number(f.currentQuantity) < 0) e.currentQuantity = 'Ilość nie może być ujemna'
+    if (f.threshold !== '' && Number(f.threshold) <= 0) e.threshold = 'Próg minimalny musi być większy niż 0'
     return e
   }
 
@@ -90,6 +92,7 @@ const AddComponentsAndProducts: FC = () => {
         description: form.description,
         unit: form.unit,
         currentQuantity: form.currentQuantity === '' ? 0 : Number(form.currentQuantity),
+        threshold: form.threshold === '' ? null : Number(form.threshold),
         category: { id: form.categoryId },
         type: form.type, // use 'type' to match entity field
         keywords: selectedKeywords.map(k => ({ value: k.value })),
@@ -113,7 +116,7 @@ const AddComponentsAndProducts: FC = () => {
   }
 
   const onClear = () => {
-    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', qrCode: '', type: 'COMPONENT' })
+    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT' })
     setErrors({})
     setPreview(false)
     setKeywordSearch('')
@@ -127,6 +130,7 @@ const AddComponentsAndProducts: FC = () => {
     category: categories.find(c => String(c.id) === String(form.categoryId)) ?? null,
     unit: form.unit || '-',
     currentQuantity: form.currentQuantity === '' ? null : Number(form.currentQuantity),
+    threshold: form.threshold === '' ? null : Number(form.threshold),
     qrCode: form.qrCode || '-',
     keywords: selectedKeywords,
     itemType: form.type || 'COMPONENT'
@@ -187,6 +191,12 @@ const AddComponentsAndProducts: FC = () => {
               <label className="block text-xs text-secondary">Ilość</label>
               <input type="number" value={form.currentQuantity as any} onChange={e => setForm({ ...form, currentQuantity: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               {errors.currentQuantity && <div className="text-xs text-error-text mt-1">{errors.currentQuantity}</div>}
+            </div>
+
+            <div>
+              <label className="block text-xs text-secondary">Próg minimalny (threshold)</label>
+              <input type="number" value={form.threshold as any} onChange={e => setForm({ ...form, threshold: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              {errors.threshold && <div className="text-xs text-error-text mt-1">{errors.threshold}</div>}
             </div>
           </div>
 
@@ -264,6 +274,10 @@ const AddComponentsAndProducts: FC = () => {
                 <div>
                   <div className="text-xs text-secondary">Jednostka</div>
                   <div className="text-main">{filledPreview.unit}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-secondary">Próg minimalny</div>
+                  <div className="text-main">{filledPreview.threshold ?? '-'}</div>
                 </div>
               </div>
 

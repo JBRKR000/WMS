@@ -11,6 +11,7 @@ type Product = {
   category?: Category | null
   unit?: string | null
   currentQuantity?: number
+  threshold?: number
   qrCode?: string | null
   createdAt?: string | null
   updatedAt?: string | null
@@ -59,6 +60,7 @@ const Products: FC = () => {
           category: item.categoryName ? { name: item.categoryName } : null,
           unit: item.unit,
           currentQuantity: item.currentQuantity,
+          threshold: item.threshold,
           qrCode: item.qrCode,
           createdAt: item.createdAt,
           updatedAt: item.updatedAt
@@ -286,6 +288,8 @@ const Products: FC = () => {
               <div>
                 <div className="text-xs text-secondary">Ilość / Jednostka</div>
                 <div className="text-main mt-1">{preview.currentQuantity ?? '-'} {preview.unit ?? ''}</div>
+                <div className="text-xs text-secondary mt-3">Próg minimalny</div>
+                <div className="text-main mt-1">{preview.threshold ?? '-'}</div>
                 <div className="text-xs text-secondary mt-3">QR</div>
                 <div className="text-main mt-1">{preview.qrCode ?? '-'}</div>
               </div>
@@ -310,6 +314,7 @@ const Products: FC = () => {
             categoryName: editingItem.category?.name ?? null,
             unit: editingItem.unit ?? null,
             currentQuantity: editingItem.currentQuantity ?? 0,
+            threshold: editingItem.threshold ?? undefined,
             qrCode: editingItem.qrCode ?? null,
             itemType: 'PRODUCT',
           }}

@@ -94,4 +94,26 @@ public interface TransactionService {
      * @return The updated transaction as TransactionForOrderDTO
      */
     TransactionForOrderDTO updateTransactionStatus(Long id, String status);
+
+    /**
+     * Get receipt transactions paginated
+     * @param page The page number
+     * @param size The page size
+     * @return Page of RECEIPT transactions as TransactionDTO
+     */
+    Page<TransactionDTO> getReceiptTransactionsPaginated(int page, int size);
+
+    /**
+     * Get all transactions with ISSUE types (ISSUE_TO_PRODUCTION, ISSUE_TO_SALES, ORDER)
+     * @return List of ISSUE transactions
+     */
+    List<Transaction> getIssueTransactions();
+
+    /**
+     * Get issue transactions paginated (ISSUE_TO_PRODUCTION, ISSUE_TO_SALES, ORDER)
+     * @param page The page number
+     * @param size The page size
+     * @return Page of ISSUE transactions as TransactionDTO
+     */
+    Page<TransactionDTO> getIssueTransactionsPaginated(int page, int size);
 }

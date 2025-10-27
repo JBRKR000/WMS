@@ -237,4 +237,62 @@ public class TransactionServiceImpl implements TransactionService {
         
         return dto;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TransactionDTO> getReceiptTransactionsPaginated(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return transactionRepository.findByTransactionType(TransactionType.RECEIPT, pageable).map(transaction -> {
+            TransactionDTO dto = new TransactionDTO();
+            dto.setId(transaction.getId());
+            dto.setTransactionDate(transaction.getTransactionDate() != null 
+                ? transaction.getTransactionDate().format(formatter) 
+                : null);
+            dto.setTransactionType(transaction.getTransactionType().name());
+            dto.setItemName(transaction.getItem() != null ? transaction.getItem().getName() : null);
+            dto.setCategoryName(transaction.getItem() != null && transaction.getItem().getCategory() != null
+                ? transaction.getItem().getCategory().getName()
+                : null);
+            dto.setQuantity(transaction.getQuantity());
+            dto.setUserName(transaction.getUser() != null ? transaction.getUser().getUsername() : null);
+            dto.setDescription(transaction.getDescription());
+            dto.setTransactionStatus(transaction.getTransactionStatus() != null 
+                ? transaction.getTransactionStatus().name() 
+                : null);
+            return dto;
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Transaction> getIssueTransactions() {
+        return transactionRepository.findIssueTransactions();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TransactionDTO> getIssueTransactionsPaginated(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return transactionRepository.findIssueTransactions(pageable).map(transaction -> {
+            TransactionDTO dto = new TransactionDTO();
+            dto.setId(transaction.getId());
+            dto.setTransactionDate(transaction.getTransactionDate() != null 
+                ? transaction.getTransactionDate().format(formatter) 
+                : null);
+            dto.setTransactionType(transaction.getTransactionType().name());
+            dto.setItemName(transaction.getItem() != null ? transaction.getItem().getName() : null);
+            dto.setCategoryName(transaction.getItem() != null && transaction.getItem().getCategory() != null
+                ? transaction.getItem().getCategory().getName()
+                : null);
+            dto.setQuantity(transaction.getQuantity());
+            dto.setUserName(transaction.getUser() != null ? transaction.getUser().getUsername() : null);
+            dto.setDescription(transaction.getDescription());
+            dto.setTransactionStatus(transaction.getTransactionStatus() != null 
+                ? transaction.getTransactionStatus().name() 
+                : null);
+            return dto;
+        });
+    }
 }

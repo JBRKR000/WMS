@@ -12,6 +12,7 @@ type Item = {
   category?: Category | null
   unit?: string | null
   currentQuantity?: number
+  threshold?: number
   qrCode?: string | null
   createdAt?: string | null
   updatedAt?: string | null
@@ -26,6 +27,7 @@ type ItemDTO = {
   categoryName?: string | null
   unit?: string | null
   currentQuantity?: number
+  threshold?: number
   qrCode?: string | null
   itemType?: string
   createdAt?: string | null
@@ -164,6 +166,7 @@ const Search: FC = () => {
           category: dto.categoryName ? { name: dto.categoryName } : undefined,
           unit: dto.unit,
           currentQuantity: dto.currentQuantity,
+          threshold: dto.threshold,
           qrCode: dto.qrCode,
           createdAt: dto.createdAt,
           updatedAt: dto.updatedAt,
@@ -490,6 +493,8 @@ const Search: FC = () => {
               <div>
                 <div className="text-xs text-secondary">Ilość / Jednostka</div>
                 <div className="text-main mt-1">{preview.currentQuantity ?? '-'} {preview.unit ?? ''}</div>
+                <div className="text-xs text-secondary mt-3">Próg minimalny</div>
+                <div className="text-main mt-1">{preview.threshold ?? '-'}</div>
                 <div className="text-xs text-secondary mt-3">QR</div>
                 <div className="text-main mt-1">{preview.qrCode ?? '-'}</div>
               </div>

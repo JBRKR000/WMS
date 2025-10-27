@@ -3,14 +3,15 @@ import { Search, FileText, AlertTriangle, Box, TrendingDown, Package, AlertCircl
 import { fetchApi } from '../../../../utils/api'
 
 // Use backend Transaction model fields only
-type Category = { id?: number | null; name: string }
 type Item = {
   id?: number | null
   name: string
   description?: string | null
-  category?: Category | null
+  categoryName?: string | null
   unit?: string | null
   currentQuantity?: number
+  threshold?: number
+  itemType?: string
 }
 type Transaction = {
   id?: number | null
@@ -45,14 +46,14 @@ const Alerts: FC = () => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Fetch all items
-        type ItemsResponse = {
+        // Fetch low stock items from new endpoint
+        type LowStockResponse = {
           content: Item[]
           totalElements: number
           totalPages: number
         }
-        const itemsData = await fetchApi<ItemsResponse>('/items/getAllPaginated?page=0&size=1000')
-        setItems(itemsData?.content || [])
+        const lowStockData = await fetchApi<LowStockResponse>('/items/lowstock?page=0&size=1000')
+        setItems(lowStockData?.content || [])
 
         // Fetch all transactions
         type TransactionsResponse = {
@@ -75,15 +76,13 @@ const Alerts: FC = () => {
 
   // Generate alerts from items with low quantity
   const alerts: AlertEntry[] = useMemo(() => {
-    const lowStockAlerts: AlertEntry[] = items
-      .filter(item => (item.currentQuantity ?? 0) <= 10)
-      .map((item) => ({
-        id: item.id,
-        source: 'item',
-        message: `⚠️ Niski stan magazynowy: ${item.name} - Dostępne: ${item.currentQuantity ?? 0} ${item.unit ?? 'szt.'}`,
-        createdAt: new Date().toISOString(),
-        item
-      }))
+    const lowStockAlerts: AlertEntry[] = items.map((item) => ({
+      id: item.id,
+      source: 'item',
+      message: `⚠️ Niski stan magazynowy: ${item.name} - Dostępne: ${item.currentQuantity ?? 0} ${item.unit ?? 'szt.'} (próg: ${item.threshold ?? '-'})`,
+      createdAt: new Date().toISOString(),
+      item
+    }))
 
     // Transaction alerts (for reference)
     const txAlerts: AlertEntry[] = transactions.slice(0, 5).map((tx, idx) => ({
@@ -230,7 +229,10 @@ const Alerts: FC = () => {
                       <span className="opacity-70">Ilość:</span> {a.item.currentQuantity} {a.item.unit}
                     </div>
                     <div>
-                      <span className="opacity-70">Kategoria:</span> {a.item.category?.name ?? '-'}
+                      <span className="opacity-70">Kategoria:</span> {a.item.categoryName ?? '-'}
+                    </div>
+                    <div>
+                      <span className="opacity-70">Próg minimalny:</span> {a.item.threshold ?? '-'}
                     </div>
                     <div>
                       <span className="opacity-70">Opis:</span> {a.item.description ?? '-'}

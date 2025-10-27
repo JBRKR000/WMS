@@ -64,6 +64,34 @@ public class TransactionController {
         return ResponseEntity.ok(transactions);
     }
 
+    @GetMapping("/receipts")
+    public ResponseEntity<List<Transaction>> getReceiptTransactions() {
+        List<Transaction> transactions = transactionService.getTransactionsByType(TransactionType.RECEIPT);
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/receipts/paginated")
+    public ResponseEntity<Page<TransactionDTO>> getReceiptTransactionsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<TransactionDTO> transactions = transactionService.getReceiptTransactionsPaginated(page, size);
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/issues")
+    public ResponseEntity<List<Transaction>> getIssueTransactions() {
+        List<Transaction> transactions = transactionService.getIssueTransactions();
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/issues/paginated")
+    public ResponseEntity<Page<TransactionDTO>> getIssueTransactionsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<TransactionDTO> transactions = transactionService.getIssueTransactionsPaginated(page, size);
+        return ResponseEntity.ok(transactions);
+    }
+
     @GetMapping("/date-range")
     public ResponseEntity<List<Transaction>> getTransactionsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,

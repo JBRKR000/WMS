@@ -23,6 +23,7 @@ export interface Item {
   unit: UnitType;
   type: ItemType;
   qrCode?: string;
+  threshold?: number;
   createdAt?: string;
   updatedAt?: string;
   keywords?: string[];

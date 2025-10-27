@@ -11,6 +11,7 @@ export type ItemDTO = {
   categoryName?: string | null
   unit?: string | null
   currentQuantity?: number
+  threshold?: number
   qrCode?: string | null
   createdAt?: string | null
   updatedAt?: string | null
@@ -289,6 +290,7 @@ const ComponentList: FC = () => {
             categoryName: editingItem.categoryName ?? null,
             unit: editingItem.unit ?? null,
             currentQuantity: editingItem.currentQuantity ?? 0,
+            threshold: editingItem.threshold ?? undefined,
             qrCode: editingItem.qrCode ?? null,
             itemType: 'COMPONENT',
             keywords: editingItem.keywords ?? [],
