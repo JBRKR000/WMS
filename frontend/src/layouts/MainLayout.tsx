@@ -68,7 +68,7 @@ const raportsSections: SidebarSection[] = [
             { to: "/raports/inventory", icon: BarChart3, label: "Stany magazynowe" },
             { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
             { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
-            { to: "/raports/export", icon: FileSpreadsheet, label: "Eksport do PDF/Excel" },
+            { to: "/raports/export", icon: FileSpreadsheet, label: "Raporty" },
         ],
     },
 ];

@@ -153,4 +153,10 @@ public class ReportController {
         long count = reportService.getReportCount();
         return ResponseEntity.ok(count);
     }
+
+    @PostMapping("/snapshot")
+    public ResponseEntity<Report> createSnapshot() {
+        Report snapshot = reportService.createSnapshot();
+        return ResponseEntity.status(HttpStatus.CREATED).body(snapshot);
+    }
 }

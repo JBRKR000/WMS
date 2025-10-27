@@ -58,4 +58,10 @@ public interface ReportService {
      * Get total count of reports
      */
     long getReportCount();
+
+
+    /**
+     * Create a snapshot report of the current inventory state
+     */
+    Report createSnapshot();
 }

@@ -23,7 +23,7 @@ public class ReportItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "report_id", nullable = false)
+    @JoinColumn(name = "report_id", nullable = true)
     private Report report;
 
     @ManyToOne(fetch = FetchType.LAZY)
