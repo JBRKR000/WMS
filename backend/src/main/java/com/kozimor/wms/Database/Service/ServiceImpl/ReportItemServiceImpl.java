@@ -1,6 +1,5 @@
 package com.kozimor.wms.Database.Service.ServiceImpl;
 
-import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.ReportItem;
 import com.kozimor.wms.Database.Repository.ReportItemRepository;
 import com.kozimor.wms.Database.Service.ReportItemService;

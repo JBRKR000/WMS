@@ -5,7 +5,6 @@ const SettingsPage: FC = () => {
   return (
     <div>
       <nav className="mb-4">
-        {/* dodaj tu inne podstrony ustawień */}
       </nav>
       <Outlet />
     </div>

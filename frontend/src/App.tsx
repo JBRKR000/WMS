@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "./utils/AuthContext";
 import Layout from "./layouts/MainLayout";
 import Auth from "./pages/Auth";
 import Users from "./pages/MainContent/Settings/Users";
+import QR from "./pages/MainContent/Settings/QR";
 import Summary from "./pages/MainContent/Dashboard/Summary";
 import ComponentList from "./pages/MainContent/Components/ComponentList";
 import RegisterIssue from "./pages/MainContent/Issues/RegisterIssue";
@@ -99,6 +100,7 @@ function AppRoutes() {
                 {/* SETTINGS */}
                 <Route path="/settings/*" element={<Settings />}>
                   <Route path="users" element={<Users />} />
+                  <Route path="qr" element={<QR />} />
                 </Route>
               </Routes>
             </Layout>

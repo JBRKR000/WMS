@@ -6,7 +6,7 @@ import Sidebar, { type SidebarSection } from '../components/MainComponents/Sideb
 import Footer from '../components/FooterComponents/Footer'
 import {
     Activity, AlertTriangle, BarChart3, Boxes, Clock, Download, FileSpreadsheet, Layers,
-    List, Package, Plus, QrCode, Upload, Users, Shield
+    List, Package, Plus, QrCode, Upload, Users
 } from 'lucide-react'
 
 type LayoutProps = {
@@ -78,8 +78,7 @@ const settingsSections: SidebarSection[] = [
         label: "Ustawienia",
         items: [
             { to: "/settings/users", icon: Users, label: "Zarządzanie użytkownikami" },
-            { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-            { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
+            { to: "/settings/qr", icon: QrCode, label: "Ustawienia Systemu" },
         ],
     },
 ];
