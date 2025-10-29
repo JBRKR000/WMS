@@ -9,22 +9,25 @@ WMS is a comprehensive fullstack solution for managing warehouse operations in t
 Whether you're managing a small warehouse or a large distribution network, WMS provides the tools needed to optimize product flow, track inventory, and manage your team efficiently.
 
 ---
+
 ## 📸 Screenshots
 
 See WMS in action:
 
-![Dashboard Overview](https://via.placeholder.com/800x600?text=Dashboard+Overview)
-*Main dashboard with key metrics and operations*
+![Add Item](./documentation/add_item.png)
+*Adding new items to the warehouse with detailed information*
 
-![Inventory Management](https://via.placeholder.com/800x600?text=Inventory+Management)
-*Real-time inventory tracking and management*
+![Multi-Criteria Search](./documentation/multicriterial_search.png)
+*Advanced search with powerful filtering capabilities*
 
-![Advanced Search](https://via.placeholder.com/800x600?text=Advanced+Search)
-*Multi-criteria search with powerful filters*
+![Last Operations](./documentation/last_operations.png)
+*Track recent warehouse operations and activities*
 
-![User Management](https://via.placeholder.com/800x600?text=User+Management)
-*Team and permissions management interface*
+![Reports](./documentation/raports.png)
+*Generate and analyze business intelligence reports*
 
+![Scheduler](./documentation/scheduler.png)
+*Schedule and manage automated warehouse tasks*
 
 ---
 
@@ -49,6 +52,21 @@ See WMS in action:
 - Scalable system built on Java Spring Boot
 - RESTful API architecture
 - Optimized database operations
+
+### 📋 Comprehensive Operations Tracking
+- Monitor real-time warehouse activities
+- Track all item additions and modifications
+- Detailed operation history and audit logs
+
+### 📈 Advanced Reporting
+- Generate business intelligence reports
+- Analyze warehouse metrics and KPIs
+- Export data for further analysis
+
+### ⏰ Automated Task Scheduling
+- Schedule recurring warehouse tasks
+- Automate routine operations
+- Improve operational efficiency
 
 ---
 
@@ -80,6 +98,7 @@ WMS/
 - ✅ **Warehouse Optimization** - Analyze operational efficiency
 - ✅ **Reporting** - Generate business intelligence reports
 - ✅ **Integrations** - API for external systems connectivity
+- ✅ **Automation** - Schedule and automate warehouse operations
 
 ---
 
@@ -99,6 +118,7 @@ WMS/
 - 🚀 **Scalable** - ready for business growth
 - 📱 **Responsive** - works everywhere
 - 🔄 **Modular** - easy to extend with new features
+- 📊 **Data-Driven** - powerful analytics and reporting
 
 ---
 
