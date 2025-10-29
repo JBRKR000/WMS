@@ -9,6 +9,24 @@ WMS is a comprehensive fullstack solution for managing warehouse operations in t
 Whether you're managing a small warehouse or a large distribution network, WMS provides the tools needed to optimize product flow, track inventory, and manage your team efficiently.
 
 ---
+## 📸 Screenshots
+
+See WMS in action:
+
+![Dashboard Overview](https://via.placeholder.com/800x600?text=Dashboard+Overview)
+*Main dashboard with key metrics and operations*
+
+![Inventory Management](https://via.placeholder.com/800x600?text=Inventory+Management)
+*Real-time inventory tracking and management*
+
+![Advanced Search](https://via.placeholder.com/800x600?text=Advanced+Search)
+*Multi-criteria search with powerful filters*
+
+![User Management](https://via.placeholder.com/800x600?text=User+Management)
+*Team and permissions management interface*
+
+
+---
 
 ## ✨ Key Features
 
