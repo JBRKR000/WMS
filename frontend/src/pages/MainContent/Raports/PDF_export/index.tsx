@@ -1,5 +1,7 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
-import { FileText, AlertCircle, CheckCircle2, AlertTriangle, Eye, X, ChevronLeft, ChevronRight, Download, Loader } from 'lucide-react'
+import { FileText, AlertCircle, CheckCircle2, AlertTriangle, Eye, X, ChevronLeft, ChevronRight, Loader, Download } from 'lucide-react'
+import { Document, Page, Text, View } from '@react-pdf/renderer'
+import { pdf } from '@react-pdf/renderer'
 
 type ReportItem = {
   id: number
@@ -57,6 +59,31 @@ const unitMap: { [key: string]: string } = {
 }
 
 const getUnitLabel = (unit: string): string => unitMap[unit] || unit
+
+// Function to convert Polish characters to ASCII equivalents for PDF
+const sanitizePolishText = (text: string): string => {
+  const polishMap: { [key: string]: string } = {
+    ą: 'a',
+    ć: 'c',
+    ę: 'e',
+    ł: 'l',
+    ń: 'n',
+    ó: 'o',
+    ś: 's',
+    ź: 'z',
+    ż: 'z',
+    Ą: 'A',
+    Ć: 'C',
+    Ę: 'E',
+    Ł: 'L',
+    Ń: 'N',
+    Ó: 'O',
+    Ś: 'S',
+    Ź: 'Z',
+    Ż: 'Z',
+  }
+  return text.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (char) => polishMap[char] || char)
+}
 
 const getStatusColor = (status: string): { bg: string; text: string; icon: any } => {
   switch (status) {
@@ -145,6 +172,102 @@ const PDFExport: FC = () => {
     return Math.ceil(selectedReport.reportItems.length / itemsPageSize)
   }, [selectedReport])
 
+  const handleDownloadReport = async () => {
+    if (!selectedReport) return
+
+    try {
+      // Create PDF document structure
+      const ReportPDF = () => (
+        <Document>
+          <Page size="A4" style={{ padding: 40, fontSize: 11, fontFamily: 'Helvetica' }}>
+            {/* Title */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
+                {sanitizePolishText(`Raport Magazynowy #${selectedReport.id}`)}
+              </Text>
+              <Text style={{ fontSize: 9, color: '#666' }}>
+                {sanitizePolishText(`Data utworzenia: ${formatDate(selectedReport.createdAt)}`)}
+              </Text>
+              <Text style={{ fontSize: 9, color: '#666' }}>
+                {sanitizePolishText(`Utworzony przez: ${selectedReport.createdBy.username}`)}
+              </Text>
+            </View>
+
+            {/* Statistics */}
+            <View style={{ marginBottom: 20, borderBottom: '1px solid #ddd', paddingBottom: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 10 }}>
+                {sanitizePolishText('Podsumowanie')}
+              </Text>
+              <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Razem pozycji: ${selectedReport.totalItemsCount}`)}</Text>
+                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan krytyczny: ${selectedReport.criticalStockCount}`)}</Text>
+                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan niski: ${selectedReport.lowStockCount}`)}</Text>
+                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan OK: ${selectedReport.okCount}`)}</Text>
+              </View>
+            </View>
+
+            {/* Items Table Header */}
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 10 }}>
+                {sanitizePolishText(`Pozycje (${selectedReport.reportItems.length})`)}
+              </Text>
+            </View>
+
+            {/* Items Table */}
+            <View style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000' }}>
+              {/* Header Row */}
+              <View style={{ display: 'flex', flexDirection: 'row', borderBottom: '1px solid #ddd', paddingBottom: 4, marginBottom: 4, fontWeight: 'bold' }}>
+                <Text style={{ flex: 0.8, fontSize: 8 }}>Status</Text>
+                <Text style={{ flex: 2.5, fontSize: 8 }}>Nazwa</Text>
+                <Text style={{ flex: 0.7, fontSize: 8, textAlign: 'center' }}>Ilosc</Text>
+                <Text style={{ flex: 0.6, fontSize: 8, textAlign: 'center' }}>J.</Text>
+                <Text style={{ flex: 0.8, fontSize: 8, textAlign: 'center' }}>Zmiana</Text>
+              </View>
+
+              {/* Data Rows */}
+              {selectedReport.reportItems.map((item) => (
+                <View key={item.id} style={{ display: 'flex', flexDirection: 'row', paddingBottom: 4, marginBottom: 4, borderBottom: '1px solid #eee' }}>
+                  <Text style={{ flex: 0.8, fontSize: 8 }}>{item.status}</Text>
+                  <Text style={{ flex: 2.5, fontSize: 8 }}>{sanitizePolishText(item.itemName)}</Text>
+                  <Text style={{ flex: 0.7, fontSize: 8, textAlign: 'center' }}>{item.currentQuantity}</Text>
+                  <Text style={{ flex: 0.6, fontSize: 8, textAlign: 'center' }}>{sanitizePolishText(getUnitLabel(item.unit))}</Text>
+                  <Text style={{ flex: 0.8, fontSize: 8, textAlign: 'center' }}>
+                    {item.differenceFromPrevious !== undefined && item.differenceFromPrevious !== null
+                      ? `${item.differenceFromPrevious > 0 ? '+' : ''}${item.differenceFromPrevious}`
+                      : '-'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Footer */}
+            <View style={{ marginTop: 20, borderTop: '1px solid #ddd', paddingTop: 10, fontSize: 8, color: '#999' }}>
+              <Text>
+                {sanitizePolishText(`Raport wygenerowany: ${new Date().toLocaleString('pl-PL')}`)}
+              </Text>
+            </View>
+          </Page>
+        </Document>
+      )
+
+      // Generate and download PDF
+      const pdfDocument = <ReportPDF />
+      const pdfBlob = await pdf(pdfDocument).toBlob()
+      
+      const url = URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `raport_${selectedReport.id}_${new Date().getTime()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error generating PDF:', err)
+      setError('Błąd podczas generowania PDF raportu')
+    }
+  }
+
   return (
     <main className="p-4 md:p-6 lg:p-8">
       {/* Header */}
@@ -154,19 +277,6 @@ const PDFExport: FC = () => {
           <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mt-2">
             Przeglądaj i zarządzaj raportami stanów magazynowych
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              color: 'var(--color-text)',
-              borderColor: 'var(--color-border)',
-            }}
-            className="px-4 py-2 rounded-lg border font-medium inline-flex items-center gap-2 text-sm hover:opacity-80 transition-opacity"
-          >
-            <Download className="w-4 h-4" />
-            Eksport
-          </button>
         </div>
       </div>
 
@@ -757,6 +867,17 @@ const PDFExport: FC = () => {
                 className="px-3 sm:px-4 py-2 rounded-lg border font-medium text-sm hover:opacity-80 transition-opacity"
               >
                 Zamknij
+              </button>
+              <button
+                onClick={handleDownloadReport}
+                style={{
+                  backgroundColor: 'var(--color-primary)',
+                  color: 'var(--color-surface)',
+                }}
+                className="px-3 sm:px-4 py-2 rounded-lg font-medium text-sm hover:opacity-80 transition-opacity inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Pobierz
               </button>
             </div>
           </div>

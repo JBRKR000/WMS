@@ -1,5 +1,5 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
-import { Package, Eye, Download, X, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package, Eye,  X, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 type Item = { id?: number | null; name: string }
@@ -140,16 +140,6 @@ const OutboundSummary: FC = () => {
         <div>
           <h1 style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">Podsumowanie wydań</h1>
           <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mt-2">Szybki przegląd wszystkich wydań (ISSUE) na magazynie.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button style={{ 
-            backgroundColor: 'var(--color-surface)',
-            color: 'var(--color-text)',
-            borderColor: 'var(--color-border)'
-          }} className="px-4 py-2 rounded-lg border font-medium inline-flex items-center gap-2 text-sm hover:opacity-80 transition-opacity">
-            <Download className="w-4 h-4"/>
-            Eksport
-          </button>
         </div>
       </div>
 

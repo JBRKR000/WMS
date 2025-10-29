@@ -1,5 +1,5 @@
 import { type FC, useMemo, useState, useEffect, type ReactNode } from 'react'
-import { Layers, Search, Eye, AlertCircle, Loader, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, XCircle, Package, BarChart3, X } from 'lucide-react'
+import { Layers,  Eye, AlertCircle, Loader, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, XCircle, Package, BarChart3, X } from 'lucide-react'
 import type { Item, ItemType as ItemTypeEnum, UnitType } from '../../../../types'
 
 // Unit type display names mapping
@@ -178,12 +178,6 @@ const InventoryStatus: FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-main">Status magazynu</h1>
           <p className="text-sm text-secondary mt-1">Przejrzysty widok stanów magazynowych, alertów niskiego stanu i rozkładu po kategoriach.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border border-main rounded-3xl px-3 py-1">
-            <Search className="w-4 h-4 text-secondary" />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Szukaj pozycji" className="text-sm placeholder-secondary focus:outline-none" />
-          </div>
         </div>
       </div>
 
