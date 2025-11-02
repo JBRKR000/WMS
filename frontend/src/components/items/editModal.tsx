@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useState, useEffect } from 'react'
-import { X, Edit3 } from 'lucide-react'
+import { X } from 'lucide-react'
 
 // Type for fetched keywords
 type KeywordDTO = { id: number; value: string }
@@ -124,47 +124,74 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-surface rounded-lg shadow-lg w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-main">Edytuj pozycję</h3>
-          <button onClick={onClose} className="text-secondary hover:text-main" disabled={loading}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="w-full max-w-2xl border rounded-lg shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="p-6 flex items-start justify-between">
+          <div>
+            <h3 className="text-2xl font-bold">Edytuj pozycję</h3>
+            <div style={{ color: 'var(--color-surface)', opacity: 0.8 }} className="text-sm mt-1">ID: {item.id}</div>
+          </div>
+          <button 
+            onClick={onClose} 
+            style={{ color: 'var(--color-surface)', opacity: 0.6 }}
+            className="hover:opacity-100 hover:bg-white/10 rounded-lg p-2 transition-all"
+            disabled={loading}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
+
+        {/* Content */}
+        <div style={{ backgroundColor: 'var(--color-surface)' }} className="p-6 max-h-96 overflow-y-auto space-y-4">
+          {error && (
+            <div style={{ backgroundColor: 'var(--color-error-bg)', borderColor: 'var(--color-error)', color: 'var(--color-error)' }} className="p-3 border rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm text-secondary mb-1">Nazwa</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Nazwa</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: 'var(--color-border)'
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               disabled={loading}
             />
           </div>
           <div>
-            <label className="block text-sm text-secondary mb-1">Opis</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Opis</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: 'var(--color-border)'
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
+              rows={3}
               disabled={loading}
             />
           </div>
           <div>
-            <label className="block text-sm text-secondary mb-1">Kategoria</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Kategoria</label>
             <select
               value={categoryId ?? ''}
               onChange={e => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: 'var(--color-border)'
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               disabled={loading}
             >
               <option value="">Wybierz kategorię</option>
@@ -173,77 +200,106 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm text-secondary mb-1">Jednostka</label>
-            <select
-              value={unit}
-              onChange={e => setUnit(e.target.value)}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
-              disabled={loading}
-            >
-              <option value="">Wybierz jednostkę</option>
-              <option value="PCS">sztuki</option>
-              <option value="KG">kilogramy</option>
-              <option value="LITER">litry</option>
-              <option value="METER">metry</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Jednostka</label>
+              <select
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+                style={{
+                  backgroundColor: 'var(--color-surface-secondary)',
+                  color: 'var(--color-text)',
+                  borderColor: 'var(--color-border)'
+                }}
+                className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                disabled={loading}
+              >
+                <option value="">Wybierz jednostkę</option>
+                <option value="PCS">sztuki</option>
+                <option value="KG">kilogramy</option>
+                <option value="LITER">litry</option>
+                <option value="METER">metry</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Ilość</label>
+              <input
+                type="number"
+                value={currentQuantity}
+                onChange={e => setCurrentQuantity(Number(e.target.value))}
+                style={{
+                  backgroundColor: 'var(--color-surface-secondary)',
+                  color: 'var(--color-text)',
+                  borderColor: 'var(--color-border)'
+                }}
+                className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                disabled={loading}
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm text-secondary mb-1">Ilość</label>
-            <input
-              type="number"
-              value={currentQuantity}
-              onChange={e => setCurrentQuantity(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-secondary mb-1">Próg minimalny (threshold)</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Próg minimalny</label>
             <input
               type="number"
               value={threshold ?? ''}
               onChange={e => setThreshold(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main"
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: 'var(--color-border)'
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               disabled={loading}
             />
           </div>
           <div>
-            <label className="block text-sm text-secondary mb-1">QR Code</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Kod QR</label>
             <input
               type="text"
               value={qrCode}
               disabled
-              className="w-full px-4 py-2 border border-main rounded-lg text-sm text-main bg-gray-100"
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: 'var(--color-border)',
+                opacity: 0.6
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm text-secondary mb-1">Słowa kluczowe</label>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Słowa kluczowe</label>
             <div className="flex flex-wrap gap-2 items-center">
               {selectedKeywords.map(k => (
-                <div key={k.id} className="flex items-center bg-emerald-200 text-main px-3 py-1 rounded-full text-sm">
+                <div key={k.id} style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="flex items-center px-3 py-1 rounded-full text-sm">
                   {k.value}
                   <button 
                     type="button"
                     onClick={() => setSelectedKeywords(prev => prev.filter(x => x.id !== k.id))} 
-                    className="ml-1 text-secondary hover:text-red-500"
+                    style={{ color: 'var(--color-surface)', opacity: 0.8 }}
+                    className="ml-1 hover:opacity-100"
                     disabled={loading}
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
-              <div className="relative">
+              <div className="relative flex-1 min-w-fit">
                 <input
                   type="text"
                   value={keywordSearch}
                   onChange={e => setKeywordSearch(e.target.value)}
                   placeholder="Wyszukaj słowo kluczowe"
-                  className="px-4 py-2 rounded-2xl border border-main bg-white text-main text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  style={{
+                    backgroundColor: 'var(--color-surface-secondary)',
+                    color: 'var(--color-text)',
+                    borderColor: 'var(--color-border)'
+                  }}
+                  className="px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all w-full"
                   disabled={loading}
                 />
                 {keywordSearch && (
-                  <ul className="absolute z-10 bg-white border border-main rounded mt-1 max-h-40 overflow-auto w-full shadow-lg">
+                  <ul style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }} className="absolute z-10 border rounded-lg mt-1 max-h-40 overflow-auto w-full shadow-lg">
                     {availableKeywords.filter(k => k.value.toLowerCase().includes(keywordSearch.toLowerCase()) && !selectedKeywords.some(s => s.id === k.id)).map(k => (
                       <li 
                         key={k.id} 
@@ -251,13 +307,13 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
                           setSelectedKeywords(prev => [...prev, k]); 
                           setKeywordSearch('') 
                         }} 
-                        className="px-3 py-1 hover:bg-surface-secondary cursor-pointer text-sm"
+                        className="px-3 py-2 hover:opacity-80 cursor-pointer text-sm transition-opacity"
                       >
                         {k.value}
                       </li>
                     ))}
                     {!availableKeywords.some(k => k.value.toLowerCase().includes(keywordSearch.toLowerCase()) && !selectedKeywords.some(s => s.id === k.id)) && (
-                      <li className="px-3 py-1 text-sm text-secondary">Brak wyników</li>
+                      <li style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-sm">Brak wyników</li>
                     )}
                   </ul>
                 )}
@@ -265,10 +321,18 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
             </div>
           </div>
         </div>
-        <div className="mt-6 flex justify-end">
+        </div>
+
+        {/* Footer */}
+        <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border-t px-6 py-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-surface-secondary border border-main rounded-lg text-sm text-secondary mr-4"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              borderColor: 'var(--color-border)'
+            }}
+            className="px-4 py-2 rounded-lg border font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
             disabled={loading}
           >
             Anuluj
@@ -276,20 +340,13 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
           <button
             onClick={() => confirmSave ? handleSubmit() : setConfirmSave(true)}
             disabled={loading}
-            className={`rounded-lg text-sm text-white transition-all duration-300 ease-in-out transform hover:scale-105 overflow-hidden ${
-              confirmSave 
-                ? 'w-40 px-4 py-2 bg-emerald-700 hover:bg-emerald-800' 
-                : 'w-10 px-2 py-2 bg-primary hover:bg-primary-hover'
-            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              backgroundColor: confirmSave ? 'var(--color-success)' : 'var(--color-primary)',
+              color: 'var(--color-surface)'
+            }}
+            className="px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
           >
-            <div className="relative flex items-center justify-center h-full">
-              <span className={`transition-opacity duration-200 ${confirmSave ? 'opacity-0' : 'opacity-100'}`}>
-                <Edit3 className="w-4 h-4" />
-              </span>
-              <span className={`absolute transition-opacity duration-200 ${confirmSave ? 'opacity-100' : 'opacity-0'}`}>
-                {loading ? 'Zapisywanie...' : 'Zapisz'}
-              </span>
-            </div>
+            {confirmSave ? (loading ? 'Zapisywanie...' : 'Potwierdź zapis') : 'Zapisz'}
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ import Header from '../components/HeaderComponents/Header'
 import Sidebar, { type SidebarSection } from '../components/MainComponents/Sidebar'
 import Footer from '../components/FooterComponents/Footer'
 import {
-    Activity, AlertTriangle, BarChart3, Boxes, Clock, Download, FileSpreadsheet, Layers,
+    Activity, BarChart3, Boxes, Clock, Download, FileSpreadsheet, Layers,
     List, Package, Plus, QrCode, Upload, Users
 } from 'lucide-react'
 
@@ -23,7 +23,6 @@ const dashboardSections: SidebarSection[] = [
             { to: "/main/summary", icon: Activity, label: "Podsumowanie magazynu" },
             { to: "/main/last-operations", icon: Clock, label: "Ostatnie przyjęcia/wydań" },
             { to: "/main/categories-preview", icon: Boxes, label: "Kategorie i słowa kluczowe" },
-            { to: "/main/alerts", icon: AlertTriangle, label: "Alerty magazynowe" },
         ],
     },
 ];

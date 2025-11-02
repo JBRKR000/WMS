@@ -2,7 +2,6 @@ import { type FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
-  Box,
   ShoppingCart,
   TruckIcon,
   Settings,
@@ -15,7 +14,6 @@ import {
   ChevronDown,
   ChevronRight,
   Activity,
-  AlertTriangle,
   Clock,
   Boxes,
   Layers,
@@ -27,7 +25,6 @@ import {
   BarChart,
   QrCode,
   Users2,
-  Shield
 } from "lucide-react";
 import HeaderButton from "./HeaderButton";
 import DarkLightSwitch from "./DarkLightSwitch";
@@ -66,7 +63,6 @@ const Header: FC = () => {
         { to: "/main/summary", icon: Activity, label: "Podsumowanie magazynu" },
         { to: "/main/last-operations", icon: Clock, label: "Ostatnie przyjęcia/wydań" },
         { to: "/main/categories-preview", icon: Boxes, label: "Kategorie i słowa kluczowe" },
-        { to: "/main/alerts", icon: AlertTriangle, label: "Alerty magazynowe" },
       ],
     },
     {
@@ -91,7 +87,7 @@ const Header: FC = () => {
     },
     {
       to: "/orders",
-      icon: Box,
+      icon: Boxes,
       label: "Zamówienia",
       submenu: [
         { to: "/orders/create", icon: Plus, label: "Tworzenie zamówień" },
@@ -107,7 +103,7 @@ const Header: FC = () => {
         { to: "/raports/inventory", icon: BarChart, label: "Stany magazynowe" },
         { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
         { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
-        { to: "/raports/export", icon: FileText, label: "Eksport do PDF/Excel" },
+        { to: "/raports/export", icon: FileText, label: "Raporty" },
       ],
     },
     {
@@ -116,8 +112,7 @@ const Header: FC = () => {
       label: "Ustawienia",
       submenu: [
         { to: "/settings/users", icon: Users2, label: "Zarządzanie użytkownikami" },
-        { to: "/settings/permissions", icon: Shield, label: "Uprawnienia" },
-        { to: "/settings/qr", icon: QrCode, label: "Ustawienia QR i systemu" },
+        { to: "/settings/qr", icon: QrCode, label: "Ustawienia Systemu" },
       ],
     },
   ];

@@ -1,10 +1,12 @@
 import { type FC, useState, useEffect } from 'react'
-import { Truck, Save, Package, Factory, Send, User, Info, CheckCircle2, X } from 'lucide-react'
+import { Truck, Save, Package, Factory, Send, Info, CheckCircle2, X } from 'lucide-react'
 import { fetchApi } from '../../../../utils/api'
+import { AuthService } from '../../../../services/authService'
+import { jwtDecode } from 'jwt-decode'
 
 // We'll build the UI using Transaction/Item/User model fields only
 type Item = { id?: number | null; name: string; currentQuantity?: number; unit?: string }
-type User = { id?: number | null; username: string }
+type UserType = { id?: number | null; username: string }
 type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'ISSUE_TO_SALES' | 'RETURN'
 
 const RegisterIssue: FC = () => {
@@ -13,7 +15,6 @@ const RegisterIssue: FC = () => {
   const [itemSearch, setItemSearch] = useState<string>('')
   const [quantity, setQuantity] = useState<number | ''>('')
   const [txType, setTxType] = useState<TransactionType>('ISSUE_TO_PRODUCTION')
-  const [userId, setUserId] = useState<string>('')
   const [description, setDescription] = useState('')
   const [preview, setPreview] = useState<any | null>(null)
   const [errors, setErrors] = useState<Record<string,string>>({})
@@ -22,22 +23,42 @@ const RegisterIssue: FC = () => {
   const [isSearchingItems, setIsSearchingItems] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // placeholder data — replace with API data later
-  const [users, setUsers] = useState<User[]>([])
+  // Current user from token
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
 
-  // Fetch users on component mount
+  // Fetch current user from token on component mount
   useEffect(() => {
-    const fetchUsers = async () => {
+    const loadCurrentUser = async () => {
       try {
-        type UsersResponse = User[]
-        const data = await fetchApi<UsersResponse>('/users')
-        setUsers(data || [])
+        const token = AuthService.getToken()
+        if (!token) {
+          setIsLoadingUser(false)
+          return
+        }
+
+        type JwtPayload = { userId: number }
+        const decoded = jwtDecode<JwtPayload>(token)
+        const userId = decoded.userId
+
+        // Fetch user data from API
+        type UserResponse = { id: number; username: string }
+        const userData = await fetchApi<UserResponse>(`/users/${userId}`)
+        
+        if (userData) {
+          setCurrentUser({
+            id: userData.id,
+            username: userData.username
+          })
+        }
       } catch (err) {
-        console.error('Błąd pobierania użytkowników:', err)
-        setUsers([])
+        console.error('Błąd pobierania danych użytkownika:', err)
+      } finally {
+        setIsLoadingUser(false)
       }
     }
-    fetchUsers()
+
+    loadCurrentUser()
   }, [])
 
   // Get selected item from search results
@@ -91,14 +112,15 @@ const RegisterIssue: FC = () => {
     if (quantity === '' || Number(quantity) <= 0) e.quantity = 'Podaj poprawną ilość'
     
     const selectedItem = getSelectedItem()
-    if (itemId && selectedItem && quantity !== '') {
+    // Sprawdzaj limit tylko przy wydaniu, nie przy przyjęciu
+    if (txType !== 'RECEIPT' && itemId && selectedItem && quantity !== '') {
       const maxAvailable = selectedItem.currentQuantity ?? 0
       if (Number(quantity) > maxAvailable) {
         e.quantity = `Maksymalnie dostępne: ${maxAvailable} ${selectedItem.unit ?? ''}`
       }
     }
     
-    if (!userId) e.user = 'Wybierz użytkownika'
+    if (!currentUser) e.user = 'Nie udało się pobrać danych użytkownika'
     return e
   }
 
@@ -108,12 +130,13 @@ const RegisterIssue: FC = () => {
     
     const it = getSelectedItem()
     if (!it?.id) return
+    if (!currentUser?.id) return
     
     setIsSubmitting(true)
     try {
       const payload = {
         item: { id: it.id },
-        user: { id: Number(userId) },
+        user: { id: currentUser.id },
         transactionType: txType,
         quantity: Number(quantity),
         description
@@ -137,7 +160,7 @@ const RegisterIssue: FC = () => {
         transactionType: txType,
         item: it,
         quantity: Number(quantity),
-        user: users.find(u => String(u.id) === userId) ?? null,
+        user: currentUser,
         description
       }
       setPreview(tx)
@@ -301,7 +324,7 @@ const RegisterIssue: FC = () => {
             <div>
               <div className="flex items-end justify-between mb-2">
                 <h2 className="text-sm font-bold text-secondary uppercase tracking-wide">3. Ilość</h2>
-                {itemId && getSelectedItem() && (
+                {itemId && getSelectedItem() && txType !== 'RECEIPT' && (
                   <span className="text-xs text-secondary">
                     Dostępnie: <span className="font-bold text-primary">{getSelectedItem()?.currentQuantity ?? 0} {getSelectedItem()?.unit ?? ''}</span>
                   </span>
@@ -311,7 +334,7 @@ const RegisterIssue: FC = () => {
                 type="number" 
                 value={quantity as any} 
                 onChange={e => setQuantity(e.target.value === '' ? '' : Number(e.target.value))} 
-                placeholder={itemId && getSelectedItem() ? `Max: ${getSelectedItem()?.currentQuantity ?? 0}` : "0"}
+                placeholder={itemId && getSelectedItem() && txType !== 'RECEIPT' ? `Max: ${getSelectedItem()?.currentQuantity ?? 0}` : "0"}
                 className={`w-full px-4 py-3 rounded-lg border-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
                   errors.quantity 
                     ? 'border-error bg-error-bg text-error-text' 
@@ -325,20 +348,19 @@ const RegisterIssue: FC = () => {
 
             <div>
               <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">4. Pracownik</h2>
-              <select 
-                value={userId} 
-                onChange={e => setUserId(e.target.value)} 
-                className={`w-full px-4 py-3 rounded-lg border-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                  errors.user 
-                    ? 'border-error bg-error-bg text-error-text' 
-                    : userId 
-                    ? 'border-primary bg-primary/5 text-main'
-                    : 'border-main bg-surface text-main'
-                }`}
-              >
-                <option value="">Wybierz pracownika...</option>
-                {users.map(u => <option key={u.id} value={String(u.id)}>{u.username}</option>)}
-              </select>
+              {isLoadingUser ? (
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-main bg-surface-secondary text-secondary text-lg font-bold">
+                  Ładuję...
+                </div>
+              ) : currentUser ? (
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5 text-lg font-bold text-main">
+                  {currentUser.username}
+                </div>
+              ) : (
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-error bg-error-bg text-error-text text-lg font-bold">
+                  Błąd: Nie udało się załadować użytkownika
+                </div>
+              )}
               {errors.user && <div className="text-xs text-error-text font-medium mt-1">{errors.user}</div>}
             </div>
           </div>

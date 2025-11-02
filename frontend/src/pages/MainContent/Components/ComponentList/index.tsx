@@ -245,34 +245,118 @@ const ComponentList: FC = () => {
         )}
       </section>
 
-      {/* Modal - UI only */}
+      {/* Modal - Details */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-2xl bg-surface border border-main rounded-lg p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="w-full max-w-2xl border rounded-lg shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="p-6 flex items-start justify-between">
               <div>
-                <h3 className="text-xl font-semibold text-main">{modal.name}</h3>
-                <div className="text-xs text-secondary">ID: {modal.id} • Kategoria: {modal.categoryName ?? '-'}</div>
+                <h3 className="text-2xl font-bold">{modal.name}</h3>
+                <div style={{ color: 'var(--color-surface)', opacity: 0.8 }} className="text-sm mt-1">ID: {modal.id}</div>
               </div>
-              <button onClick={() => setModal(null)} className="p-2 rounded-md text-secondary"><X className="w-5 h-5"/></button>
+              <button 
+                onClick={() => setModal(null)} 
+                style={{ color: 'var(--color-surface)', opacity: 0.6 }}
+                className="hover:opacity-100 hover:bg-white/10 rounded-lg p-2 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-secondary">
-              <div>
-                <div className="text-xs text-secondary">Opis</div>
-                <div className="text-main mt-1">{modal.description ?? '-'}</div>
+            {/* Content */}
+            <div style={{ backgroundColor: 'var(--color-surface)' }} className="p-6 max-h-96 overflow-y-auto space-y-6">
+              
+              {/* Main metrics grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
+                  <div style={{ color: 'var(--color-accent)' }} className="text-xs font-semibold mb-1">Dostępna ilość</div>
+                  <div className="flex items-baseline gap-2">
+                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{modal.currentQuantity ?? 0}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{modal.unit ?? '-'}</div>
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Próg ostrzeżenia</div>
+                  <div className="flex items-baseline gap-2">
+                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{modal.threshold || '-'}</div>
+                    {modal.threshold && <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{modal.unit ?? '-'}</div>}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-secondary">Ilość / Jednostka</div>
-                <div className="text-main mt-1">{modal.currentQuantity ?? '-'} {modal.unit ?? ''}</div>
-                <div className="text-xs text-secondary mt-3">QR</div>
-                <div className="text-main mt-1">{modal.qrCode ?? '-'}</div>
+
+              {/* Basic info */}
+              <div className="space-y-3">
+                {modal.description && (
+                  <div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-1">Opis</div>
+                    <div style={{ backgroundColor: 'var(--color-surface-secondary)', color: 'var(--color-text)' }} className="rounded p-3 text-sm">{modal.description}</div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">Kategoria</div>
+                    <div style={{ color: 'var(--color-text)' }} className="font-medium mt-1 text-sm">{modal.categoryName ?? '-'}</div>
+                  </div>
+                  <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">Typ</div>
+                    <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="inline-block px-2 py-1 rounded text-xs font-semibold mt-1">
+                      {modal.itemType === 'COMPONENT' ? 'Komponent' : 'Produkt'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* QR Code */}
+              {modal.qrCode && (
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-2">Kod QR</div>
+                  <div style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} className="text-xs font-mono p-2 rounded border break-all">{modal.qrCode}</div>
+                </div>
+              )}
+
+              {/* Keywords */}
+              {modal.keywords && modal.keywords.length > 0 && (
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-2">Słowa kluczowe</div>
+                  <div className="flex flex-wrap gap-2">
+                    {modal.keywords.map((keyword, idx) => (
+                      <span key={idx} style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="px-2 py-1 rounded text-xs font-medium">
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="font-semibold">Utworzone</div>
+                  <div style={{ color: 'var(--color-text)' }} className="mt-1 text-xs">{modal.createdAt ? new Date(modal.createdAt).toLocaleString('pl-PL') : '-'}</div>
+                </div>
+                <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="font-semibold">Zmieniono</div>
+                  <div style={{ color: 'var(--color-text)' }} className="mt-1 text-xs">{modal.updatedAt ? new Date(modal.updatedAt).toLocaleString('pl-PL') : '-'}</div>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setModal(null)} className="px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover">Zamknij</button>
-              <button className="px-4 py-2 rounded-full border border-main text-white bg-primary hover:bg-primary-hover">Eksportuj</button>
+            {/* Footer */}
+            <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border-t px-6 py-4 flex justify-end gap-3">
+              <button 
+                onClick={() => setModal(null)} 
+                style={{ 
+                  backgroundColor: 'var(--color-surface)',
+                  color: 'var(--color-text)',
+                  borderColor: 'var(--color-border)'
+                }}
+                className="px-4 py-2 rounded-lg border font-medium hover:opacity-80 transition-opacity"
+              >
+                Zamknij
+              </button>
             </div>
           </div>
         </div>
