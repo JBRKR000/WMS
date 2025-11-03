@@ -1,58 +1,52 @@
 import { type FC, useMemo, useState, useEffect, type ReactNode } from 'react'
 import { Layers,  Eye, AlertCircle, Loader, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, XCircle, Package, BarChart3, X } from 'lucide-react'
-import type { Item, ItemType as ItemTypeEnum, UnitType } from '../../../../types'
 
-// Unit type display names mapping
-const unitDisplay: Record<UnitType, string> = {
-  PCS: 'szt.',
-  KG: 'kg',
-  LITER: 'l',
-  METER: 'm',
-}
-
-// Item type display names
-const itemTypeDisplay: Record<ItemTypeEnum, string> = {
-  COMPONENT: 'Komponent',
-  PRODUCT: 'Produkt',
+// Location occupancy
+type LocationOccupancy = {
+  id: number
+  code: string
+  name: string
+  type: string
+  maxCapacity: number
+  currentOccupancy: number
 }
 
 // Helper functions
-const getStockStatus = (currentQuantity: number): 'ok' | 'low' | 'critical' => {
-  // Thresholds are now managed per Location, not per Item
-  // This simple check: if quantity is 0, it's critical
-  if (currentQuantity <= 0) return 'critical'
-  if (currentQuantity <= 10) return 'low'
+const getOccupancyStatus = (occupancy: number, maxCapacity: number): 'ok' | 'warning' | 'critical' => {
+  const percentage = (occupancy / maxCapacity) * 100
+  if (percentage >= 90) return 'critical'
+  if (percentage >= 70) return 'warning'
   return 'ok'
 }
 
-const getStatusBadge = (status: 'ok' | 'low' | 'critical'): { icon: ReactNode; color: string; label: string } => {
+const getOccupancyPercentage = (occupancy: number, maxCapacity: number): number => {
+  return Math.round((occupancy / maxCapacity) * 100)
+}
+
+const getStatusBadge = (status: 'ok' | 'warning' | 'critical'): { icon: ReactNode; color: string; label: string } => {
   switch (status) {
     case 'ok':
       return { icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-green-600', label: 'OK' }
-    case 'low':
-      return { icon: <AlertTriangle className="w-5 h-5" />, color: 'text-yellow-600', label: 'NISKIE' }
+    case 'warning':
+      return { icon: <AlertTriangle className="w-5 h-5" />, color: 'text-yellow-600', label: 'OSTRZEŻENIE' }
     case 'critical':
       return { icon: <XCircle className="w-5 h-5" />, color: 'text-red-600', label: 'KRYTYCZNE' }
   }
 }
 
-const formatDate = (iso?: string | null) => iso ? new Date(iso).toLocaleString('pl-PL') : '-'
-
 const InventoryStatus: FC = () => {
   const [q, setQ] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
-  const [unitFilter, setUnitFilter] = useState<UnitType | ''>('')
-  const [selected, setSelected] = useState<Item | null>(null)
-  const [items, setItems] = useState<Item[]>([])
-  const [lowStockItems, setLowStockItems] = useState<Item[]>([])
+  const [typeFilter, setTypeFilter] = useState('')
+  const [selected, setSelected] = useState<LocationOccupancy | null>(null)
+  const [locations, setLocations] = useState<LocationOccupancy[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const locationsPerPage = 10
 
-  // Fetch items from API
+  // Fetch locations with occupancy
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchLocations = async () => {
       try {
         setLoading(true)
         setError(null)
@@ -62,81 +56,99 @@ const InventoryStatus: FC = () => {
           setLoading(false)
           return
         }
-        // Fetch all items for inventory overview
-        const allItemsRes = await fetch('/api/items', {
+
+        // Pobierz listę wszystkich lokacji
+        const res = await fetch('/api/locations', {
           headers: { Authorization: `Bearer ${authToken}` },
         })
-        if (!allItemsRes.ok) throw new Error('Failed to fetch items')
-        const allItemsData = await allItemsRes.json()
+
+        if (!res.ok) throw new Error('Failed to fetch locations')
+        const locationsData = await res.json()
         
-        // Fetch low stock items
-        type LowStockResponse = {
-          content: Item[]
-          totalElements: number
-          totalPages: number
-        }
-        const lowStockRes = await fetch('/api/items/lowstock?page=0&size=1000', {
-          headers: { Authorization: `Bearer ${authToken}` },
-        })
-        const lowStockData = await lowStockRes.json() as LowStockResponse
+        // Dla każdej lokacji, pobierz jej obłożenie
+        const locationsWithOccupancy = await Promise.all(
+          (Array.isArray(locationsData) ? locationsData : []).map(async (loc: any) => {
+            try {
+              const occupancyRes = await fetch(`/api/locations/${loc.id}/occupancy`, {
+                headers: { Authorization: `Bearer ${authToken}` },
+              })
+              if (occupancyRes.ok) {
+                const occupancyData = await occupancyRes.json()
+                return {
+                  id: occupancyData.locationId || loc.id,
+                  code: occupancyData.locationCode || loc.code,
+                  name: occupancyData.locationName || loc.name,
+                  type: loc.type || 'N/A',
+                  maxCapacity: Number(occupancyData.maxCapacity) || 0,
+                  currentOccupancy: Number(occupancyData.currentOccupancy) || 0,
+                }
+              }
+            } catch (err) {
+              console.warn(`Nie udało się pobrać obłożenia dla lokacji ${loc.id}:`, err)
+            }
+            // Fallback jeśli pobieranie obłożenia się nie uda
+            return {
+              id: loc.id,
+              code: loc.code || 'N/A',
+              name: loc.name || 'N/A',
+              type: loc.type || 'N/A',
+              maxCapacity: 0,
+              currentOccupancy: 0,
+            }
+          })
+        )
         
-        setItems(allItemsData)
-        // Store low stock items for critical calculation
-        setLowStockItems(lowStockData?.content || [])
+        setLocations(locationsWithOccupancy.filter(loc => loc !== undefined))
       } catch (err) {
-        console.error('Błąd podczas pobierania pozycji:', err)
+        console.error('Błąd podczas pobierania sektorów:', err)
         setError('Nie udało się pobrać danych z serwera')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchItems()
+    fetchLocations()
   }, [])
 
-  // Calculate low stock items from API response
-  const lowStock = useMemo(() => lowStockItems, [lowStockItems])
-
-  // Critical items (top 5) - items with lowest quantity
-  const criticalItems = useMemo(() => {
-    return lowStockItems
-      .sort((a: Item, b: Item) => a.currentQuantity - b.currentQuantity)
-      .slice(0, 5)
-  }, [lowStockItems])
-
-  // Calculate categories with stock levels
-  const categories = useMemo(() => {
-    const map = new Map<string, { qty: number; count: number }>()
-    for (const it of items) {
-      const cat = it.categoryName ?? 'Bez kategorii'
-      const current = map.get(cat) ?? { qty: 0, count: 0 }
-      map.set(cat, { qty: current.qty + it.currentQuantity, count: current.count + 1 })
-    }
-    return Array.from(map.entries()).map(([name, { qty, count }]) => ({ name, qty, count }))
-  }, [items])
+  // Get unique types
+  const types = useMemo(() => {
+    return Array.from(new Set(locations.map(l => l.type)))
+  }, [locations])
 
   // Apply filters
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase()
-    return items.filter((it: Item) => {
-      if (categoryFilter && it.categoryName !== categoryFilter) return false
-      if (unitFilter && it.unit !== unitFilter) return false
+    return locations.filter((loc) => {
+      if (typeFilter && loc.type !== typeFilter) return false
       if (!qq) return true
-      return it.name.toLowerCase().includes(qq) || (it.description ?? '').toLowerCase().includes(qq) || (it.categoryName ?? '').toLowerCase().includes(qq)
+      return loc.code.toLowerCase().includes(qq) || loc.name.toLowerCase().includes(qq)
     })
-  }, [items, q, categoryFilter, unitFilter])
+  }, [locations, q, typeFilter])
 
   // Pagination
-  const totalPages = useMemo(() => Math.ceil(filtered.length / itemsPerPage), [filtered.length])
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filtered.slice(start, start + itemsPerPage)
+  const totalPages = useMemo(() => Math.ceil(filtered.length / locationsPerPage), [filtered.length])
+  const paginatedLocations = useMemo(() => {
+    const start = (currentPage - 1) * locationsPerPage
+    return filtered.slice(start, start + locationsPerPage)
   }, [filtered, currentPage])
 
-  // Calculate KPI
-  const totalQuantity = useMemo(() => items.reduce((sum, i) => sum + i.currentQuantity, 0), [items])
-  const averageQuantity = useMemo(() => items.length > 0 ? Math.round(totalQuantity / items.length) : 0, [items, totalQuantity])
-  const lowStockPercentage = useMemo(() => items.length > 0 ? Math.round((lowStock.length / items.length) * 100) : 0, [items, lowStock])
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalCapacity = locations.reduce((sum, l) => sum + l.maxCapacity, 0)
+    const totalOccupancy = locations.reduce((sum, l) => sum + l.currentOccupancy, 0)
+    const criticalCount = locations.filter(l => getOccupancyStatus(l.currentOccupancy, l.maxCapacity) === 'critical').length
+    const warningCount = locations.filter(l => getOccupancyStatus(l.currentOccupancy, l.maxCapacity) === 'warning').length
+    
+    return {
+      totalLocations: locations.length,
+      totalCapacity,
+      totalOccupancy,
+      averageOccupancy: locations.length > 0 ? Math.round((totalOccupancy / totalCapacity) * 100) : 0,
+      criticalCount,
+      warningCount,
+      okCount: locations.length - criticalCount - warningCount,
+    }
+  }, [locations])
 
   if (loading) {
     return (
@@ -170,8 +182,8 @@ const InventoryStatus: FC = () => {
     <main className="p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-main">Status magazynu</h1>
-          <p className="text-sm text-secondary mt-1">Przejrzysty widok stanów magazynowych, alertów niskiego stanu i rozkładu po kategoriach.</p>
+          <h1 className="text-2xl font-bold text-main">Status magazynu - Obłożenie sektorów</h1>
+          <p className="text-sm text-secondary mt-1">Przejrzysty widok obłożenia sektorów magazynowych i ich zdolności pojemnościowej.</p>
         </div>
       </div>
 
@@ -179,72 +191,63 @@ const InventoryStatus: FC = () => {
         <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div style={{ color: 'var(--color-accent)' }} className="text-xs font-semibold">Liczba pozycji</div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{items.length}</div>
+              <div style={{ color: 'var(--color-accent)' }} className="text-xs font-semibold">Liczba sektorów</div>
+              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{stats.totalLocations}</div>
             </div>
             <div style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-surface)' }} className="p-3 rounded-lg">
               <Layers className="w-6 h-6" />
             </div>
           </div>
-          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">Pozycji w magazynie</div>
+          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">Sektory w magazynie</div>
         </div>
 
         <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div style={{ color: 'var(--color-primary)' }} className="text-xs font-semibold">Całkowita ilość</div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{totalQuantity}</div>
+              <div style={{ color: 'var(--color-primary)' }} className="text-xs font-semibold">Całkowita pojemność</div>
+              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{stats.totalCapacity}</div>
             </div>
             <div style={{ color: 'var(--color-primary)' }}>
               <Package className="w-8 h-8" />
             </div>
           </div>
-          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">Wszystkie jednostki</div>
+          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">Wszystkie sektory</div>
         </div>
 
         <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold">Średnia per pozycja</div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{averageQuantity}</div>
+              <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold">Średnie obłożenie</div>
+              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">{stats.averageOccupancy}%</div>
             </div>
             <div style={{ color: 'var(--color-warning)' }}>
               <BarChart3 className="w-8 h-8" />
             </div>
           </div>
-          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">{lowStockPercentage}% z niskim stanem</div>
+          <div style={{ color: 'var(--color-text-secondary)' }} className="mt-3 text-sm">{stats.criticalCount + stats.warningCount} sektorów zagrożonych</div>
         </div>
 
         <div style={{ 
           backgroundColor: 'var(--color-surface-secondary)', 
-          borderColor: lowStock.length === 0 
+          borderColor: stats.criticalCount === 0 
             ? 'var(--color-success)' 
-            : criticalItems.length > 0 
-            ? 'var(--color-error)' 
-            : 'var(--color-warning)'
+            : 'var(--color-error)'
         }} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
           <div style={{ 
-            color: lowStock.length === 0 
+            color: stats.criticalCount === 0 
               ? 'var(--color-success)' 
-              : criticalItems.length > 0 
-              ? 'var(--color-error)' 
-              : 'var(--color-warning)'
-          }} className="text-xs font-semibold">Status magazynu</div>
+              : 'var(--color-error)'
+          }} className="text-xs font-semibold">Status sektorów</div>
           <div className="mt-3">
-            {lowStock.length === 0 ? (
+            {stats.criticalCount === 0 ? (
               <div style={{ color: 'var(--color-success)' }} className="text-sm font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" />
                 Wszystko OK
               </div>
-            ) : criticalItems.length > 0 ? (
+            ) : (
               <div style={{ color: 'var(--color-error)' }} className="text-sm font-bold flex items-center gap-2">
                 <XCircle className="w-5 h-5" />
-                {criticalItems.length} pozycji krytycznych
-              </div>
-            ) : (
-              <div style={{ color: 'var(--color-warning)' }} className="text-sm font-bold flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                {lowStock.length} pozycji niskiego stanu
+                {stats.criticalCount} krytycznych
               </div>
             )}
           </div>
@@ -256,11 +259,11 @@ const InventoryStatus: FC = () => {
           <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-3">Filtry</h3>
           <div className="space-y-3">
             <div>
-              <label style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-medium">Szukaj pozycji</label>
+              <label style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-medium">Szukaj sektora</label>
               <input 
                 value={q} 
                 onChange={e => setQ(e.target.value)} 
-                placeholder="Nazwa lub opis..." 
+                placeholder="Kod lub nazwa..." 
                 style={{ 
                   backgroundColor: 'var(--color-surface)',
                   color: 'var(--color-text)',
@@ -270,10 +273,10 @@ const InventoryStatus: FC = () => {
               />
             </div>
             <div>
-              <label style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-medium">Kategoria</label>
+              <label style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-medium">Typ sektora</label>
               <select 
-                value={categoryFilter} 
-                onChange={e => setCategoryFilter(e.target.value)} 
+                value={typeFilter} 
+                onChange={e => setTypeFilter(e.target.value)} 
                 style={{ 
                   backgroundColor: 'var(--color-surface)',
                   color: 'var(--color-text)',
@@ -281,27 +284,8 @@ const InventoryStatus: FC = () => {
                 }}
                 className="w-full mt-1 px-3 py-2 rounded-lg border text-sm focus:outline-none"
               >
-                <option value="">Wszystkie kategorie</option>
-                {Array.from(new Set(items.map(i => i.categoryName ?? 'Bez kategorii'))).map((c: string) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-medium">Jednostka</label>
-              <select 
-                value={unitFilter} 
-                onChange={e => setUnitFilter(e.target.value as UnitType | '')} 
-                style={{ 
-                  backgroundColor: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                  borderColor: 'var(--color-border)'
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-lg border text-sm focus:outline-none"
-              >
-                <option value="">Wszystkie jednostki</option>
-                <option value="PCS">Sztuki (szt.)</option>
-                <option value="KG">Kilogramy (kg)</option>
-                <option value="LITER">Litry (l)</option>
-                <option value="METER">Metry (m)</option>
+                <option value="">Wszystkie typy</option>
+                {types.map((t: string) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -313,33 +297,41 @@ const InventoryStatus: FC = () => {
         }} className="lg:col-span-2 border rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle style={{ color: 'var(--color-error)' }} className="w-5 h-5" />
-            <h3 style={{ color: 'var(--color-error)' }} className="text-lg font-semibold">Pozycje krytyczne</h3>
+            <h3 style={{ color: 'var(--color-error)' }} className="text-lg font-semibold">Sektory zagrożone</h3>
           </div>
           <div className="space-y-2">
-            {criticalItems.length === 0 ? (
-              <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Brak pozycji krytycznych ✓</div>
+            {stats.criticalCount === 0 && stats.warningCount === 0 ? (
+              <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Brak sektorów zagrożonych ✓</div>
             ) : (
-              criticalItems.map((item: Item) => (
-                <div 
-                  key={item.id} 
-                  onClick={() => setSelected(item)}
-                  style={{ 
-                    backgroundColor: 'var(--color-surface)',
-                    borderColor: 'var(--color-error)',
-                    cursor: 'pointer'
-                  }}
-                  className="flex items-center justify-between rounded-lg p-2 border hover:opacity-80 transition-opacity"
-                >
-                  <div className="flex-1">
-                    <div style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{item.name}</div>
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{item.categoryName ?? 'Bez kategorii'}</div>
+              locations.filter(l => {
+                const status = getOccupancyStatus(l.currentOccupancy, l.maxCapacity)
+                return status === 'critical' || status === 'warning'
+              }).slice(0, 5).map((loc: LocationOccupancy) => {
+                const status = getOccupancyStatus(loc.currentOccupancy, loc.maxCapacity)
+                const percentage = getOccupancyPercentage(loc.currentOccupancy, loc.maxCapacity)
+                const statusColor = status === 'critical' ? 'var(--color-error)' : 'var(--color-warning)'
+                return (
+                  <div 
+                    key={loc.id} 
+                    onClick={() => setSelected(loc)}
+                    style={{ 
+                      backgroundColor: 'var(--color-surface)',
+                      borderColor: statusColor,
+                      cursor: 'pointer'
+                    }}
+                    className="flex items-center justify-between rounded-lg p-2 border hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex-1">
+                      <div style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{loc.code} - {loc.name}</div>
+                      <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{loc.type}</div>
+                    </div>
+                    <div className="text-right">
+                      <div style={{ color: statusColor }} className="text-sm font-bold">{percentage}%</div>
+                      <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{loc.currentOccupancy}/{loc.maxCapacity}</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div style={{ color: 'var(--color-error)' }} className="text-sm font-bold">{item.currentQuantity}</div>
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{unitDisplay[item.unit]}</div>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>
@@ -348,12 +340,12 @@ const InventoryStatus: FC = () => {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="lg:col-span-2 border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold">Lista pozycji</h3>
+            <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold">Lista sektorów</h3>
             <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{filtered.length} wyników</div>
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ color: 'var(--color-text-secondary)' }} className="p-8 text-center">Brak pozycji</div>
+            <div style={{ color: 'var(--color-text-secondary)' }} className="p-8 text-center">Brak sektorów</div>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -361,21 +353,21 @@ const InventoryStatus: FC = () => {
                   <thead>
                     <tr style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="text-left border-b-2">
                       <th className="px-3 py-3 font-semibold">Status</th>
+                      <th className="px-3 py-3 font-semibold">Kod</th>
                       <th className="px-3 py-3 font-semibold">Nazwa</th>
-                      <th className="px-3 py-3 font-semibold">Kategoria</th>
-                      <th className="px-3 py-3 font-semibold text-center">Stan</th>
-                      <th className="px-3 py-3 font-semibold text-center">Próg</th>
-                      <th className="px-3 py-3 font-semibold text-center">Wykorzystanie</th>
+                      <th className="px-3 py-3 font-semibold text-center">Obłożenie</th>
+                      <th className="px-3 py-3 font-semibold text-center">Pojemność</th>
                       <th className="px-3 py-3 font-semibold text-center">Akcje</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedItems.map((it: Item, idx: number) => {
-                      const status = getStockStatus(it.currentQuantity)
+                    {paginatedLocations.map((loc: LocationOccupancy, idx: number) => {
+                      const status = getOccupancyStatus(loc.currentOccupancy, loc.maxCapacity)
                       const badge = getStatusBadge(status)
+                      const percentage = getOccupancyPercentage(loc.currentOccupancy, loc.maxCapacity)
                       return (
                         <tr 
-                          key={it.id} 
+                          key={loc.id} 
                           style={{ 
                             borderColor: 'var(--color-border)',
                             backgroundColor: idx % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-secondary)'
@@ -385,15 +377,17 @@ const InventoryStatus: FC = () => {
                           <td className="px-3 py-2 text-center">
                             {badge.icon}
                           </td>
-                          <td style={{ color: 'var(--color-text)' }} className="px-3 py-2 font-semibold">{it.name}</td>
-                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-sm">{it.categoryName ?? 'Bez kategorii'}</td>
+                          <td style={{ color: 'var(--color-text)' }} className="px-3 py-2 font-semibold">{loc.code}</td>
+                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-sm">{loc.name}</td>
                           <td style={{ color: badge.color }} className="px-3 py-2 text-center">
-                            <span className="font-bold">{it.currentQuantity}</span>
-                            <span style={{ color: 'var(--color-text-secondary)' }} className="text-xs ml-1">{unitDisplay[it.unit]}</span>
+                            <span className="font-bold">{percentage}%</span>
+                          </td>
+                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-center text-xs">
+                            {loc.currentOccupancy}/{loc.maxCapacity}
                           </td>
                           <td className="px-3 py-2 text-center">
                             <button 
-                              onClick={() => setSelected(it)} 
+                              onClick={() => setSelected(loc)} 
                               style={{ 
                                 backgroundColor: 'var(--color-surface)',
                                 color: 'var(--color-text)',
@@ -462,28 +456,30 @@ const InventoryStatus: FC = () => {
         </div>
 
         <aside style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-          <h4 style={{ color: 'var(--color-text)' }} className="text-sm font-semibold mb-3">Rozkład po kategoriach</h4>
+          <h4 style={{ color: 'var(--color-text)' }} className="text-sm font-semibold mb-3">Rozkład po typach</h4>
           <div className="space-y-3">
-            {categories.length === 0 ? (
-              <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Brak kategorii</div>
+            {types.length === 0 ? (
+              <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Brak typów</div>
             ) : (
-              categories.map((c: any) => {
-                const maxQty = Math.max(...categories.map((x: any) => x.qty), 1)
-                const percentage = Math.round((c.qty / maxQty) * 100)
+              types.map((type: string) => {
+                const typeLocations = locations.filter(l => l.type === type)
+                const typeOccupancy = typeLocations.reduce((sum, l) => sum + l.currentOccupancy, 0)
+                const typeCapacity = typeLocations.reduce((sum, l) => sum + l.maxCapacity, 0)
+                const percentage = typeCapacity > 0 ? Math.round((typeOccupancy / typeCapacity) * 100) : 0
                 let barColor = 'bg-red-400'
-                if (percentage > 50) barColor = 'bg-green-400'
-                else if (percentage > 20) barColor = 'bg-yellow-400'
+                if (percentage <= 50) barColor = 'bg-green-400'
+                else if (percentage <= 75) barColor = 'bg-yellow-400'
                 
                 return (
-                  <div key={c.name}>
+                  <div key={type}>
                     <div className="flex items-center justify-between mb-1">
-                      <div style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{c.name}</div>
-                      <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{c.qty}</div>
+                      <div style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{type}</div>
+                      <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{percentage}%</div>
                     </div>
                     <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="w-full rounded-full h-2 overflow-hidden border">
                       <div className={`${barColor} h-full`} style={{ width: `${percentage}%` }} />
                     </div>
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs mt-1">{c.count} pozycji</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs mt-1">{typeLocations.length} sektorów</div>
                   </div>
                 )
               })
@@ -493,15 +489,15 @@ const InventoryStatus: FC = () => {
             <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs space-y-1">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
-                Powyżej 50%
+                Do 50%
               </div>
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
-                20-50%
+                50-75%
               </div>
               <div className="flex items-center gap-2">
                 <XCircle className="w-4 h-4" style={{ color: 'var(--color-error)' }} />
-                Poniżej 20%
+                Powyżej 75%
               </div>
             </div>
           </div>
@@ -514,7 +510,7 @@ const InventoryStatus: FC = () => {
             {/* Header */}
             <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="p-6 flex items-start justify-between">
               <div>
-                <h3 className="text-2xl font-bold">{selected.name}</h3>
+                <h3 className="text-2xl font-bold">{selected.code} - {selected.name}</h3>
                 <div style={{ color: 'var(--color-surface)', opacity: 0.8 }} className="text-sm mt-1">ID: {selected.id}</div>
               </div>
               <button 
@@ -532,59 +528,62 @@ const InventoryStatus: FC = () => {
               {/* Main metrics grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-accent)' }} className="text-xs font-semibold mb-1">Stan magazynowy</div>
+                  <div style={{ color: 'var(--color-accent)' }} className="text-xs font-semibold mb-1">Obłożenie</div>
                   <div className="flex items-baseline gap-2">
-                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{selected.currentQuantity}</div>
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{unitDisplay[selected.unit]}</div>
+                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{getOccupancyPercentage(selected.currentOccupancy, selected.maxCapacity)}%</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">
+                      {selected.currentOccupancy}/{selected.maxCapacity}
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Status dostępności</div>
-                  <div className="text-sm">Thresholds zarządzane są na poziomie lokacji magazynowej</div>
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Status obłożenia</div>
+                  <div className="text-sm">
+                    {getOccupancyStatus(selected.currentOccupancy, selected.maxCapacity) === 'ok' ? '✓ Norma' : '⚠ Zagrożone'}
+                  </div>
                 </div>
               </div>
 
               {/* Basic info */}
               <div className="space-y-3">
-                {selected.description && (
-                  <div>
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-1">Opis</div>
-                    <div style={{ backgroundColor: 'var(--color-surface-secondary)', color: 'var(--color-text)' }} className="rounded p-2 text-sm">{selected.description}</div>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-2 gap-3">
                   <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
-                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">Kategoria</div>
-                    <div style={{ color: 'var(--color-text)' }} className="font-medium mt-1 text-sm">{selected.categoryName ?? 'Brak'}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">Kod</div>
+                    <div style={{ color: 'var(--color-text)' }} className="font-medium mt-1 text-sm">{selected.code}</div>
                   </div>
                   <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
                     <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">Typ</div>
                     <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }} className="inline-block px-2 py-1 rounded text-xs font-semibold mt-1">
-                      {itemTypeDisplay[selected.type]}
+                      {selected.type}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* QR Code */}
-              {selected.qrCode && (
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
-                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-2">Kod QR</div>
-                  <div style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} className="text-xs font-mono p-2 rounded border break-all">{selected.qrCode}</div>
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-2">Pojemność</div>
+                  <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded p-2 text-sm">
+                    <div style={{ color: 'var(--color-text)' }} className="font-medium mb-1">Maksymalna: {selected.maxCapacity}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">Zajęte: {selected.currentOccupancy}</div>
+                  </div>
                 </div>
-              )}
 
-              {/* Timestamps */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
+                {/* Progress bar */}
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
-                  <div style={{ color: 'var(--color-text-secondary)' }} className="font-semibold">Utworzone</div>
-                  <div style={{ color: 'var(--color-text)' }} className="mt-1 text-xs">{selected.createdAt ? formatDate(selected.createdAt) : '-'}</div>
-                </div>
-                <div style={{ backgroundColor: 'var(--color-surface-secondary)' }} className="rounded p-3">
-                  <div style={{ color: 'var(--color-text-secondary)' }} className="font-semibold">Zmieniono</div>
-                  <div style={{ color: 'var(--color-text)' }} className="mt-1 text-xs">{selected.updatedAt ? formatDate(selected.updatedAt) : '-'}</div>
+                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold mb-2">Wizualizacja</div>
+                  <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded-full h-4 overflow-hidden border">
+                    <div 
+                      className="h-full transition-all"
+                      style={{ 
+                        width: `${getOccupancyPercentage(selected.currentOccupancy, selected.maxCapacity)}%`,
+                        backgroundColor: getOccupancyStatus(selected.currentOccupancy, selected.maxCapacity) === 'critical' 
+                          ? 'var(--color-error)' 
+                          : getOccupancyStatus(selected.currentOccupancy, selected.maxCapacity) === 'warning'
+                          ? 'var(--color-warning)'
+                          : 'var(--color-success)'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

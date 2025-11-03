@@ -1,64 +1,69 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
-import { FileText, AlertCircle, CheckCircle2, AlertTriangle, Eye, X, ChevronLeft, ChevronRight, Loader, Download } from 'lucide-react'
+import { FileText, Eye, X, ChevronLeft, ChevronRight, Loader, Download } from 'lucide-react'
 import { Document, Page, Text, View } from '@react-pdf/renderer'
 import { pdf } from '@react-pdf/renderer'
 
-type ReportItem = {
+// Backend Response Types
+type ReportItemDTO = {
   id: number
   itemName: string
   status: 'OK' | 'LOW' | 'CRITICAL'
   currentQuantity: number
-  unit: string
-  lastReceiptDate?: string | null
-  lastIssueDate?: string | null
-  warehouseValue?: number | null
-  differenceFromPrevious?: number | null
+  unit?: string
+  lastReceiptDate?: string
+  lastIssueDate?: string
+  warehouseValue?: number
+  differenceFromPrevious?: number
   qrCode?: string
+  createdAt?: string
 }
 
-type ReportCreatedBy = {
+type UserDTO = {
   id: number
   username: string
-  email: string
-  firstName: string
-  lastName: string
-  role?: string | null
+  email?: string
+  firstName?: string
+  lastName?: string
+  role?: string
 }
 
+type BackendReportDTO = {
+  id: number
+  totalItemsCount: number
+  lowStockCount: number
+  criticalStockCount: number
+  okCount: number
+  reportItems: ReportItemDTO[]
+  createdBy: UserDTO
+  createdAt: string
+  updatedAt?: string
+}
+
+type PageResponseDTO = {
+  content: BackendReportDTO[]
+  pageNumber: number
+  pageSize: number
+  totalElements: number
+  totalPages: number
+  isFirst: boolean
+  isLast: boolean
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+// Frontend Report Model (based on Items from Backend)
 type Report = {
   id: number
   totalItemsCount: number
   lowStockCount: number
   criticalStockCount: number
   okCount: number
-  createdBy: ReportCreatedBy
-  reportItems: ReportItem[]
+  reportItems: ReportItemDTO[]
+  createdBy: UserDTO
   createdAt: string
-  updatedAt: string
-}
-
-type ReportsPageResponse = {
-  content: Report[]
-  pageNumber: number
-  pageSize: number
-  totalElements: number
-  totalPages: number
-  hasNext: boolean
-  hasPrevious: boolean
-  first: boolean
-  last: boolean
 }
 
 const formatDate = (iso?: string | null) => iso ? new Date(iso).toLocaleString('pl-PL') : '-'
-
-const unitMap: { [key: string]: string } = {
-  'PCS': 'szt.',
-  'KG': 'kg',
-  'LITER': 'l',
-  'METER': 'm',
-}
-
-const getUnitLabel = (unit: string): string => unitMap[unit] || unit
 
 // Function to convert Polish characters to ASCII equivalents for PDF
 const sanitizePolishText = (text: string): string => {
@@ -83,19 +88,6 @@ const sanitizePolishText = (text: string): string => {
     Ż: 'Z',
   }
   return text.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (char) => polishMap[char] || char)
-}
-
-const getStatusColor = (status: string): { bg: string; text: string; icon: any } => {
-  switch (status) {
-    case 'OK':
-      return { bg: 'var(--color-success-bg)', text: 'var(--color-success)', icon: <CheckCircle2 className="w-4 h-4" /> }
-    case 'LOW':
-      return { bg: 'var(--color-warning-bg)', text: 'var(--color-warning)', icon: <AlertTriangle className="w-4 h-4" /> }
-    case 'CRITICAL':
-      return { bg: 'var(--color-error-bg)', text: 'var(--color-error)', icon: <AlertCircle className="w-4 h-4" /> }
-    default:
-      return { bg: 'var(--color-surface-secondary)', text: 'var(--color-text)', icon: null }
-  }
 }
 
 const PDFExport: FC = () => {
@@ -131,7 +123,7 @@ const PDFExport: FC = () => {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-        const data: ReportsPageResponse = await res.json()
+        const data: PageResponseDTO = await res.json()
         setReports(data.content)
         setTotalPages(data.totalPages)
         setHasNext(data.hasNext)
@@ -148,26 +140,15 @@ const PDFExport: FC = () => {
     fetchReports()
   }, [currentPage])
 
-  // Calculate report statistics
-  const reportStats = useMemo(() => {
-    if (!reports.length) return { total: 0, critical: 0, low: 0, ok: 0 }
-    
-    return {
-      total: reports.reduce((sum, r) => sum + r.totalItemsCount, 0),
-      critical: reports.reduce((sum, r) => sum + r.criticalStockCount, 0),
-      low: reports.reduce((sum, r) => sum + r.lowStockCount, 0),
-      ok: reports.reduce((sum, r) => sum + r.okCount, 0),
-    }
-  }, [reports])
 
   // Paginate selected report items
-  const paginatedItems = useMemo(() => {
+  const paginatedLocations = useMemo(() => {
     if (!selectedReport?.reportItems) return []
     const start = itemsPage * itemsPageSize
     return selectedReport.reportItems.slice(start, start + itemsPageSize)
   }, [selectedReport, itemsPage])
 
-  const totalItemsPages = useMemo(() => {
+  const totalLocationPages = useMemo(() => {
     if (!selectedReport?.reportItems) return 0
     return Math.ceil(selectedReport.reportItems.length / itemsPageSize)
   }, [selectedReport])
@@ -183,7 +164,7 @@ const PDFExport: FC = () => {
             {/* Title */}
             <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
-                {sanitizePolishText(`Raport Magazynowy #${selectedReport.id}`)}
+                {sanitizePolishText(`Raport Stanów Magazynowych #${selectedReport.id}`)}
               </Text>
               <Text style={{ fontSize: 9, color: '#666' }}>
                 {sanitizePolishText(`Data utworzenia: ${formatDate(selectedReport.createdAt)}`)}
@@ -193,18 +174,7 @@ const PDFExport: FC = () => {
               </Text>
             </View>
 
-            {/* Statistics */}
-            <View style={{ marginBottom: 20, borderBottom: '1px solid #ddd', paddingBottom: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 10 }}>
-                {sanitizePolishText('Podsumowanie')}
-              </Text>
-              <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Razem pozycji: ${selectedReport.totalItemsCount}`)}</Text>
-                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan krytyczny: ${selectedReport.criticalStockCount}`)}</Text>
-                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan niski: ${selectedReport.lowStockCount}`)}</Text>
-                <Text style={{ fontSize: 9 }}>{sanitizePolishText(`Stan OK: ${selectedReport.okCount}`)}</Text>
-              </View>
-            </View>
+            
 
             {/* Items Table Header */}
             <View style={{ marginBottom: 10 }}>
@@ -217,27 +187,22 @@ const PDFExport: FC = () => {
             <View style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000' }}>
               {/* Header Row */}
               <View style={{ display: 'flex', flexDirection: 'row', borderBottom: '1px solid #ddd', paddingBottom: 4, marginBottom: 4, fontWeight: 'bold' }}>
-                <Text style={{ flex: 0.8, fontSize: 8 }}>Status</Text>
-                <Text style={{ flex: 2.5, fontSize: 8 }}>Nazwa</Text>
-                <Text style={{ flex: 0.7, fontSize: 8, textAlign: 'center' }}>Ilosc</Text>
-                <Text style={{ flex: 0.6, fontSize: 8, textAlign: 'center' }}>J.</Text>
-                <Text style={{ flex: 0.8, fontSize: 8, textAlign: 'center' }}>Zmiana</Text>
+                <Text style={{ flex: 2, fontSize: 8 }}>Nazwa</Text>
+                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>Ilosc</Text>
+                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>Jednostka</Text>
               </View>
 
               {/* Data Rows */}
-              {selectedReport.reportItems.map((item) => (
-                <View key={item.id} style={{ display: 'flex', flexDirection: 'row', paddingBottom: 4, marginBottom: 4, borderBottom: '1px solid #eee' }}>
-                  <Text style={{ flex: 0.8, fontSize: 8 }}>{item.status}</Text>
-                  <Text style={{ flex: 2.5, fontSize: 8 }}>{sanitizePolishText(item.itemName)}</Text>
-                  <Text style={{ flex: 0.7, fontSize: 8, textAlign: 'center' }}>{item.currentQuantity}</Text>
-                  <Text style={{ flex: 0.6, fontSize: 8, textAlign: 'center' }}>{sanitizePolishText(getUnitLabel(item.unit))}</Text>
-                  <Text style={{ flex: 0.8, fontSize: 8, textAlign: 'center' }}>
-                    {item.differenceFromPrevious !== undefined && item.differenceFromPrevious !== null
-                      ? `${item.differenceFromPrevious > 0 ? '+' : ''}${item.differenceFromPrevious}`
-                      : '-'}
-                  </Text>
-                </View>
-              ))}
+              {selectedReport.reportItems.map((item) => {
+                return (
+                  <View key={item.id} style={{ display: 'flex', flexDirection: 'row', paddingBottom: 4, marginBottom: 4, borderBottom: '1px solid #eee' }}>
+                    
+                    <Text style={{ flex: 2, fontSize: 8 }}>{sanitizePolishText(item.itemName)}</Text>
+                    <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>{item.currentQuantity}</Text>
+                    <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>{item.unit || '-'}</Text>
+                  </View>
+                )
+              })}
             </View>
 
             {/* Footer */}
@@ -257,7 +222,7 @@ const PDFExport: FC = () => {
       const url = URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `raport_${selectedReport.id}_${new Date().getTime()}.pdf`
+      link.download = `raport_stanow_${selectedReport.id}_${new Date().getTime()}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -288,15 +253,14 @@ const PDFExport: FC = () => {
             borderColor: 'var(--color-error)',
             color: 'var(--color-error-text)',
           }}
-          className="mb-6 p-4 border rounded-lg flex items-start gap-3"
+          className="mb-6 p-4 border rounded-lg"
         >
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <p>{error}</p>
         </div>
       )}
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Statistics Card */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
         <div
           style={{
             backgroundColor: 'var(--color-surface-secondary)',
@@ -315,72 +279,6 @@ const PDFExport: FC = () => {
             </div>
             <div style={{ color: 'var(--color-accent)' }}>
               <FileText className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderColor: 'var(--color-border)',
-          }}
-          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div style={{ color: 'var(--color-error)' }} className="text-xs font-semibold">
-                Stan KRYTYCZNY
-              </div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">
-                {reportStats.critical}
-              </div>
-            </div>
-            <div style={{ color: 'var(--color-error)' }}>
-              <AlertCircle className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderColor: 'var(--color-border)',
-          }}
-          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold">
-                Stan NISKI
-              </div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">
-                {reportStats.low}
-              </div>
-            </div>
-            <div style={{ color: 'var(--color-warning)' }}>
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderColor: 'var(--color-border)',
-          }}
-          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div style={{ color: 'var(--color-primary)' }} className="text-xs font-semibold">
-                Stan OK
-              </div>
-              <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mt-2">
-                {reportStats.ok}
-              </div>
-            </div>
-            <div style={{ color: 'var(--color-primary)' }}>
-              <CheckCircle2 className="w-8 h-8" />
             </div>
           </div>
         </div>
@@ -451,8 +349,7 @@ const PDFExport: FC = () => {
                             Utworzony przez: <span style={{ color: 'var(--color-text)' }} className="font-medium">{report.createdBy.username}</span>
                           </p>
 
-                          {/* Status badges */}
-                          <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                             <div
                               style={{
                                 backgroundColor: 'var(--color-surface)',
@@ -467,51 +364,6 @@ const PDFExport: FC = () => {
                                 pozycji
                               </span>
                             </div>
-
-                            {report.criticalStockCount > 0 && (
-                              <div
-                                style={{
-                                  backgroundColor: 'var(--color-error-bg)',
-                                  borderColor: 'var(--color-error)',
-                                }}
-                                className="border rounded-lg px-3 py-1.5 flex items-center gap-1.5"
-                              >
-                                <AlertCircle style={{ color: 'var(--color-error)' }} className="w-3.5 h-3.5" />
-                                <span style={{ color: 'var(--color-error)' }} className="text-xs font-semibold">
-                                  {report.criticalStockCount} krytycznych
-                                </span>
-                              </div>
-                            )}
-
-                            {report.lowStockCount > 0 && (
-                              <div
-                                style={{
-                                  backgroundColor: 'var(--color-warning-bg)',
-                                  borderColor: 'var(--color-warning)',
-                                }}
-                                className="border rounded-lg px-3 py-1.5 flex items-center gap-1.5"
-                              >
-                                <AlertTriangle style={{ color: 'var(--color-warning)' }} className="w-3.5 h-3.5" />
-                                <span style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold">
-                                  {report.lowStockCount} niskich
-                                </span>
-                              </div>
-                            )}
-
-                            {report.okCount > 0 && (
-                              <div
-                                style={{
-                                  backgroundColor: 'var(--color-surface)',
-                                  borderColor: 'var(--color-border)',
-                                }}
-                                className="border rounded-lg px-3 py-1.5 flex items-center gap-1.5"
-                              >
-                                <CheckCircle2 style={{ color: 'var(--color-primary)' }} className="w-3.5 h-3.5" />
-                                <span style={{ color: 'var(--color-primary)' }} className="text-xs font-semibold">
-                                  {report.okCount} OK
-                                </span>
-                              </div>
-                            )}
                           </div>
                         </div>
 
@@ -629,69 +481,6 @@ const PDFExport: FC = () => {
 
             {/* Content */}
             <div style={{ backgroundColor: 'var(--color-surface)' }} className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
-              {/* Report Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-surface-secondary)',
-                    borderColor: 'var(--color-border)',
-                  }}
-                  className="border rounded-lg p-3 sm:p-4 text-center"
-                >
-                  <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold">
-                    Razem
-                  </div>
-                  <div style={{ color: 'var(--color-text)' }} className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">
-                    {selectedReport.totalItemsCount}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-error-bg)',
-                    borderColor: 'var(--color-error)',
-                  }}
-                  className="border rounded-lg p-3 sm:p-4 text-center"
-                >
-                  <div style={{ color: 'var(--color-error)' }} className="text-xs font-semibold">
-                    Krytyczne
-                  </div>
-                  <div style={{ color: 'var(--color-error)' }} className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">
-                    {selectedReport.criticalStockCount}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-warning-bg)',
-                    borderColor: 'var(--color-warning)',
-                  }}
-                  className="border rounded-lg p-3 sm:p-4 text-center"
-                >
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold">
-                    Niskie
-                  </div>
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">
-                    {selectedReport.lowStockCount}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-success-bg)',
-                    borderColor: 'var(--color-success)',
-                  }}
-                  className="border rounded-lg p-3 sm:p-4 text-center"
-                >
-                  <div style={{ color: 'var(--color-success)' }} className="text-xs font-semibold">
-                    OK
-                  </div>
-                  <div style={{ color: 'var(--color-success)' }} className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">
-                    {selectedReport.okCount}
-                  </div>
-                </div>
-              </div>
-
               {/* Creator Info */}
               <div
                 style={{
@@ -731,16 +520,13 @@ const PDFExport: FC = () => {
                             }}
                             className="text-left border-b"
                           >
-                            <th className="px-2 sm:px-3 py-2 font-semibold">Status</th>
                             <th className="px-2 sm:px-3 py-2 font-semibold">Nazwa</th>
                             <th className="px-2 sm:px-3 py-2 font-semibold text-center">Ilość</th>
-                            <th className="px-2 sm:px-3 py-2 font-semibold text-center">Jedn.</th>
-                            <th className="px-2 sm:px-3 py-2 font-semibold text-center">Zmiana od ostatniego raportu</th>
+                            <th className="px-2 sm:px-3 py-2 font-semibold text-center">Jednostka</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedItems.map((item, idx) => {
-                            const statusInfo = getStatusColor(item.status)
+                          {paginatedLocations.map((item, idx) => {
                             return (
                               <tr
                                 key={item.id}
@@ -751,18 +537,6 @@ const PDFExport: FC = () => {
                                 }}
                                 className="border-t"
                               >
-                                <td className="px-2 sm:px-3 py-2 text-center">
-                                  <div
-                                    style={{
-                                      backgroundColor: statusInfo.bg,
-                                      borderColor: statusInfo.text,
-                                      color: statusInfo.text,
-                                    }}
-                                    className="inline-flex items-center justify-center p-1 border rounded"
-                                  >
-                                    {statusInfo.icon}
-                                  </div>
-                                </td>
                                 <td style={{ color: 'var(--color-text)' }} className="px-2 sm:px-3 py-2 font-medium">
                                   {item.itemName}
                                 </td>
@@ -776,17 +550,7 @@ const PDFExport: FC = () => {
                                   style={{ color: 'var(--color-text-secondary)' }}
                                   className="px-2 sm:px-3 py-2 text-center text-xs"
                                 >
-                                  {getUnitLabel(item.unit)}
-                                </td>
-                                <td
-                                  style={{
-                                    color: (item.differenceFromPrevious ?? 0) > 0 ? 'var(--color-success)' : 'var(--color-error)',
-                                  }}
-                                  className="px-2 sm:px-3 py-2 text-center font-bold"
-                                >
-                                  {item.differenceFromPrevious !== undefined && item.differenceFromPrevious !== null
-                                    ? `${item.differenceFromPrevious > 0 ? '+' : ''}${item.differenceFromPrevious}`
-                                    : '-'}
+                                  {item.unit || '-'}
                                 </td>
                               </tr>
                             )
@@ -796,13 +560,13 @@ const PDFExport: FC = () => {
                     </div>
 
                     {/* Items Pagination */}
-                    {totalItemsPages > 1 && (
+                    {totalLocationPages > 1 && (
                       <div
                         style={{ borderColor: 'var(--color-border)' }}
                         className="flex items-center justify-between mt-3 pt-3 border-t gap-2"
                       >
                         <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">
-                          Strona {itemsPage + 1}/{totalItemsPages}
+                          Strona {itemsPage + 1}/{totalLocationPages}
                         </div>
                         <div className="flex items-center gap-1">
                           <button
@@ -816,7 +580,7 @@ const PDFExport: FC = () => {
                           >
                             <ChevronLeft className="w-3 h-3" />
                           </button>
-                          {Array.from({ length: Math.min(3, totalItemsPages) }, (_, i) => (
+                          {Array.from({ length: Math.min(3, totalLocationPages) }, (_, i) => (
                             <button
                               key={i}
                               onClick={() => setItemsPage(i)}
@@ -831,8 +595,8 @@ const PDFExport: FC = () => {
                             </button>
                           ))}
                           <button
-                            onClick={() => setItemsPage((p) => Math.min(totalItemsPages - 1, p + 1))}
-                            disabled={itemsPage === totalItemsPages - 1}
+                            onClick={() => setItemsPage((p) => Math.min(totalLocationPages - 1, p + 1))}
+                            disabled={itemsPage === totalLocationPages - 1}
                             style={{
                               borderColor: 'var(--color-border)',
                               color: 'var(--color-text-secondary)',
