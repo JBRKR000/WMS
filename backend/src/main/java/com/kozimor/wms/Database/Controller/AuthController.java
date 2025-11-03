@@ -5,6 +5,7 @@ import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Model.Role;
 import com.kozimor.wms.Database.Repository.UserRepository;
 import com.kozimor.wms.Database.Repository.RoleRepository;
+import com.kozimor.wms.Database.Service.UserIDGenerator;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -43,6 +44,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserIDGenerator userIDGenerator;
 
     public AuthController(AuthenticationManager authenticationManager,
             JwtService jwtService,
@@ -50,7 +52,8 @@ public class AuthController {
             @org.springframework.beans.factory.annotation.Value("${jwt.refresh-expiration-ms}") long refreshExpirationMs,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            UserIDGenerator userIDGenerator) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.expirationMs = expirationMs;
@@ -58,6 +61,7 @@ public class AuthController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userIDGenerator = userIDGenerator;
     }
 
     @PostMapping("/login")
@@ -142,6 +146,7 @@ public class AuthController {
                 .email(req.email())
                 .firstName(req.firstName())
                 .lastName(req.lastName())
+                .employeeId(userIDGenerator.generateUserID())
                 .role(role)
                 .build();
 

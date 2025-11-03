@@ -64,6 +64,9 @@ public class Item {
             @Index(name = "idx_item_keywords_keyword", columnList = "keyword_id") })
     private Set<Keyword> keywords = new HashSet<>();
     
+    @OneToMany(mappedBy = "item", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    private Set<InventoryLocation> locations = new HashSet<>();
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
     private ItemType type = ItemType.PRODUCT;

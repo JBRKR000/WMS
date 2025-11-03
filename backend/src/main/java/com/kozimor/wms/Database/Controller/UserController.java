@@ -49,6 +49,13 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/employee-id")
+    public ResponseEntity<String> getUserEmployeeId(@PathVariable Long id) {
+        return userService.getUserById(id)
+                .map(user -> ResponseEntity.ok(user.getEmployeeId()))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}/role")
     public ResponseEntity<UserDTO> updateUserRole(
             @PathVariable Long id,

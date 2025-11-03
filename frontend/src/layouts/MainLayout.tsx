@@ -78,6 +78,7 @@ const settingsSections: SidebarSection[] = [
         items: [
             { to: "/settings/users", icon: Users, label: "Zarządzanie użytkownikami" },
             { to: "/settings/qr", icon: QrCode, label: "Ustawienia Systemu" },
+            { to: "/settings/location", icon: Layers, label: "Ustawienia Lokalizacji" },
         ],
     },
 ];

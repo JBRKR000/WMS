@@ -11,6 +11,7 @@ import Layout from "./layouts/MainLayout";
 import Auth from "./pages/Auth";
 import Users from "./pages/MainContent/Settings/Users";
 import QR from "./pages/MainContent/Settings/QR";
+import Location from "./pages/MainContent/Settings/Location";
 import Summary from "./pages/MainContent/Dashboard/Summary";
 import ComponentList from "./pages/MainContent/Components/ComponentList";
 import RegisterIssue from "./pages/MainContent/Issues/RegisterIssue";
@@ -101,6 +102,7 @@ function AppRoutes() {
                 <Route path="/settings/*" element={<Settings />}>
                   <Route path="users" element={<Users />} />
                   <Route path="qr" element={<QR />} />
+                  <Route path="location" element={<Location />} />
                 </Route>
               </Routes>
             </Layout>

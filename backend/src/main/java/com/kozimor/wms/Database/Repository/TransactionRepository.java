@@ -30,4 +30,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     
     @Query("SELECT t FROM Transaction t WHERE t.transactionType IN ('ISSUE_TO_PRODUCTION', 'ISSUE_TO_SALES', 'ORDER') ORDER BY t.transactionDate DESC")
     Page<Transaction> findIssueTransactions(Pageable pageable);
+    
+    /**
+     * Sumuj ilość z transakcji dla danego itemu i lokacji
+     */
+    @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM Transaction t " +
+           "JOIN t.item i JOIN InventoryLocation il ON il.item = i " +
+           "WHERE i.id = :itemId AND il.location.id = :locationId")
+    int sumQuantityByItemAndLocation(@Param("itemId") Long itemId, @Param("locationId") Long locationId);
 }

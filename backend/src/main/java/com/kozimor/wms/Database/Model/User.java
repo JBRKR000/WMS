@@ -10,11 +10,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Table(name = "users",
        uniqueConstraints = {
          @UniqueConstraint(columnNames = "username"),
-         @UniqueConstraint(columnNames = "email")
+         @UniqueConstraint(columnNames = "email"),
+         @UniqueConstraint(columnNames = "employee_id")
        },
        indexes = {
          @Index(name = "idx_users_username", columnList = "username"),
-         @Index(name = "idx_users_email", columnList = "email")
+         @Index(name = "idx_users_email", columnList = "email"),
+         @Index(name = "idx_users_employee_id", columnList = "employee_id")
        })
 @Getter
 @Setter
@@ -35,7 +37,7 @@ public class User {
     @NotBlank
     @JsonIgnore
     @Column(nullable = false, length = 255)
-    private String password; // Hashed password
+    private String password;
 
     @Email
     @NotBlank
@@ -47,6 +49,9 @@ public class User {
 
     @Column(name = "last_name", length = 100)
     private String lastName;
+
+    @Column(name = "employee_id", nullable = true, length = 10, unique = true)
+    private String employeeId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")

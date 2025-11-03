@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode'
 
 // We'll build the UI using Transaction/Item/User model fields only
 type Item = { id?: number | null; name: string; currentQuantity?: number; unit?: string }
-type UserType = { id?: number | null; username: string }
+type UserType = { id?: number | null; username: string; employeeId?: string }
 type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'ISSUE_TO_SALES' | 'RETURN'
 
 const RegisterIssue: FC = () => {
@@ -46,10 +46,28 @@ const RegisterIssue: FC = () => {
         const userData = await fetchApi<UserResponse>(`/users/${userId}`)
         
         if (userData) {
-          setCurrentUser({
-            id: userData.id,
-            username: userData.username
-          })
+          // Fetch employee ID separately - endpoint zwraca plain text
+          try {
+            const response = await fetch(`/api/users/${userId}/employee-id`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            const employeeId = await response.text()
+            
+            setCurrentUser({
+              id: userData.id,
+              username: userData.username,
+              employeeId: employeeId || undefined
+            })
+          } catch (err) {
+            console.error('Błąd pobierania employee ID:', err)
+            setCurrentUser({
+              id: userData.id,
+              username: userData.username,
+              employeeId: undefined
+            })
+          }
         }
       } catch (err) {
         console.error('Błąd pobierania danych użytkownika:', err)
@@ -347,14 +365,15 @@ const RegisterIssue: FC = () => {
             </div>
 
             <div>
-              <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">4. Pracownik</h2>
+              <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-2">4. Pracownik</h2>
               {isLoadingUser ? (
                 <div className="w-full px-4 py-3 rounded-lg border-2 border-main bg-surface-secondary text-secondary text-lg font-bold">
                   Ładuję...
                 </div>
               ) : currentUser ? (
-                <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5 text-lg font-bold text-main">
-                  {currentUser.username}
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5">
+                  <div className="text-lg font-bold text-main">{currentUser.username}</div>
+                  <div className="text-sm text-secondary mt-1">ID Pracownika: <span className="font-semibold">{currentUser.employeeId || '-'}</span></div>
                 </div>
               ) : (
                 <div className="w-full px-4 py-3 rounded-lg border-2 border-error bg-error-bg text-error-text text-lg font-bold">
@@ -425,7 +444,10 @@ const RegisterIssue: FC = () => {
 
                   <div className="p-3 bg-surface-secondary rounded-lg border border-main/20">
                     <div className="text-xs text-secondary uppercase tracking-wide">Pracownik</div>
-                    <div className="text-main font-semibold mt-1 line-clamp-1">{preview.user?.username ?? '-'}</div>
+                    <div className="text-main font-semibold mt-1">
+                      <span>{preview.user?.username ?? '-'}</span>
+                      <div className="text-xs text-secondary mt-1">ID Pracownika: <span className="font-semibold">{preview.user?.employeeId || '-'}</span></div>
+                    </div>
                   </div>
                 </div>
 
