@@ -4,6 +4,7 @@ import { type FC, useMemo, useState, useEffect } from 'react'
 
 // There is no dedicated Product model in backend — reuse Item fields for Products UI
 type Category = { id?: number | null; name: string }
+type Location = { id?: number | null; code: string; name: string; type: string }
 type Product = {
   id?: number | null
   name: string
@@ -15,6 +16,7 @@ type Product = {
   qrCode?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+  location?: Location | null
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak produktów' }) => (
@@ -63,7 +65,8 @@ const Products: FC = () => {
           threshold: item.threshold,
           qrCode: item.qrCode,
           createdAt: item.createdAt,
-          updatedAt: item.updatedAt
+          updatedAt: item.updatedAt,
+          location: item.location ? { id: item.location.id, code: item.location.code, name: item.location.name, type: item.location.type } : null
         }))
       setProducts(prods)
     } catch (error) {
@@ -301,10 +304,10 @@ const Products: FC = () => {
                 </div>
 
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Próg minimalny</div>
-                  <div className="flex items-baseline gap-2">
-                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{preview.threshold || '-'}</div>
-                    {preview.threshold && <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{preview.unit ?? '-'}</div>}
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Sektor</div>
+                  <div className="flex flex-col gap-1">
+                    <div style={{ color: 'var(--color-text)' }} className="text-lg font-bold">{preview.location?.code ?? '-'}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{preview.location?.name ?? '-'}</div>
                   </div>
                 </div>
               </div>

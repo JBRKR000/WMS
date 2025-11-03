@@ -29,4 +29,15 @@ public class ItemDTO {
     private String updatedAt;
     private ItemType itemType;
     private Set<String> keywords;
+    private LocationSummaryDTO location;
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LocationSummaryDTO {
+        private Long id;
+        private String code;
+        private String name;
+        private String type;
+    }
 }

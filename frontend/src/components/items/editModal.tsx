@@ -29,7 +29,6 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [unit, setUnit] = useState(item.unit ?? '')
   const [currentQuantity, setCurrentQuantity] = useState(item.currentQuantity ?? 0)
-  const [threshold, setThreshold] = useState(item.threshold ?? null)
   const [qrCode, setQrCode] = useState(item.qrCode ?? '')
   const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
   const [selectedKeywords, setSelectedKeywords] = useState<KeywordDTO[]>([])
@@ -45,7 +44,6 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
       setDescription(item.description ?? '')
       setUnit(item.unit ?? '')
       setCurrentQuantity(item.currentQuantity ?? 0)
-      setThreshold(item.threshold ?? null)
       setQrCode(item.qrCode ?? '')
       setKeywordSearch('')
       setConfirmSave(false)
@@ -92,7 +90,6 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
         category: categoryId ? { id: categoryId } : null,
         unit,
         currentQuantity,
-        threshold: threshold ?? null,
         keywords: selectedKeywords.map(k => ({ value: k.value }))
       }
 
@@ -236,21 +233,6 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
                 disabled={loading}
               />
             </div>
-          </div>
-          <div>
-            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Próg minimalny</label>
-            <input
-              type="number"
-              value={threshold ?? ''}
-              onChange={e => setThreshold(e.target.value ? Number(e.target.value) : null)}
-              style={{
-                backgroundColor: 'var(--color-surface-secondary)',
-                color: 'var(--color-text)',
-                borderColor: 'var(--color-border)'
-              }}
-              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-              disabled={loading}
-            />
           </div>
           <div>
             <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Kod QR</label>

@@ -4,6 +4,7 @@ import { type FC, useMemo, useState, useEffect } from 'react'
 
 // DTO model from backend for paginated PRODUCTS and COMPONENTS
 // Item model from backend (fields only)
+type LocationSummary = { id?: number; code: string; name: string; type: string }
 export type ItemDTO = {
   id: number
   name: string
@@ -17,6 +18,7 @@ export type ItemDTO = {
   updatedAt?: string | null
   itemType: 'PRODUCT' | 'COMPONENT'
   keywords: string[]
+  location?: LocationSummary | null
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak komponentów' }) => (
@@ -278,10 +280,10 @@ const ComponentList: FC = () => {
                 </div>
 
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Próg ostrzeżenia</div>
-                  <div className="flex items-baseline gap-2">
-                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{modal.threshold || '-'}</div>
-                    {modal.threshold && <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{modal.unit ?? '-'}</div>}
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Sektor</div>
+                  <div className="flex flex-col gap-1">
+                    <div style={{ color: 'var(--color-text)' }} className="text-lg font-bold">{modal.location?.code ?? '-'}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{modal.location?.name ?? '-'}</div>
                   </div>
                 </div>
               </div>

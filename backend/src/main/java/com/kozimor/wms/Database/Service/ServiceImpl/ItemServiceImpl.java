@@ -5,6 +5,8 @@ import com.kozimor.wms.Database.Model.Keyword;
 import com.kozimor.wms.Database.Model.DTO.ItemDTO;
 import com.kozimor.wms.Database.Model.ItemType;
 import com.kozimor.wms.Database.Model.UnitType;
+import com.kozimor.wms.Database.Model.InventoryLocation;
+import com.kozimor.wms.Database.Model.Location;
 import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Repository.KeywordRepository;
 import com.kozimor.wms.Database.Service.ItemService;
@@ -180,6 +182,21 @@ public class ItemServiceImpl implements ItemService {
                     ? java.util.Collections.emptySet()
                     : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
                 dto.setKeywords(kw);
+                
+                // Get first location if available
+                if (item.getLocations() != null && !item.getLocations().isEmpty()) {
+                    InventoryLocation inv = item.getLocations().iterator().next();
+                    if (inv != null && inv.getLocation() != null) {
+                        Location loc = inv.getLocation();
+                        ItemDTO.LocationSummaryDTO locDto = new ItemDTO.LocationSummaryDTO();
+                        locDto.setId(loc.getId());
+                        locDto.setCode(loc.getCode());
+                        locDto.setName(loc.getName());
+                        locDto.setType(loc.getType());
+                        dto.setLocation(locDto);
+                    }
+                }
+                
                 return dto;
             });
     }
@@ -253,6 +270,21 @@ public class ItemServiceImpl implements ItemService {
                 ? java.util.Collections.emptySet()
                 : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
             dto.setKeywords(kw);
+            
+            // Get first location if available
+            if (item.getLocations() != null && !item.getLocations().isEmpty()) {
+                InventoryLocation inv = item.getLocations().iterator().next();
+                if (inv != null && inv.getLocation() != null) {
+                    Location loc = inv.getLocation();
+                    ItemDTO.LocationSummaryDTO locDto = new ItemDTO.LocationSummaryDTO();
+                    locDto.setId(loc.getId());
+                    locDto.setCode(loc.getCode());
+                    locDto.setName(loc.getName());
+                    locDto.setType(loc.getType());
+                    dto.setLocation(locDto);
+                }
+            }
+            
             return dto;
         });
     }
@@ -286,6 +318,21 @@ public class ItemServiceImpl implements ItemService {
                 ? java.util.Collections.emptySet()
                 : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
             dto.setKeywords(kw);
+            
+            // Get first location if available
+            if (item.getLocations() != null && !item.getLocations().isEmpty()) {
+                InventoryLocation inv = item.getLocations().iterator().next();
+                if (inv != null && inv.getLocation() != null) {
+                    Location loc = inv.getLocation();
+                    ItemDTO.LocationSummaryDTO locDto = new ItemDTO.LocationSummaryDTO();
+                    locDto.setId(loc.getId());
+                    locDto.setCode(loc.getCode());
+                    locDto.setName(loc.getName());
+                    locDto.setType(loc.getType());
+                    dto.setLocation(locDto);
+                }
+            }
+            
             return dto;
         });
     }

@@ -4,6 +4,7 @@ import { fetchApi } from '../../../../utils/api'
 
 // Use Item model fields only
 type Category = { id?: number | null; name: string }
+type Location = { id?: number | null; code: string; name: string; type: string }
 type KeywordDTO = { id: number; value: string; itemsCount: number }
 type Item = {
   id?: number | null
@@ -17,6 +18,7 @@ type Item = {
   createdAt?: string | null
   updatedAt?: string | null
   keywords?: string[]
+  location?: Location | null
 }
 
 // API Response types
@@ -33,6 +35,7 @@ type ItemDTO = {
   createdAt?: string | null
   updatedAt?: string | null
   keywords?: string[]
+  location?: Location | null
 }
 
 type PageResponse<T> = {
@@ -69,6 +72,7 @@ const Search: FC = () => {
   const [lowStock, setLowStock] = useState(false)
   const [lowStockThreshold, setLowStockThreshold] = useState<string>('')
   const [keywords, setKeywords] = useState<string>('')
+  const [location, setLocation] = useState<string>('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [preview, setPreview] = useState<Item | null>(null)
   const [items, setItems] = useState<Item[]>([])
@@ -77,6 +81,7 @@ const Search: FC = () => {
   const [fetchedCategories, setFetchedCategories] = useState<Category[]>([])
   const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
   const [showKeywordsSuggestions, setShowKeywordsSuggestions] = useState(false)
+  const [fetchedLocations, setFetchedLocations] = useState<Location[]>([])
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -120,6 +125,30 @@ const Search: FC = () => {
       }
     }
     fetchKeywords()
+  }, [])
+
+  // Fetch locations on component mount
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          setFetchedLocations([])
+          return
+        }
+        const res = await fetch('/api/locations', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        })
+        if (!res.ok) throw new Error('Failed to fetch locations')
+        const data = await res.json()
+        const mapped: Location[] = (data ?? []).map((l: any) => ({ id: l.id, code: l.code, name: l.name, type: l.type }))
+        setFetchedLocations(mapped)
+      } catch (err) {
+        console.error('Error fetching locations:', err)
+        setFetchedLocations([])
+      }
+    }
+    fetchLocations()
   }, [])
 
   // Helper function to get quantity label based on unit
@@ -171,6 +200,7 @@ const Search: FC = () => {
           createdAt: dto.createdAt,
           updatedAt: dto.updatedAt,
           keywords: dto.keywords || [],
+          location: dto.location || null,
         }))
         setItems(mappedItems)
       }
@@ -209,6 +239,9 @@ const Search: FC = () => {
         if (!matches) return false
       }
 
+      // Location filter (client-side, since API already filtered)
+      if (location && (!it.location || String(it.location.id) !== location)) return false
+
       // Keyword filter (client-side, since API already filtered)
       if (keywordFilter && (!it.keywords || !it.keywords.some(kw => kw.toLowerCase().includes(keywordFilter)))) return false
       
@@ -220,7 +253,7 @@ const Search: FC = () => {
 
       return true
     })
-  }, [items, q, lowStock, lowStockThreshold, keywords])
+  }, [items, q, lowStock, lowStockThreshold, keywords, location])
 
   return (
     <main className="p-4 md:p-6 lg:p-8 bg-surface">
@@ -261,6 +294,14 @@ const Search: FC = () => {
             <select value={unit} onChange={e => setUnit(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
               <option value="">Wszystkie</option>
               {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-secondary">Sektor</label>
+            <select value={location} onChange={e => setLocation(e.target.value)} className="w-full px-3 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+              <option value="">Wszystkie sektory</option>
+              {fetchedLocations.map(l => <option key={l.id} value={String(l.id)}>{l.code} - {l.name}</option>)}
             </select>
           </div>
 
@@ -345,6 +386,7 @@ const Search: FC = () => {
                 setLowStock(false)
                 setLowStockThreshold('')
                 setKeywords('')
+                setLocation('')
                 setItems([])
               }}
               className="px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover transition"
@@ -506,10 +548,10 @@ const Search: FC = () => {
                 </div>
 
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Próg minimalny</div>
-                  <div className="flex items-baseline gap-2">
-                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{preview.threshold || '-'}</div>
-                    {preview.threshold && <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{preview.unit ?? '-'}</div>}
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Sektor</div>
+                  <div className="flex flex-col gap-1">
+                    <div style={{ color: 'var(--color-text)' }} className="text-lg font-bold">{preview.location?.code ?? '-'}</div>
+                    <div style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{preview.location?.name ?? '-'}</div>
                   </div>
                 </div>
               </div>
