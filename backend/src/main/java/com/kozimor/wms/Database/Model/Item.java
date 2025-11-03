@@ -37,9 +37,6 @@ public class Item {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(name = "threshold", nullable = true)
-    private Long threshold; // MINIMALNA ILOŚĆ
-
     @Enumerated(EnumType.STRING)
     @Column(name = "unit", nullable = false, length = 20)
     private UnitType unit;
@@ -66,6 +63,9 @@ public class Item {
     
     @OneToMany(mappedBy = "item", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     private Set<InventoryLocation> locations = new HashSet<>();
+
+    @OneToMany(mappedBy = "item", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    private Set<Transaction> transactions = new HashSet<>();
     
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)

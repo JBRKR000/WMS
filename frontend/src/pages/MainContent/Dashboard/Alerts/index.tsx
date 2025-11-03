@@ -10,7 +10,6 @@ type Item = {
   categoryName?: string | null
   unit?: string | null
   currentQuantity?: number
-  threshold?: number
   itemType?: string
 }
 type Transaction = {
@@ -79,7 +78,7 @@ const Alerts: FC = () => {
     const lowStockAlerts: AlertEntry[] = items.map((item) => ({
       id: item.id,
       source: 'item',
-      message: `⚠️ Niski stan magazynowy: ${item.name} - Dostępne: ${item.currentQuantity ?? 0} ${item.unit ?? 'szt.'} (próg: ${item.threshold ?? '-'})`,
+      message: `⚠️ Niski stan magazynowy: ${item.name} - Dostępne: ${item.currentQuantity ?? 0} ${item.unit ?? 'szt.'}`,
       createdAt: new Date().toISOString(),
       item
     }))
@@ -230,9 +229,6 @@ const Alerts: FC = () => {
                     </div>
                     <div>
                       <span className="opacity-70">Kategoria:</span> {a.item.categoryName ?? '-'}
-                    </div>
-                    <div>
-                      <span className="opacity-70">Próg minimalny:</span> {a.item.threshold ?? '-'}
                     </div>
                     <div>
                       <span className="opacity-70">Opis:</span> {a.item.description ?? '-'}

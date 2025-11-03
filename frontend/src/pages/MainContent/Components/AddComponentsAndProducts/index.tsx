@@ -1,7 +1,6 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
 import { PlusCircle, Box, X } from 'lucide-react'
-
-// Type for fetched keywords
+import { LocationService, type Location, type LocationOccupancy } from '../../../../services/locationService'
 type KeywordDTO = { id: number; value: string; itemsCount: number }
 type Category = { id?: number | null; name: string }
 type ItemForm = {
@@ -13,6 +12,7 @@ type ItemForm = {
   threshold?: number | ''
   qrCode?: string
   type?: 'COMPONENT' | 'PRODUCT'
+  locationId?: number | ''
 }
 
 const AddComponentsAndProducts: FC = () => {
@@ -25,10 +25,12 @@ const AddComponentsAndProducts: FC = () => {
     return () => clearTimeout(timer)
   }, [statusMessage])
 
-  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT' })
+  const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT', locationId: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [preview, setPreview] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
+  const [selectedLocationOccupancy, setSelectedLocationOccupancy] = useState<LocationOccupancy | null>(null)
   // keyword states
   const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
   const [keywordSearch, setKeywordSearch] = useState<string>('')
@@ -55,6 +57,18 @@ const AddComponentsAndProducts: FC = () => {
     }
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const data = await LocationService.getAll()
+        setLocations(data)
+      } catch (err) {
+        console.error('Error fetching locations:', err)
+      }
+    }
+    fetchLocations()
+  }, [])
   // fetch keywords list
   useEffect(() => {
     const fetchKeywords = async () => {
@@ -72,11 +86,27 @@ const AddComponentsAndProducts: FC = () => {
     fetchKeywords()
   }, [])
 
+  const handleLocationChange = async (locationId: string) => {
+    setForm({ ...form, locationId: locationId ? Number(locationId) : '' })
+    
+    if (locationId) {
+      try {
+        const occupancy = await LocationService.getOccupancy(Number(locationId))
+        setSelectedLocationOccupancy(occupancy)
+      } catch (err) {
+        console.error('Error fetching location occupancy:', err)
+        setSelectedLocationOccupancy(null)
+      }
+    } else {
+      setSelectedLocationOccupancy(null)
+    }
+  }
+
   const validate = (f: ItemForm) => {
     const e: Record<string, string> = {}
     if (!f.name.trim()) e.name = 'Nazwa jest wymagana'
     if (f.currentQuantity !== '' && Number(f.currentQuantity) < 0) e.currentQuantity = 'Ilość nie może być ujemna'
-    if (f.threshold !== '' && Number(f.threshold) <= 0) e.threshold = 'Próg minimalny musi być większy niż 0'
+    if (!f.locationId || typeof f.locationId !== 'number') e.locationId = 'Lokacja jest wymagana'
     return e
   }
 
@@ -106,6 +136,25 @@ const AddComponentsAndProducts: FC = () => {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error('Failed to save item')
+      const response = await res.json()
+      const createdItem = response.item
+      
+      // Dodaj item do lokacji
+      try {
+        if (!createdItem?.id) {
+          console.error('Created item has no ID:', createdItem)
+          throw new Error('Item created but has no ID')
+        }
+        await LocationService.addItemToLocation(form.locationId as number, createdItem.id)
+        // Pobierz zaktualizowane obłożenie lokacji
+        const updatedOccupancy = await LocationService.getOccupancy(form.locationId as number)
+        setSelectedLocationOccupancy(updatedOccupancy)
+      } catch (err) {
+        console.error('Error adding item to location:', err)
+        setStatusMessage('Błąd przy dodawaniu itemu do lokacji')
+        throw err
+      }
+      
       // success
       setPreview(true)
       setStatusMessage('Dodano przedmiot pomyślnie')
@@ -116,11 +165,12 @@ const AddComponentsAndProducts: FC = () => {
   }
 
   const onClear = () => {
-    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT' })
+    setForm({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT', locationId: '' })
     setErrors({})
     setPreview(false)
     setKeywordSearch('')
     setSelectedKeywords([])
+    setSelectedLocationOccupancy(null)
   }
 
   const filledPreview = useMemo(() => ({
@@ -133,8 +183,10 @@ const AddComponentsAndProducts: FC = () => {
     threshold: form.threshold === '' ? null : Number(form.threshold),
     qrCode: form.qrCode || '-',
     keywords: selectedKeywords,
-    itemType: form.type || 'COMPONENT'
-  }), [form, categories, selectedKeywords])
+    itemType: form.type || 'COMPONENT',
+    location: locations.find(l => l.id === form.locationId) ?? null,
+    locationOccupancy: selectedLocationOccupancy
+  }), [form, categories, selectedKeywords, locations, selectedLocationOccupancy])
 
   return (
     <main className="p-4 md:p-6 lg:p-8 bg-surface">
@@ -192,12 +244,27 @@ const AddComponentsAndProducts: FC = () => {
               <input type="number" value={form.currentQuantity as any} onChange={e => setForm({ ...form, currentQuantity: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               {errors.currentQuantity && <div className="text-xs text-error-text mt-1">{errors.currentQuantity}</div>}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs text-secondary">Próg minimalny (threshold)</label>
-              <input type="number" value={form.threshold as any} onChange={e => setForm({ ...form, threshold: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-              {errors.threshold && <div className="text-xs text-error-text mt-1">{errors.threshold}</div>}
-            </div>
+          <div>
+            <label className="block text-xs text-secondary">Lokacja</label>
+            <select value={form.locationId ?? ''} onChange={e => handleLocationChange(e.target.value)} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+              <option value="">Wybierz lokację</option>
+              {locations.map(loc => <option key={loc.id} value={String(loc.id)}>{loc.code} - {loc.name}</option>)}
+            </select>
+            {errors.locationId && <div className="text-xs text-error-text mt-1">{errors.locationId}</div>}
+            {selectedLocationOccupancy && (
+              <div className="mt-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                <div className="text-xs text-secondary mb-1">Obłożenie lokacji:</div>
+                <div className="w-full bg-surface-secondary rounded-full h-2 overflow-hidden mb-2">
+                  <div
+                    className={`h-full transition-all ${selectedLocationOccupancy.occupancyPercentage >= 90 ? 'bg-error' : selectedLocationOccupancy.occupancyPercentage >= 70 ? 'bg-warning' : 'bg-success'}`}
+                    style={{ width: `${Math.min(selectedLocationOccupancy.occupancyPercentage, 100)}%` }}
+                  />
+                </div>
+                <div className="text-xs font-semibold text-main">{selectedLocationOccupancy.occupancyPercentage.toFixed(1)}% ({selectedLocationOccupancy.currentOccupancy}/{selectedLocationOccupancy.maxCapacity})</div>
+              </div>
+            )}
           </div>
 
           {/* Keywords multi-select autocomplete */}
@@ -275,16 +342,30 @@ const AddComponentsAndProducts: FC = () => {
                   <div className="text-xs text-secondary">Jednostka</div>
                   <div className="text-main">{filledPreview.unit}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-secondary">Próg minimalny</div>
-                  <div className="text-main">{filledPreview.threshold ?? '-'}</div>
-                </div>
               </div>
 
               <div>
                 <div className="text-xs text-secondary">Słowa kluczowe</div>
                 <div className="text-main">{selectedKeywords.length ? selectedKeywords.map(k => k.value).join(', ') : '-'}</div>
               </div>
+
+              <div>
+                <div className="text-xs text-secondary">Lokacja</div>
+                <div className="text-main">{filledPreview.location ? `${filledPreview.location.code} - ${filledPreview.location.name}` : '-'}</div>
+              </div>
+
+              {filledPreview.locationOccupancy && (
+                <div>
+                  <div className="text-xs text-secondary">Obłożenie lokacji</div>
+                  <div className="w-full bg-surface-secondary rounded-full h-2 overflow-hidden mt-2 mb-2">
+                    <div
+                      className={`h-full transition-all ${filledPreview.locationOccupancy.occupancyPercentage >= 90 ? 'bg-error' : filledPreview.locationOccupancy.occupancyPercentage >= 70 ? 'bg-warning' : 'bg-success'}`}
+                      style={{ width: `${Math.min(filledPreview.locationOccupancy.occupancyPercentage, 100)}%` }}
+                    />
+                  </div>
+                  <div className="text-xs font-semibold text-main">{filledPreview.locationOccupancy.occupancyPercentage.toFixed(1)}% ({filledPreview.locationOccupancy.currentOccupancy}/{filledPreview.locationOccupancy.maxCapacity})</div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-12">

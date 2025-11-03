@@ -4,12 +4,20 @@ import com.kozimor.wms.Database.Model.InventoryLocation;
 import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.Location;
 import com.kozimor.wms.Database.Model.LocationThreshold;
+import com.kozimor.wms.Database.Model.Transaction;
+import com.kozimor.wms.Database.Model.TransactionType;
+import com.kozimor.wms.Database.Model.TransactionStatus;
+import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Model.DTO.LocationOccupancyDTO;
 import com.kozimor.wms.Database.Repository.InventoryLocationRepository;
+import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Repository.LocationRepository;
 import com.kozimor.wms.Database.Repository.LocationThresholdRepository;
 import com.kozimor.wms.Database.Repository.TransactionRepository;
+import com.kozimor.wms.Database.Repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +31,8 @@ public class LocationService {
     private final LocationThresholdRepository thresholdRepository;
     private final InventoryLocationRepository inventoryLocationRepository;
     private final TransactionRepository transactionRepository;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
     
     /**
      * Pobierz wszystkie lokacje
@@ -124,10 +134,11 @@ public class LocationService {
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElseThrow(() -> new IllegalArgumentException("Threshold dla lokacji nie znaleziony"));
         
-        int itemCount = inventoryLocationRepository.countItemsInLocation(location);
+        // Pobierz całkowitą ilość (quantity) ze wszystkich transakcji dla tej lokacji
+        int totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
         
-        // Jeśli to jest maksymalny próg pojemności (ilość itemów)
-        return itemCount < threshold.getMaxThreshold();
+        // Sprawdzaj czy całkowita ilość + 1 (nowy item) nie przekroczy maksymalnego progu
+        return (totalQuantity + 1) <= threshold.getMaxThreshold();
     }
     
     /**
@@ -160,14 +171,15 @@ public class LocationService {
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElse(null);
         
-        int itemCount = inventoryLocationRepository.countItemsInLocation(location);
+        // Pobierz całkowitą ilość (quantity) ze wszystkich transakcji dla tej lokacji
+        int totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
         
         int maxCapacity = threshold != null ? threshold.getMaxThreshold() : 0;
         int minThreshold = threshold != null ? threshold.getMinThreshold() : 0;
         
-        double occupancyPercentage = maxCapacity > 0 ? (itemCount * 100.0) / maxCapacity : 0;
+        double occupancyPercentage = maxCapacity > 0 ? (totalQuantity * 100.0) / maxCapacity : 0;
         
-        boolean isAboveThreshold = itemCount >= minThreshold;
+        boolean isAboveThreshold = totalQuantity >= minThreshold;
         
         return LocationOccupancyDTO.builder()
                 .locationId(location.getId())
@@ -176,9 +188,9 @@ public class LocationService {
                 .locationDescription(location.getDescription())
                 .maxCapacity(maxCapacity)
                 .minThreshold(minThreshold)
-                .currentOccupancy(itemCount)
+                .currentOccupancy(totalQuantity)
                 .occupancyPercentage(occupancyPercentage)
-                .itemCount(itemCount)
+                .itemCount(totalQuantity)
                 .isAboveThreshold(isAboveThreshold)
                 .isActive(location.isActive())
                 .build();
@@ -209,7 +221,34 @@ public class LocationService {
         inventoryLocation.setItem(item);
         inventoryLocation.setLocation(location);
         
-        return inventoryLocationRepository.save(inventoryLocation);
+        inventoryLocationRepository.save(inventoryLocation);
+        
+        // Pobierz pełne dane itemu z bazy
+        Item fullItem = itemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item nie znaleziony"));
+        
+        int initialQuantity = fullItem.getCurrentQuantity() != null ? fullItem.getCurrentQuantity() : 0;
+        
+        // Pobierz aktualnego użytkownika z Security Context
+        User currentUser = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String username = authentication.getName();
+            currentUser = userRepository.findByUsername(username).orElse(null);
+        }
+        
+        Transaction transaction = Transaction.builder()
+                .item(fullItem)
+                .transactionType(TransactionType.RECEIPT)
+                .quantity(initialQuantity)
+                .transactionStatus(TransactionStatus.COMPLETED)
+                .user(currentUser)
+                .description("Dodanie itemu do lokacji: " + location.getCode())
+                .build();
+        
+        transactionRepository.save(transaction);
+        
+        return inventoryLocation;
     }
     
     /**

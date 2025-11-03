@@ -49,7 +49,6 @@ public class ItemController {
         dto.setCategoryName(created.getCategory() != null ? created.getCategory().getName() : null);
         dto.setUnit(created.getUnit());
         dto.setCurrentQuantity(created.getCurrentQuantity());
-        dto.setThreshold(created.getThreshold());
         dto.setQrCode(created.getQrCode());
         dto.setItemType(created.getType());
         dto.setCreatedAt(
@@ -76,7 +75,6 @@ public class ItemController {
             dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
             dto.setUnit(item.getUnit());
             dto.setCurrentQuantity(item.getCurrentQuantity());
-            dto.setThreshold(item.getThreshold());
             dto.setQrCode(item.getQrCode());
             dto.setItemType(item.getType());
             dto.setCreatedAt(item.getCreatedAt() != null ? item.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
@@ -116,7 +114,6 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
         dto.setCategoryName(updatedItem.getCategory() != null ? updatedItem.getCategory().getName() : null);
         dto.setUnit(updatedItem.getUnit());
         dto.setCurrentQuantity(updatedItem.getCurrentQuantity());
-        dto.setThreshold(updatedItem.getThreshold());
         dto.setQrCode(updatedItem.getQrCode());
         dto.setItemType(updatedItem.getType());
         dto.setCreatedAt(
@@ -235,12 +232,5 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/lowstock")
-    public ResponseEntity<Page<ItemDTO>> getLowStockItems(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<ItemDTO> results = itemService.getLowStockItems(page, size);
-        return ResponseEntity.ok(results);
-    }
 
 }

@@ -17,17 +17,11 @@ const itemTypeDisplay: Record<ItemTypeEnum, string> = {
 }
 
 // Helper functions
-const getStockStatus = (currentQuantity: number, threshold?: number | null): 'ok' | 'low' | 'critical' => {
-  // If no threshold, consider it OK
-  if (!threshold || threshold === 0) return 'ok'
-  
-  // Critical: at or below threshold
-  if (currentQuantity <= threshold) return 'critical'
-  
-  // Low: between threshold and 150% of threshold (approaching threshold)
-  if (currentQuantity <= threshold * 1.5) return 'low'
-  
-  // OK: well above threshold
+const getStockStatus = (currentQuantity: number): 'ok' | 'low' | 'critical' => {
+  // Thresholds are now managed per Location, not per Item
+  // This simple check: if quantity is 0, it's critical
+  if (currentQuantity <= 0) return 'critical'
+  if (currentQuantity <= 10) return 'low'
   return 'ok'
 }
 
@@ -377,9 +371,8 @@ const InventoryStatus: FC = () => {
                   </thead>
                   <tbody>
                     {paginatedItems.map((it: Item, idx: number) => {
-                      const status = getStockStatus(it.currentQuantity, it.threshold)
+                      const status = getStockStatus(it.currentQuantity)
                       const badge = getStatusBadge(status)
-                      const utilizationPercent = it.threshold ? Math.round((it.currentQuantity / it.threshold) * 100) : 0
                       return (
                         <tr 
                           key={it.id} 
@@ -397,22 +390,6 @@ const InventoryStatus: FC = () => {
                           <td style={{ color: badge.color }} className="px-3 py-2 text-center">
                             <span className="font-bold">{it.currentQuantity}</span>
                             <span style={{ color: 'var(--color-text-secondary)' }} className="text-xs ml-1">{unitDisplay[it.unit]}</span>
-                          </td>
-                          <td style={{ color: 'var(--color-text)' }} className="px-3 py-2 text-center font-semibold">{it.threshold || '-'}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="w-16 rounded-full h-1.5 overflow-hidden border">
-                                <div 
-                                  className={`h-full ${
-                                    utilizationPercent <= 100 ? 'bg-red-500' : 
-                                    utilizationPercent <= 150 ? 'bg-yellow-500' : 
-                                    'bg-green-500'
-                                  }`}
-                                  style={{ width: `${Math.min(utilizationPercent, 200)}%` }}
-                                />
-                              </div>
-                              <span style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-semibold w-10 text-right">{utilizationPercent}%</span>
-                            </div>
                           </td>
                           <td className="px-3 py-2 text-center">
                             <button 
@@ -563,117 +540,10 @@ const InventoryStatus: FC = () => {
                 </div>
 
                 <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4">
-                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Próg ostrzeżenia</div>
-                  <div className="flex items-baseline gap-2">
-                    <div style={{ color: 'var(--color-text)' }} className="text-3xl font-bold">{selected.threshold || '-'}</div>
-                    {selected.threshold && <div style={{ color: 'var(--color-text-secondary)' }} className="text-sm">{unitDisplay[selected.unit]}</div>}
-                  </div>
+                  <div style={{ color: 'var(--color-warning)' }} className="text-xs font-semibold mb-1">Status dostępności</div>
+                  <div className="text-sm">Thresholds zarządzane są na poziomie lokacji magazynowej</div>
                 </div>
               </div>
-
-              {/* Status & Utilization Analysis */}
-              {selected.threshold && (
-                <div style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div style={{ color: 'var(--color-text)' }} className="text-sm font-semibold">Analiza progu</div>
-                    <div>{getStatusBadge(getStockStatus(selected.currentQuantity, selected.threshold)).icon}</div>
-                  </div>
-
-                  {/* Threshold progress bar */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span style={{ color: 'var(--color-text-secondary)' }}>0 (Krytyczne)</span>
-                      <span style={{ color: 'var(--color-text)' }} className="font-semibold">
-                        {selected.threshold * 1.5} (OK)
-                      </span>
-                    </div>
-                    <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="relative w-full h-6 border rounded-lg overflow-hidden flex items-center">
-                      {/* Threshold zones */}
-                      <div className="absolute inset-0 flex">
-                        {/* Critical zone */}
-                        <div 
-                          style={{ 
-                            backgroundColor: 'var(--color-error-bg)', 
-                            borderRightColor: 'var(--color-error)',
-                            width: `${(selected.threshold / (selected.threshold * 1.5)) * 100}%`
-                          }}
-                          className="border-r"
-                        />
-                        {/* Low zone */}
-                        <div 
-                          style={{ 
-                            backgroundColor: 'var(--color-warning-bg)', 
-                            borderRightColor: 'var(--color-warning)',
-                            width: `${(selected.threshold * 0.5) / (selected.threshold * 1.5) * 100}%`
-                          }}
-                          className="border-r"
-                        />
-                        {/* OK zone */}
-                        <div style={{ backgroundColor: 'var(--color-success-bg)' }} className="flex-1" />
-                      </div>
-
-                      {/* Current position indicator */}
-                      <div 
-                        style={{ 
-                          backgroundColor: 'var(--color-accent)',
-                          left: `${Math.min((selected.currentQuantity / (selected.threshold * 1.5)) * 100, 100)}%`,
-                          transform: 'translateX(-50%)'
-                        }}
-                        className="absolute top-0 bottom-0 w-1 z-10 shadow-md"
-                      />
-
-                      {/* Labels on progress bar */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span style={{ color: 'var(--color-text)' }} className="text-xs font-bold">
-                          {Math.round((selected.currentQuantity / selected.threshold) * 100)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status description */}
-                  <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded p-2 text-xs border">
-                    {selected.currentQuantity <= selected.threshold ? (
-                      <div style={{ color: 'var(--color-error)' }} className="font-medium flex items-center gap-2">
-                        <XCircle className="w-4 h-4" />
-                        <span><strong>KRYTYCZNE:</strong> Stan na lub poniżej progu. Wymaga natychmiastowego uzupełnienia!</span>
-                      </div>
-                    ) : selected.currentQuantity <= selected.threshold * 1.5 ? (
-                      <div style={{ color: 'var(--color-warning)' }} className="font-medium flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        <span><strong>NISKIE:</strong> Stan zbliża się do progu. Zalecane uzupełnienie zapasów.</span>
-                      </div>
-                    ) : (
-                      <div style={{ color: 'var(--color-success)' }} className="font-medium flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span><strong>OK:</strong> Stan znacznie powyżej progu. Zapasy bezpieczne.</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quick stats */}
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded p-2 text-center border">
-                      <div style={{ color: 'var(--color-text-secondary)' }}>Procent progu</div>
-                      <div style={{ color: 'var(--color-text)' }} className="text-lg font-bold mt-1">
-                        {Math.round((selected.currentQuantity / selected.threshold) * 100)}%
-                      </div>
-                    </div>
-                    <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded p-2 text-center border">
-                      <div style={{ color: 'var(--color-text-secondary)' }}>Różnica</div>
-                      <div style={{ color: selected.currentQuantity >= selected.threshold ? 'var(--color-success)' : 'var(--color-error)' }} className="text-lg font-bold mt-1">
-                        {selected.currentQuantity - selected.threshold > 0 ? '+' : ''}{selected.currentQuantity - selected.threshold}
-                      </div>
-                    </div>
-                    <div style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="rounded p-2 text-center border">
-                      <div style={{ color: 'var(--color-text-secondary)' }}>Do progu</div>
-                      <div style={{ color: selected.currentQuantity >= selected.threshold ? 'var(--color-success)' : 'var(--color-error)' }} className="text-lg font-bold mt-1">
-                        {selected.threshold - selected.currentQuantity > 0 ? selected.threshold - selected.currentQuantity : 0}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Basic info */}
               <div className="space-y-3">

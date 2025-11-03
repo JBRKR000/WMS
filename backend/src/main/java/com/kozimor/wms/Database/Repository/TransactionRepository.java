@@ -38,4 +38,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "JOIN t.item i JOIN InventoryLocation il ON il.item = i " +
            "WHERE i.id = :itemId AND il.location.id = :locationId")
     int sumQuantityByItemAndLocation(@Param("itemId") Long itemId, @Param("locationId") Long locationId);
+
+    /**
+     * Oblicz netto ilość dla danej lokacji
+     * Dodaj transakcje RECEIPT, odejmij resztę (ISSUE_TO_PRODUCTION, ISSUE_TO_SALES, ORDER, itp.)
+     */
+    @Query("SELECT COALESCE(SUM(CASE WHEN t.transactionType = 'RECEIPT' THEN t.quantity ELSE -t.quantity END), 0) " +
+           "FROM Transaction t " +
+           "JOIN t.item i JOIN InventoryLocation il ON il.item = i " +
+           "WHERE il.location.id = :locationId")
+    int sumQuantityByLocation(@Param("locationId") Long locationId);
 }

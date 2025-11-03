@@ -197,16 +197,16 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private String calculateStatus(Item item) {
-        if (item.getThreshold() == null || item.getCurrentQuantity() == null) {
+        // Status based on current quantity only (thresholds now managed at Location level)
+        if (item.getCurrentQuantity() == null) {
             return "OK";
         }
 
         long currentQty = item.getCurrentQuantity();
-        long threshold = item.getThreshold();
 
-        if (currentQty < (threshold / 2)) {
+        if (currentQty <= 0) {
             return "CRITICAL";
-        } else if (currentQty < threshold) {
+        } else if (currentQty <= 10) {
             return "LOW";
         }
 

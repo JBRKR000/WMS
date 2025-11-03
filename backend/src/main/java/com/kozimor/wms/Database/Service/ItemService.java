@@ -99,11 +99,5 @@ public interface ItemService {
      */
     Page<ItemDTO> searchItemsByName(String name, int page, int size);
 
-    /**
-     * Get low stock items (where threshold > currentQuantity)
-     * @param page Page number (default 0)
-     * @param size Page size (default 10)
-     * @return Page of ItemDTO for items with low stock
-     */
-    Page<ItemDTO> getLowStockItems(int page, int size);
+   
 }

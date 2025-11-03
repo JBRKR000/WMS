@@ -69,14 +69,5 @@ public interface ItemRepository extends JpaRepository<Item, Long>
            "ORDER BY i.name ASC, i.id DESC")
     Page<Item> searchItemsByName(@Param("name") String name, Pageable pageable);
 
-    /**
-     * Find all items where threshold is greater than currentQuantity (low stock items)
-     */
-    @EntityGraph(attributePaths = {"category", "keywords"})
-    @Query("SELECT i FROM Item i " +
-           "WHERE i.threshold IS NOT NULL " +
-           "AND i.currentQuantity IS NOT NULL " +
-           "AND CAST(i.currentQuantity AS LONG) < i.threshold " +
-           "ORDER BY i.currentQuantity ASC, i.id DESC")
-    Page<Item> findLowStockItems(Pageable pageable);
+    
 }

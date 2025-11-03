@@ -87,7 +87,6 @@ public class ItemServiceImpl implements ItemService {
         item.setCategory(itemDetails.getCategory());
         item.setUnit(itemDetails.getUnit());
         item.setCurrentQuantity(itemDetails.getCurrentQuantity());
-        item.setThreshold(itemDetails.getThreshold());
         // item.setType(itemDetails.getType());
         // DO NOT update qrCode - it should remain unchanged
         // item.setQrCode(itemDetails.getQrCode()); 
@@ -142,7 +141,6 @@ public class ItemServiceImpl implements ItemService {
             dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
             dto.setUnit(item.getUnit());
             dto.setCurrentQuantity(item.getCurrentQuantity());
-            dto.setThreshold(item.getThreshold());
             dto.setQrCode(item.getQrCode());
             dto.setItemType(item.getType());
             dto.setCreatedAt(item.getCreatedAt().format(formatter));
@@ -174,7 +172,6 @@ public class ItemServiceImpl implements ItemService {
                     ? item.getCategory().getName() : null);
                 dto.setUnit(item.getUnit());
                 dto.setCurrentQuantity(item.getCurrentQuantity());
-                dto.setThreshold(item.getThreshold());
                 dto.setQrCode(item.getQrCode());
                 dto.setItemType(item.getType());
                 dto.setCreatedAt(item.getCreatedAt().format(fmt));
@@ -248,7 +245,6 @@ public class ItemServiceImpl implements ItemService {
             dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
             dto.setUnit(item.getUnit());
             dto.setCurrentQuantity(item.getCurrentQuantity());
-            dto.setThreshold(item.getThreshold());
             dto.setQrCode(item.getQrCode());
             dto.setItemType(item.getType());
             dto.setCreatedAt(item.getCreatedAt().format(fmt));
@@ -282,7 +278,6 @@ public class ItemServiceImpl implements ItemService {
             dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
             dto.setUnit(item.getUnit());
             dto.setCurrentQuantity(item.getCurrentQuantity());
-            dto.setThreshold(item.getThreshold());
             dto.setQrCode(item.getQrCode());
             dto.setItemType(item.getType());
             dto.setCreatedAt(item.getCreatedAt().format(fmt));
@@ -295,35 +290,6 @@ public class ItemServiceImpl implements ItemService {
         });
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ItemDTO> getLowStockItems(int page, int size) {
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        PageRequest pageable = PageRequest.of(page, size);
-        
-        // Get items where threshold > currentQuantity
-        Page<Item> results = itemRepository.findLowStockItems(pageable);
-        
-        // Convert to DTO
-        return results.map(item -> {
-            ItemDTO dto = new ItemDTO();
-            dto.setId(item.getId());
-            dto.setName(item.getName());
-            dto.setDescription(item.getDescription());
-            dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
-            dto.setUnit(item.getUnit());
-            dto.setCurrentQuantity(item.getCurrentQuantity());
-            dto.setThreshold(item.getThreshold());
-            dto.setQrCode(item.getQrCode());
-            dto.setItemType(item.getType());
-            dto.setCreatedAt(item.getCreatedAt().format(fmt));
-            dto.setUpdatedAt(item.getUpdatedAt().format(fmt));
-            Set<String> kw = item.getKeywords() == null
-                ? java.util.Collections.emptySet()
-                : item.getKeywords().stream().map(k -> k.getValue()).collect(Collectors.toSet());
-            dto.setKeywords(kw);
-            return dto;
-        });
-    }
+
 
 }

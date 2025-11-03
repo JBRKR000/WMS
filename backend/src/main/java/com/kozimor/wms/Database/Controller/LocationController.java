@@ -1,6 +1,7 @@
 package com.kozimor.wms.Database.Controller;
 
 import com.kozimor.wms.Database.Model.DTO.LocationOccupancyDTO;
+import com.kozimor.wms.Database.Model.DTO.LocationDTO;
 import com.kozimor.wms.Database.Model.InventoryLocation;
 import com.kozimor.wms.Database.Model.Location;
 import com.kozimor.wms.Database.Service.LocationService;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/locations")
@@ -28,7 +30,17 @@ public class LocationController {
     public ResponseEntity<?> getAllLocations() {
         try {
             List<Location> locations = locationService.getAll();
-            return ResponseEntity.ok(locations);
+            List<LocationDTO> dtos = locations.stream()
+                    .map(loc -> LocationDTO.builder()
+                            .id(loc.getId())
+                            .code(loc.getCode())
+                            .name(loc.getName())
+                            .description(loc.getDescription())
+                            .type(loc.getType())
+                            .active(loc.isActive())
+                            .build())
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Błąd przy pobieraniu lokacji"));
@@ -43,7 +55,15 @@ public class LocationController {
     public ResponseEntity<?> getLocationById(@PathVariable Long id) {
         try {
             Location location = locationService.getById(id);
-            return ResponseEntity.ok(location);
+            LocationDTO dto = LocationDTO.builder()
+                    .id(location.getId())
+                    .code(location.getCode())
+                    .name(location.getName())
+                    .description(location.getDescription())
+                    .type(location.getType())
+                    .active(location.isActive())
+                    .build();
+            return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
@@ -72,7 +92,15 @@ public class LocationController {
             }
             
             Location created = locationService.create(location);
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+            LocationDTO dto = LocationDTO.builder()
+                    .id(created.getId())
+                    .code(created.getCode())
+                    .name(created.getName())
+                    .description(created.getDescription())
+                    .type(created.getType())
+                    .active(created.isActive())
+                    .build();
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Kod lokacji już istnieje"));
@@ -91,7 +119,15 @@ public class LocationController {
     public ResponseEntity<?> updateLocation(@PathVariable Long id, @RequestBody Location location) {
         try {
             Location updated = locationService.update(id, location);
-            return ResponseEntity.ok(updated);
+            LocationDTO dto = LocationDTO.builder()
+                    .id(updated.getId())
+                    .code(updated.getCode())
+                    .name(updated.getName())
+                    .description(updated.getDescription())
+                    .type(updated.getType())
+                    .active(updated.isActive())
+                    .build();
+            return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
