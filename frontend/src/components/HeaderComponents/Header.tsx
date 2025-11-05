@@ -92,7 +92,6 @@ const Header: FC = () => {
       submenu: [
         { to: "/orders/create", icon: Plus, label: "Tworzenie zamówień" },
         { to: "/orders/history", icon: List, label: "Historia zamówień" },
-        { to: "/orders/status", icon: Clock, label: "Statusy zamówień" },
       ],
     },
     {

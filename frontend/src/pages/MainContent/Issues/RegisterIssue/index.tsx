@@ -1,5 +1,5 @@
 import { type FC, useState, useEffect } from 'react'
-import { Truck, Save, Package, Factory, Send, Info, CheckCircle2, X } from 'lucide-react'
+import { Truck, Save, Package, Factory, Info, CheckCircle2, X } from 'lucide-react'
 import { fetchApi } from '../../../../utils/api'
 import { AuthService } from '../../../../services/authService'
 import { jwtDecode } from 'jwt-decode'
@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode'
 // We'll build the UI using Transaction/Item/User model fields only
 type Item = { id?: number | null; name: string; currentQuantity?: number; unit?: string }
 type UserType = { id?: number | null; username: string; employeeId?: string }
-type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'ISSUE_TO_SALES' | 'RETURN'
+type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'RETURN'
 
 const RegisterIssue: FC = () => {
   // UI-only state
@@ -201,7 +201,6 @@ const RegisterIssue: FC = () => {
     switch(type) {
       case 'RECEIPT': return 'Przyjęcie do magazynu'
       case 'ISSUE_TO_PRODUCTION': return 'Wydanie na produkcję'
-      case 'ISSUE_TO_SALES': return 'Wydanie na sprzedaż'
       default: return type
     }
   }
@@ -210,7 +209,6 @@ const RegisterIssue: FC = () => {
     switch(type) {
       case 'RECEIPT': return 'bg-success-bg text-success-text border-success'
       case 'ISSUE_TO_PRODUCTION': return 'bg-primary/10 text-primary border-primary'
-      case 'ISSUE_TO_SALES': return 'bg-error-bg text-error-text border-error'
       default: return 'bg-surface-secondary text-main border-main'
     }
   }
@@ -228,11 +226,10 @@ const RegisterIssue: FC = () => {
           {/* 1. Typ operacji - duże przyciski */}
           <div className="bg-surface border border-main rounded-xl p-6">
             <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">1. Typ operacji</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { value: 'RECEIPT' as TransactionType, label: 'Przyjęcie', icon: Package, color: 'success' },
                 { value: 'ISSUE_TO_PRODUCTION' as TransactionType, label: 'Na produkcję', icon: Factory, color: 'primary' },
-                { value: 'ISSUE_TO_SALES' as TransactionType, label: 'Na sprzedaż', icon: Send, color: 'error' }
               ].map(op => {
                 const IconComponent = op.icon
                 return (

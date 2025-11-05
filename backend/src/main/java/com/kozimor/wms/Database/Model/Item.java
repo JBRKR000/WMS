@@ -66,6 +66,9 @@ public class Item {
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     private Set<Transaction> transactions = new HashSet<>();
+
+    @OneToMany(mappedBy = "item", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    private Set<OrderLine> orderLines = new HashSet<>();
     
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)

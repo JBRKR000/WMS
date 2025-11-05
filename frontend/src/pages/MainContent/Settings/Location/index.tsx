@@ -36,8 +36,6 @@ const LocationSettingsPage: FC = () => {
     try {
       setLoading(true);
       const data = await LocationService.getAll();
-      
-      // Pobierz dane dodatkowe dla każdej lokacji
       const locationsWithData = await Promise.all(
         data.map(async (location) => {
           try {

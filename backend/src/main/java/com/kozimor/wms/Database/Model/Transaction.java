@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "transactions",
@@ -49,4 +51,8 @@ public class Transaction {
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
+
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<OrderLine> orderLines = new HashSet<>();
 }

@@ -1,28 +1,27 @@
 import { type FC, useMemo, useState } from 'react'
 import { PlusCircle, Trash2, Eye, Save, X, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { fetchApi } from '../../../../utils/api'
-import { jwtDecode } from 'jwt-decode'
-import { AuthService } from '../../../../services/authService'
+import { OrderService } from '../../../../services/orderService'
 
 type Item = { id: number; name: string; quantity?: number; currentQuantity?: number; unit?: string }
 
-type TransactionStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED'
+type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED'
 
-type TransactionLine = { id: string; itemId?: number; quantity?: number | '' }
+type OrderLine = { id: string; itemId?: number; quantity?: number | '' }
 
-const STATUS_LABELS: Record<TransactionStatus, string> = {
+const STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Oczekuje',
   COMPLETED: 'Wydane',
   CANCELLED: 'Anulowane',
 }
 
-const STATUS_ICONS: Record<TransactionStatus, FC<{ className: string }>> = {
+const STATUS_ICONS: Record<OrderStatus, FC<{ className: string }>> = {
   PENDING: Clock,
   COMPLETED: CheckCircle,
   CANCELLED: AlertCircle,
 }
 
-const STATUS_COLORS: Record<TransactionStatus, string> = {
+const STATUS_COLORS: Record<OrderStatus, string> = {
   PENDING: 'bg-yellow-100 border-yellow-300 text-yellow-700',
   COMPLETED: 'bg-emerald-100 border-emerald-300 text-emerald-700',
   CANCELLED: 'bg-red-100 border-red-300 text-red-700',
@@ -34,13 +33,13 @@ const CreateOrder: FC = () => {
   const [itemSearchResults, setItemSearchResults] = useState<Record<string, Item[]>>({})
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({})
   const [description, setDescription] = useState('')
-  const [lines, setLines] = useState<TransactionLine[]>([])
-  const [errors, setErrors] = useState<Record<string,string>>({})
+  const [lines, setLines] = useState<OrderLine[]>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [previewOpen, setPreviewOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Status zawsze PENDING
-  const status: TransactionStatus = 'PENDING'
+  const status: OrderStatus = 'PENDING'
 
   const handleItemSearch = async (query: string, lineId: string) => {
     setItemSearches(prev => ({ ...prev, [lineId]: query }))
@@ -76,20 +75,7 @@ const CreateOrder: FC = () => {
 
   const addLine = () => setLines(l => [...l, { id: String(Date.now()), itemId: undefined, quantity: 1 }])
   const removeLine = (id: string) => setLines(l => l.filter(x => x.id !== id))
-  const updateLine = (id: string, patch: Partial<TransactionLine>) => setLines(l => l.map(x => x.id === id ? { ...x, ...patch } : x))
-
-  const getCurrentUserId = () => {
-    try {
-      const token = AuthService.getToken()
-      if (!token) return null
-      type JwtPayload = { userId: number }
-      const decoded = jwtDecode<JwtPayload>(token)
-      return decoded.userId
-    } catch (err) {
-      console.error('Błąd przy dekodowaniu tokenu:', err)
-      return null
-    }
-  }
+  const updateLine = (id: string, patch: Partial<OrderLine>) => setLines(l => l.map(x => x.id === id ? { ...x, ...patch } : x))
 
   const validate = () => {
     const e: Record<string,string> = {}
@@ -419,36 +405,24 @@ const CreateOrder: FC = () => {
                 onClick={() => { 
                   setIsSubmitting(true)
                   
-                  const userId = getCurrentUserId()
-                  if (!userId) {
-                    alert('✗ Błąd: Nie można pobrać danych użytkownika')
-                    setIsSubmitting(false)
-                    return
+                  // Przygotuj dane zamówienia
+                  const orderData = {
+                    orderNumber: `ORD-${String(Date.now()).slice(-6)}`,
+                    description: description || undefined,
+                    orderLines: lines.map(ln => ({
+                      itemId: ln.itemId || 0,
+                      quantity: Number(ln.quantity) || 0,
+                    })),
                   }
-                  
-                  // Create transaction for each line item
-                  const transactionPromises = lines.map(ln => {
-                    const payload = {
-                      item: { id: ln.itemId },
-                      user: { id: userId },
-                      transactionType: 'ORDER',
-                      transactionStatus: 'PENDING',
-                      quantity: Number(ln.quantity),
-                      description: description || undefined,
-                    }
-                    return fetchApi('/transactions', {
-                      method: 'POST',
-                      body: JSON.stringify(payload)
-                    })
-                  })
 
-                  Promise.all(transactionPromises)
-                    .then(() => {
+                  // Wyślij do nowego API
+                  OrderService.create(orderData)
+                    .then((order) => {
                       setIsSubmitting(false)
                       setPreviewOpen(false)
                       setLines([])
                       setDescription('')
-                      alert('✓ Zamówienie zostało utworzone pomyślnie!')
+                      alert(`✓ Zamówienie ${order.orderNumber} zostało utworzone pomyślnie!`)
                     })
                     .catch((err: any) => {
                       console.error('Błąd przy tworzeniu zamówienia:', err)
