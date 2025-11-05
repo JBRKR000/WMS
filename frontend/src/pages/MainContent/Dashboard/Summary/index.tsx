@@ -28,8 +28,229 @@ type Transaction = {
 }
 
 const EmptyState: FC<{ label?: string }> = ({ label = 'Brak danych' }) => (
-  <div className="text-sm text-secondary py-6 text-center">{label}</div>
+  <div className="py-12 text-center text-sm text-main">
+    <p className="text-lg">{label}</p>
+  </div>
 )
+
+const StatCard: FC<{ label: string; value: string | number; icon?: string }> = ({ label, value, icon }) => {
+  const labelMap: Record<string, string> = {
+    categories: 'Kategorie',
+    items: 'Produkty',
+    users: 'Użytkownicy',
+    transactions: 'Transakcje',
+  }
+  
+  return (
+    <div className="bg-surface rounded-lg p-6 border border-main">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-main font-medium uppercase tracking-wide">{labelMap[label] || label}</p>
+          <p className="text-3xl font-bold text-main mt-2">{value}</p>
+        </div>
+        {icon && <span className="text-2xl">{icon}</span>}
+      </div>
+    </div>
+  )
+}
+
+const DataTable: FC<{ 
+  title: string
+  data: Item[] | Transaction[]
+  loading: boolean
+  page: number
+  totalPages: number
+  size: number
+  onSizeChange: (size: number) => void
+  onPageChange: (page: number) => void
+  onQRClick?: (qr: string) => void
+}> = ({ title, data, loading, page, totalPages, size, onSizeChange, onPageChange, onQRClick }) => {
+  const columnLabels: Record<string, string> = {
+    id: 'ID',
+    name: 'Nazwa',
+    description: 'Opis',
+    categoryName: 'Kategoria',
+    unit: 'Jednostka',
+    currentQuantity: 'Ilość',
+    qrCode: 'Kod QR',
+    itemType: 'Typ',
+    createdAt: 'Utworzono',
+    updatedAt: 'Zaktualizowano',
+    keywords: 'Słowa kluczowe',
+    transactionDate: 'Data transakcji',
+    transactionType: 'Typ transakcji',
+    itemName: 'Nazwa produktu',
+    quantity: 'Ilość',
+    userName: 'Użytkownik',
+  }
+
+  // Generate safe ID from title
+  const safeId = title.replace(/[^a-zA-Z0-9]/g, '')
+  // Remove emojis from title for display
+  const cleanTitle = title.replace(/[^\w\s]/g, '').trim()
+
+  // Map English values to Polish
+  const valueMap: Record<string, Record<string, string>> = {
+    transactionType: {
+      'INBOUND': 'Przyjęcie',
+      'OUTBOUND': 'Wydanie',
+      'ADJUSTMENT': 'Korekta',
+      'RETURN': 'Zwrot',
+    },
+    itemType: {
+      'COMPONENT': 'Komponent',
+      'PRODUCT': 'Produkt',
+      'RAW_MATERIAL': 'Surowiec',
+    },
+  }
+
+  const formatValue = (key: string, value: string | number | boolean | null): string => {
+    if (value === null || value === undefined || value === '') return '-'
+    
+    const stringValue = String(value).toUpperCase()
+    if (valueMap[key] && valueMap[key][stringValue]) {
+      return valueMap[key][stringValue]
+    }
+    return String(value)
+  }
+
+  return (
+    <section className="bg-surface-secondary border border-main rounded-lg p-6 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-main">
+        <h3 className="text-lg font-semibold text-main">{cleanTitle}</h3>
+        <div className="flex items-center gap-3">
+          <label htmlFor={`pageSize-${safeId}`} className="text-sm text-main whitespace-nowrap">
+            Wyników na stronę:
+          </label>
+          <input
+            id={`pageSize-${safeId}`}
+            type="number"
+            value={size}
+            onChange={(e) => {
+              const newSize = parseInt(e.target.value, 10)
+              console.log('Changing page size from', size, 'to', newSize)
+              if (newSize > 0) {
+                onSizeChange(newSize)
+                onPageChange(0)
+              }
+            }}
+            className="border border-main rounded px-3 py-1.5 text-sm bg-surface text-main w-16 focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all"
+            min="1"
+            max="100"
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <EmptyState label="⏳ Ładowanie danych..." />
+      ) : data.length === 0 ? (
+        <EmptyState label="Brak danych" />
+      ) : (
+        <>
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-main border-b-2 border-main bg-surface">
+                  {Object.keys(data[0] || {}).map((key) => (
+                    <th key={key} className="px-4 py-3 font-semibold text-xs uppercase tracking-wider whitespace-nowrap">
+                      {columnLabels[key] || key}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((item, idx) => (
+                  <tr key={idx} className="border-b border-main hover:bg-surface transition-colors duration-150">
+                    {Object.entries(item).map(([key, value]) => {
+                      // Render QR code
+                      if (key === 'qrCode' && value) {
+                        return (
+                          <td key={`${idx}-${key}`} className="px-4 py-3">
+                            <div
+                              onClick={() => onQRClick?.(String(value))}
+                              className="cursor-pointer inline-block hover:opacity-75 transition-opacity"
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <QRCode value={String(value)} size={56} level="L" />
+                            </div>
+                          </td>
+                        )
+                      }
+
+                      // Format value
+                      let display = '-'
+                      if (value !== null && value !== undefined && value !== '') {
+                        if (Array.isArray(value)) {
+                          display = value.length > 0 ? value.join(', ') : '-'
+                        } else if (typeof value === 'object') {
+                          try {
+                            display = JSON.stringify(value)
+                          } catch {
+                            display = String(value)
+                          }
+                        } else if (typeof value === 'number') {
+                          display = value.toString()
+                        } else {
+                          display = formatValue(key, String(value))
+                        }
+                      }
+
+                      return (
+                        <td
+                          key={`${idx}-${key}`}
+                          className="px-4 py-3 text-main max-w-xs truncate"
+                          title={display}
+                        >
+                          {display}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-main">
+            <button
+              onClick={() => onPageChange(page - 1)}
+              disabled={page === 0}
+              className={`px-4 py-2 rounded font-medium transition-all border border-main ${
+                  page === 0
+                    ? 'bg-surface-secondary text-gray-400 border border-main cursor-not-allowed'
+                    : 'bg-surface border border-main rounded text-main text-sm hover:bg-surface-hover transition pagination-btn-text'
+                }`}
+            >
+              ← Poprzednia
+            </button>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-main">Strona</span>
+              <span className="font-bold text-main">{page + 1}</span>
+              <span className="text-main">z</span>
+              <span className="font-bold text-main">{totalPages || 1}</span>
+            </div>
+            <button
+              onClick={() => onPageChange(page + 1)}
+              disabled={page === totalPages - 1}
+              className={`px-4 py-2 rounded font-medium transition-all border border-main ${
+                  page === totalPages - 1
+                    ? 'bg-surface-secondary text-main opacity-40 border border-main cursor-not-allowed'
+                    : 'bg-primary pagination-btn-text hover:bg-primary-hover active:scale-95'
+                }`}
+            >
+              Następna →
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
 
 const SummaryPage: FC = () => {
   const [counts, setCounts] = useState({
@@ -115,14 +336,16 @@ const SummaryPage: FC = () => {
           },
         }
 
+        console.log(`Fetching items with page=${pageItems}, size=${sizeItems}`)
         const response = await fetch(`/api/items/getAllPaginated?page=${pageItems}&size=${sizeItems}`, requestOptions)
         if (!response.ok) {
           throw new Error('Błąd podczas pobierania itemów')
         }
 
         const data = await response.json()
-        setItems(data.content) // Ustaw dane itemów
-        setTotalPagesItems(data.totalPages) // Ustaw liczbę stron
+        console.log('Fetched items:', data.content.length, 'items, totalPages:', data.totalPages)
+        setItems(data.content)
+        setTotalPagesItems(data.totalPages)
       } catch (error) {
         console.error('Error fetching items:', error)
       } finally {
@@ -149,14 +372,16 @@ const SummaryPage: FC = () => {
           },
         }
 
+        console.log(`Fetching transactions with page=${pageTransactions}, size=${sizeTransactions}`)
         const response = await fetch(`/api/transactions/paginated?page=${pageTransactions}&size=${sizeTransactions}`, requestOptions)
         if (!response.ok) {
           throw new Error('Błąd podczas pobierania transakcji')
         }
 
         const data = await response.json()
-        setTransactions(data.content) // Ustaw dane transakcji
-        setTotalPagesTransactions(data.totalPages) // Ustaw liczbę stron
+        console.log('Fetched transactions:', data.content.length, 'items, totalPages:', data.totalPages)
+        setTransactions(data.content)
+        setTotalPagesTransactions(data.totalPages)
       } catch (error) {
         console.error('Error fetching transactions:', error)
       } finally {
@@ -169,136 +394,64 @@ const SummaryPage: FC = () => {
 
 
   const countKeys = ['categories', 'items', 'users', 'transactions'] as const;
+  const icons = { categories: '📁', items: '📦', users: '👥', transactions: '💱' };
 
   return (
-    <main className="p-4 md:p-6 lg:p-8 space-y-6 bg-surface text-main">
+    <div className="w-full space-y-8">
       {/* QR code modal overlay */}
       {modalQr && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setModalQr(null)}>
-          <div className="bg-surface p-4 rounded border border-main" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface p-6 rounded-lg border border-main shadow-lg" onClick={e => e.stopPropagation()}>
             <QRCode value={modalQr} size={256} />
+            <p className="text-center text-secondary text-sm mt-3">Kliknij aby zamknąć</p>
           </div>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-2xl lg:text-3xl font-bold">Podsumowanie magazynu</h2>
-          <p className="text-sm text-secondary mt-1">Widok odzwierciedlający struktury bazy danych</p>
-        </div>
+
+      {/* Header section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl lg:text-4xl font-bold text-main">Podsumowanie magazynu</h1>
+        <p className="text-base text-main">Szybki przegląd kluczowych metryk systemu WMS</p>
       </div>
 
+      {/* Stats grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {countKeys.map((key) => (
-          <div key={key} className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-            <p className="text-sm text-secondary capitalize">Liczba {key}</p>
-            <p className="text-2xl font-bold mt-1">{loading ? '...' : counts[key]}</p>
-          </div>
+          <StatCard
+            key={key}
+            label={key}
+            value={loading ? '...' : counts[key]}
+            icon={icons[key as keyof typeof icons]}
+          />
         ))}
       </section>
 
+      {/* Tables side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[{ title: 'Items', data: items, loading: itemsLoading, page: pageItems, totalPages: totalPagesItems, size: sizeItems, setSize: setSizeItems, setPage: setPageItems },
-          { title: 'Transactions', data: transactions, loading: transactionsLoading, page: pageTransactions, totalPages: totalPagesTransactions, size: sizeTransactions, setSize: setSizeTransactions, setPage: setPageTransactions }].map((section, index) => (
-          <section key={index} className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">{section.title}</h3>
-              <div className="flex items-center gap-2">
-                <label htmlFor={`pageSize${section.title}`} className="text-sm text-secondary">
-                  Wyników na stronę:
-                </label>
-                <input
-                  id={`pageSize${section.title}`}
-                  type="number"
-                  value={section.size}
-                  onChange={(e) => {
-                    const newSize = parseInt(e.target.value, 10);
-                    if (newSize > 0) {
-                      section.setSize(newSize);
-                      section.setPage(0);
-                    }
-                  }}
-                  className="border border-main rounded px-2 py-1 text-sm bg-surface text-main focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                  min="1"
-                />
-              </div>
-            </div>            
-
-            {section.loading ? (
-              <EmptyState label="Ładowanie danych..." />
-            ) : section.data.length === 0 ? (
-              <EmptyState label={`Brak ${section.title.toLowerCase()} w bazie`} />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-secondary">
-                      {Object.keys(section.data[0] || {}).map((key, idx) => (
-                        <th key={idx} className="px-3 py-2 capitalize">{key}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {section.data.map((item, idx) => (
-                      <tr key={idx} className="border-t border-main">
-                        {Object.entries(item).map(([key, value], idy) => {
-                          // Render QR code using QRCode component
-                          if (key === 'qrCode' && value) {
-                            return (
-                              <td key={idy} className="px-3 py-2">
-                                <div onClick={() => setModalQr(String(value))} className="cursor-pointer inline-block">
-                                  <QRCode value={String(value)} size={64} />
-                                </div>
-                              </td>
-                            )
-                          }
-                          let display = '-'
-                          if (value !== null && value !== undefined && value !== '') {
-                            if (Array.isArray(value)) {
-                              display = value.length ? value.join(', ') : '-'
-                            } else if (typeof value === 'object') {
-                              try {
-                                display = JSON.stringify(value)
-                              } catch {
-                                display = String(value)
-                              }
-                            } else {
-                              display = String(value)
-                            }
-                          }
-                          return (
-                            <td key={idy} className="px-3 py-2 text-secondary">{display}</td>
-                          )
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center mt-4">
-              <button
-                onClick={() => section.setPage(section.page - 1)}
-                disabled={section.page === 0}
-                className={`px-4 py-2 rounded transition-colors ${section.page === 0 ? 'bg-surface-secondary text-secondary cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
-              >
-                Poprzednia
-              </button>
-              <p className="text-sm text-secondary">
-                Strona {section.page + 1} z {section.totalPages}
-              </p>
-              <button
-                onClick={() => section.setPage(section.page + 1)}
-                disabled={section.page === section.totalPages - 1}
-                className={`px-4 py-2 rounded transition-colors ${section.page === section.totalPages - 1 ? 'bg-surface-secondary text-secondary cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-hover'}`}
-              >
-                Następna
-              </button>
-            </div>
-          </section>
-        ))}
+        <DataTable
+          title="Ostatnie produkty"
+          data={items}
+          loading={itemsLoading}
+          page={pageItems}
+          totalPages={totalPagesItems}
+          size={sizeItems}
+          onSizeChange={setSizeItems}
+          onPageChange={setPageItems}
+          onQRClick={setModalQr}
+        />
+        <DataTable
+          title="Ostatnie transakcje"
+          data={transactions}
+          loading={transactionsLoading}
+          page={pageTransactions}
+          totalPages={totalPagesTransactions}
+          size={sizeTransactions}
+          onSizeChange={setSizeTransactions}
+          onPageChange={setPageTransactions}
+          onQRClick={setModalQr}
+        />
       </div>
-    </main>
+    </div>
   );
 };
 

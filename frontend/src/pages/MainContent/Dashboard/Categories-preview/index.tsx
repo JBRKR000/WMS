@@ -1,5 +1,5 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
-import { Search, PlusCircle, FileText, LayoutGrid, List, X, Edit3, Trash2 } from 'lucide-react'
+import { Search, PlusCircle, FileText, LayoutGrid, List, X, Edit3} from 'lucide-react'
 import CreateCategoryOrKeywordModal from '../../../../components/Category-previewComponents/addKeywordModal'
 import EditCategoryModal from '../../../../components/Category-previewComponents/EditCategoryModal'
 import EditKeywordModal from '../../../../components/Category-previewComponents/EditKeywordModal'
@@ -350,7 +350,7 @@ const CategoriesPreview: FC = () => {
 
           <button
             onClick={() => setIsModalOpen(true)} // Otwórz modal
-            className="px-3 py-2 rounded-md bg-primary text-white flex items-center gap-2"
+            className="px-3 py-2 rounded-md bg-primary btn-add border border-main flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
             Dodaj
@@ -367,15 +367,21 @@ const CategoriesPreview: FC = () => {
               <div className="flex items-center gap-1 border border-main rounded-lg p-1">
                 <button
                   onClick={() => setView('grid')}
-                  className={`p-1 rounded ${view === 'grid' ? 'bg-primary text-white' : 'text-secondary hover:bg-surface'}`}
+                  className={`p-1 rounded ${view === 'grid' ? 'bg-surface-secondary' : 'hover:bg-surface'}`}
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid
+                    className={`w-4 h-4 transition-colors`}
+                    style={view === 'grid' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }}
+                  />
                 </button>
                 <button
                   onClick={() => setView('table')}
-                  className={`p-1 rounded ${view === 'table' ? 'bg-primary text-white' : 'text-secondary hover:bg-surface'}`}
+                  className={`p-1 rounded ${view === 'table' ? 'bg-surface-secondary' : 'hover:bg-surface'}`}
                 >
-                  <List className="w-4 h-4" />
+                  <List
+                    className={`w-4 h-4 transition-colors`}
+                    style={view === 'table' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }}
+                  />
                 </button>
               </div>
             </div>
@@ -424,13 +430,6 @@ const CategoriesPreview: FC = () => {
                       <button onClick={() => handleEditCategory(c)} className="p-1 text-secondary hover:text-main">
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
-                        className="p-1 text-error-text hover:text-error"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button className="px-2 py-1 bg-primary text-white rounded text-xs">+</button>
                     </div>
                   </div>
                 </div>
@@ -473,13 +472,6 @@ const CategoriesPreview: FC = () => {
                           <button onClick={() => handleEditCategory(c)} className="p-1 text-secondary hover:text-main">
                             <Edit3 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => { setEditingCategory(c); setIsEditModalOpen(true); }}
-                            className="p-1 text-error-text hover:text-error"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button className="px-1.5 py-0.5 bg-primary text-white rounded text-xs">+</button>
                         </div>
                       </td>
                     </tr>
@@ -526,9 +518,6 @@ const CategoriesPreview: FC = () => {
                       <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteKeyword(k.id)} className="p-1 text-error-text hover:text-error">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -555,9 +544,6 @@ const CategoriesPreview: FC = () => {
                         <div className="flex items-center gap-2">
                           <button onClick={() => { setEditingKeyword(k); setIsEditKeywordModalOpen(true); }} className="p-1 text-secondary hover:text-main">
                             <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDeleteKeyword(k.id)} className="p-1 text-error-text hover:text-error">
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

@@ -269,7 +269,6 @@ const Search: FC = () => {
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Szukaj..." className="w-full bg-surface text-main placeholder-secondary text-sm focus:outline-none" />
           </div>
 
-          <button onClick={() => setView(view === 'grid' ? 'list' : 'grid')} className="px-3 py-2 rounded-full border border-main bg-surface text-main hover:bg-surface-hover transition"><Filter className="w-4 h-4"/></button>
         </div>
       </div>
 
@@ -395,7 +394,7 @@ const Search: FC = () => {
             </button>
             <button 
               onClick={handleSearch}
-              className="px-4 py-2 rounded-full bg-primary text-white hover:bg-primary-hover transition font-medium"
+              className="px-4 py-2 rounded-full btn-add hover:bg-surface-hover transition font-medium"
             >
               Szukaj
             </button>

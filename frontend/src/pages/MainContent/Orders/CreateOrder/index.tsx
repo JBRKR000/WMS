@@ -112,9 +112,6 @@ const CreateOrder: FC = () => {
           <h1 className="text-2xl font-bold text-main">Tworzenie zamówienia</h1>
           <p className="text-sm text-secondary mt-1">Dodaj pozycje i utwórz nowe transakcje typu ZAMÓWIENIE.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={onCreate} disabled={loadingItems || isSubmitting} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"><Save className="w-5 h-5"/>Podgląd</button>
-        </div>
       </div>
 
       {errors.items && (
@@ -135,7 +132,7 @@ const CreateOrder: FC = () => {
               onChange={e => setDescription(e.target.value)} 
               rows={4} 
               placeholder="Dodaj dodatkowe informacje o zamówieniu..."
-              className="w-full px-4 py-3 rounded-lg border border-main bg-white text-main text-sm focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50" 
+              className="w-full px-4 py-3 rounded-lg border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50" 
             />
           </div>
 
@@ -146,7 +143,7 @@ const CreateOrder: FC = () => {
               <button 
                 type="button" 
                 onClick={addLine} 
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-main bg-white text-sm font-medium hover:bg-main hover:bg-opacity-5 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-main bg-surface text-main text-sm font-medium hover:bg-surface-hover hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 <PlusCircle className="w-4 h-4"/>Dodaj pozycję
               </button>
@@ -163,7 +160,7 @@ const CreateOrder: FC = () => {
               <div className="space-y-3">
                 {lines.map((ln, idx) => {
                   return (
-                    <div key={ln.id} className="flex items-start gap-3 p-4 rounded-lg bg-white border border-main group hover:border-main hover:border-opacity-50 transition">
+                    <div key={ln.id} className="flex items-start gap-3 p-4 rounded-lg bg-surface border border-main group hover:border-main hover:border-opacity-50 transition">
                       <div className="flex-1 space-y-2">
                         <div className="relative">
                           <input 
@@ -171,19 +168,19 @@ const CreateOrder: FC = () => {
                             placeholder="Wpisz nazwę pozycji..."
                             onChange={e => handleItemSearch(e.target.value, ln.id)}
                             onFocus={() => setOpenDropdowns(prev => ({ ...prev, [ln.id]: true }))}
-                            className={`w-full px-3 py-2 rounded-lg border-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50 transition ${
+                            className={`w-full px-3 py-2 rounded-lg border-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50 transition ${
                               errors[`line-${idx}`]
                                 ? 'border-red-500 bg-red-50 text-red-700'
                                 : ln.itemId
-                                ? 'border-main bg-white text-main'
-                                : 'border-main bg-white text-main'
+                                ? 'border-main bg-surface text-main'
+                                : 'border-main bg-surface text-main'
                             }`}
                             value={itemSearches[ln.id] ?? ''}
                           />
                           
                           {/* Dropdown z wynikami */}
                           {(openDropdowns[ln.id] ?? false) && (itemSearches[ln.id] ?? '').length >= 2 && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-main rounded-lg shadow-lg z-10">
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-main rounded-lg shadow-lg z-10">
                               {loadingItems ? (
                                 <div className="px-4 py-3 text-sm text-secondary">Szukam...</div>
                               ) : (itemSearchResults[ln.id] ?? []).length > 0 ? (
@@ -218,13 +215,13 @@ const CreateOrder: FC = () => {
                           return (
                             <>
                               <input 
-                                type="number" 
+                                type="number"
                                 value={ln.quantity ?? ''} 
                                 onChange={e => updateLine(ln.id, { quantity: e.target.value === '' ? '' : Number(e.target.value) })}
                                 placeholder="Ilość"
                                 min="1"
                                 max={maxAvailable || undefined}
-                                className="w-full px-3 py-2 rounded-lg border border-main text-sm bg-white focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50" 
+                                className="w-full px-3 py-2 rounded-lg border border-main text-sm bg-surface text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-main focus:ring-opacity-50" 
                               />
                               {selectedItem && (
                                 <div className="text-xs text-secondary">
@@ -264,7 +261,7 @@ const CreateOrder: FC = () => {
               
               <div className="flex justify-between items-center">
                 <span className="text-secondary">Typ:</span>
-                <span className="font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs">ZAMÓWIENIE</span>
+                <span className="font-semibold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs">ZAMÓWIENIE</span>
               </div>
 
               <div className="flex justify-between items-center">
@@ -298,7 +295,7 @@ const CreateOrder: FC = () => {
             <button 
               onClick={() => setPreviewOpen(true)} 
               disabled={loadingItems || lines.length === 0}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white border border-main text-main font-medium hover:bg-main hover:bg-opacity-5 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-surface border border-main text-main font-medium hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               <Eye className="w-4 h-4"/>Podgląd
             </button>
@@ -316,8 +313,8 @@ const CreateOrder: FC = () => {
       {/* Preview Modal */}
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-main rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-main p-6 flex items-center justify-between">
+          <div className="w-full max-w-2xl bg-surface dark:bg-surface border border-main rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-surface dark:bg-surface border-b border-main p-6 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-main">Podgląd zamówienia</h2>
               <button onClick={() => setPreviewOpen(false)} className="p-1 rounded-lg hover:bg-main hover:bg-opacity-10 transition">
                 <X className="w-5 h-5 text-secondary"/>
@@ -333,7 +330,7 @@ const CreateOrder: FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-secondary mb-1">Typ transakcji</p>
-                  <p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">ZAMÓWIENIE</p>
+                  <p className="inline-block px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs font-semibold">ZAMÓWIENIE</p>
                 </div>
                 <div>
                   <p className="text-xs text-secondary mb-1">Status</p>
@@ -389,15 +386,15 @@ const CreateOrder: FC = () => {
               <div className="pt-4 border-t border-main border-opacity-20">
                 <div className="flex justify-between items-center text-lg">
                   <span className="font-semibold text-main">Razem:</span>
-                  <span className="font-bold text-emerald-600">{subtotal} szt.</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{subtotal} szt.</span>
                 </div>
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-main p-6 flex justify-end gap-3">
+            <div className="sticky bottom-0 bg-surface dark:bg-surface border-t border-main p-6 flex justify-end gap-3">
               <button 
                 onClick={() => setPreviewOpen(false)} 
-                className="px-4 py-2 rounded-lg border border-main text-main font-medium hover:bg-main hover:bg-opacity-5 transition"
+                className="px-4 py-2 rounded-lg border border-main bg-surface text-main font-medium hover:bg-surface-hover transition"
               >
                 Anuluj
               </button>

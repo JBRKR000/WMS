@@ -351,13 +351,13 @@ const InventoryStatus: FC = () => {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="text-left border-b-2">
-                      <th className="px-3 py-3 font-semibold">Status</th>
-                      <th className="px-3 py-3 font-semibold">Kod</th>
-                      <th className="px-3 py-3 font-semibold">Nazwa</th>
-                      <th className="px-3 py-3 font-semibold text-center">Obłożenie</th>
-                      <th className="px-3 py-3 font-semibold text-center">Pojemność</th>
-                      <th className="px-3 py-3 font-semibold text-center">Akcje</th>
+                    <tr style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }} className="text-left border-b-2 dark:bg-surface dark:text-gray-300">
+                      <th className="px-3 py-3 font-semibold dark:text-gray-300">Status</th>
+                      <th className="px-3 py-3 font-semibold dark:text-white">Kod</th>
+                      <th className="px-3 py-3 font-semibold dark:text-gray-300">Nazwa</th>
+                      <th className="px-3 py-3 font-semibold text-center dark:text-gray-300">Obłożenie</th>
+                      <th className="px-3 py-3 font-semibold text-center dark:text-gray-300">Pojemność</th>
+                      <th className="px-3 py-3 font-semibold text-center dark:text-gray-300">Akcje</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -374,15 +374,15 @@ const InventoryStatus: FC = () => {
                           }}
                           className="border-t hover:opacity-80 transition-opacity"
                         >
-                          <td className="px-3 py-2 text-center">
+                          <td className="px-3 py-2 text-center dark:text-gray-300">
                             {badge.icon}
                           </td>
-                          <td style={{ color: 'var(--color-text)' }} className="px-3 py-2 font-semibold">{loc.code}</td>
-                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-sm">{loc.name}</td>
-                          <td style={{ color: badge.color }} className="px-3 py-2 text-center">
+                          <td style={{ color: 'var(--color-text)' }} className="px-3 py-2 font-semibold dark:text-white">{loc.code}</td>
+                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-sm dark:text-gray-300">{loc.name}</td>
+                          <td style={{ color: badge.color }} className="px-3 py-2 text-center dark:text-gray-300">
                             <span className="font-bold">{percentage}%</span>
                           </td>
-                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-center text-xs">
+                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-3 py-2 text-center text-xs dark:text-gray-300">
                             {loc.currentOccupancy}/{loc.maxCapacity}
                           </td>
                           <td className="px-3 py-2 text-center">
@@ -393,7 +393,7 @@ const InventoryStatus: FC = () => {
                                 color: 'var(--color-text)',
                                 borderColor: 'var(--color-border)'
                               }}
-                              className="px-2.5 py-1 rounded-full border text-main hover:opacity-80 transition-opacity inline-flex items-center gap-1 text-xs font-medium"
+                              className="px-2.5 py-1 rounded-full border text-main dark:text-white hover:opacity-80 transition-opacity inline-flex items-center gap-1 text-xs font-medium"
                             >
                               <Eye className="w-3.5 h-3.5"/>
                               Szczegóły

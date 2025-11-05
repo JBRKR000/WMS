@@ -171,16 +171,16 @@ const QR: FC = () => {
       {/* Main Card */}
       <div className="bg-surface border border-main rounded-2xl shadow-lg overflow-hidden">
         {/* Card Header */}
-        <div className="bg-gradient-to-r from-primary to-accent p-6 text-white">
+        <div className="bg-gradient-to-r from-primary to-accent p-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-11a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Harmonogram Snapszotów</h2>
-              <p className="text-white/80 text-sm">Automatyczne tworzenie kopii zapasowych stanu magazynu</p>
+              <h2 className="text-2xl font-bold text-main">Harmonogram Snapszotów</h2>
+              <p className="text-main text-sm">Automatyczne tworzenie kopii zapasowych stanu magazynu</p>
             </div>
           </div>
         </div>
@@ -267,7 +267,7 @@ const QR: FC = () => {
                         disabled={isLoading}
                         className={`flex-1 px-4 py-3 rounded-lg border transition-all duration-200 font-medium ${
                           scheduleSettings.type === 'daily'
-                            ? 'bg-primary text-white border-primary shadow-md'
+                            ? 'bg-primary text-main border-primary shadow-md'
                             : 'bg-surface border-border text-main hover:border-primary'
                         } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
@@ -281,7 +281,7 @@ const QR: FC = () => {
                         disabled={isLoading}
                         className={`flex-1 px-4 py-3 rounded-lg border transition-all duration-200 font-medium ${
                           scheduleSettings.type === 'weekly'
-                            ? 'bg-primary text-white border-primary shadow-md'
+                            ? 'bg-primary text-main border-primary shadow-md'
                             : 'bg-surface border-border text-main hover:border-primary'
                         } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
@@ -307,7 +307,7 @@ const QR: FC = () => {
                             disabled={isLoading}
                             className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${
                               scheduleSettings.dayOfWeek === day.value
-                                ? 'bg-primary text-white border-primary shadow-md'
+                                ? 'bg-primary text-main border-primary shadow-md'
                                 : 'bg-surface border-border text-main hover:border-primary'
                             } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
@@ -377,7 +377,7 @@ const QR: FC = () => {
                       <button
                         onClick={handleUpdateSchedule}
                         disabled={isLoading}
-                        className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 px-6 py-3 bg-primary text-main border border-primary rounded-lg font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isLoading ? (
                           <>

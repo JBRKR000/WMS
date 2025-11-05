@@ -154,8 +154,12 @@ const Products: FC = () => {
           </select>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setView('grid')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'grid' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Box className="w-4 h-4"/></button>
-            <button onClick={() => setView('list')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'list' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Star className="w-4 h-4"/></button>
+            <button onClick={() => setView('grid')} className={`px-3 py-2 rounded-full border border-main text-sm bg-surface`}>
+              <Box className="w-4 h-4" style={view === 'grid' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }} />
+            </button>
+            <button onClick={() => setView('list')} className={`px-3 py-2 rounded-full border border-main text-sm bg-surface`}>
+              <Star className="w-4 h-4" style={view === 'list' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }} />
+            </button>
           </div>
         </div>
       </div>
@@ -250,8 +254,8 @@ const Products: FC = () => {
 
                   {/* Akcje */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                    <button onClick={() => setPreview(p)} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Eye className="w-4 h-4"/>Podgląd</button>
-                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button onClick={() => setPreview(p)} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface tile-action-hover text-sm font-medium"><Eye className="w-4 h-4"/>Podgląd</button>
+                    <button onClick={() => { setEditingItem(p); setIsEditItemModalOpen(true); }} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface tile-action-hover text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
                     <button 
                       onClick={() => deletingItemId === p.id ? handleDeleteItem(p.id!) : setDeletingItemId(p.id!)}
                       className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg border transition-all duration-300 text-sm font-medium ${

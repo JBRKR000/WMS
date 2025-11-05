@@ -90,6 +90,11 @@ const Layout: FC<LayoutProps> = ({ children }) => {
 
 
     const getSectionsForPath = (pathname: string): SidebarSection[] => {
+        console.log('getSectionsForPath called with:', pathname)
+        if (pathname.startsWith('/items')) {
+            console.log('Matched /items path')
+            return dashboardSections; // Pokaż dashboard sections dla /items
+        }
         if (pathname.startsWith('/settings')) {
             // only admin can access settings
             return isAdmin ? settingsSections : [];

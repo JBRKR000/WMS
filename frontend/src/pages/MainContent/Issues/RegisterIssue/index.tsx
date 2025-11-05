@@ -397,7 +397,7 @@ const RegisterIssue: FC = () => {
           <button 
             onClick={onSubmit}
             disabled={isSubmitting}
-            className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary-hover transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 btn-submit"
           >
             <Save className="w-6 h-6"/>
             {isSubmitting ? 'Wysyłam...' : 'Zarejestruj operację'}

@@ -201,7 +201,7 @@ const AddComponentsAndProducts: FC = () => {
           <p className="text-sm text-secondary mt-1">Formularz jest UI-only — pola zgodne z modelem Item: name, description, category, unit, currentQuantity, qrCode.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={onSave} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-primary-hover text-white transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
+          <button onClick={onSave} className="inline-flex items-center gap-2 px-4 py-2 rounded-full btn-add hover:bg-primary-hover transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
           <button onClick={onClear} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover transition">Wyczyść</button>
         </div>
       </div>

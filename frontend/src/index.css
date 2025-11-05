@@ -1,3 +1,65 @@
+/* Details button in cards: always black text in light, white in dark */
+.btn-details {
+  color: #111 !important;
+}
+.dark .btn-details {
+  color: #fff !important;
+}
+/* Active view switch button: green text in light, white text and green bg in dark */
+.view-switch-active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+}
+.dark .view-switch-active {
+  color: #fff !important;
+  background: var(--color-primary) !important;
+}
+/* Submit button for register operation: dark text in light mode, white in dark, transparent background, rounded-xl */
+.btn-submit {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border: 1.5px solid var(--color-border) !important;
+  border-radius: 0.75rem !important; /* rounded-xl */
+  font-weight: 700;
+  font-size: 1.125rem; /* text-lg */
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.btn-submit:hover:not(:disabled) {
+  background: var(--color-surface-hover) !important;
+  box-shadow: 0 4px 16px 0 rgba(0,0,0,0.12);
+}
+.dark .btn-submit {
+  color: #fff !important;
+}
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-add:hover {
+  background: var(--color-surface-hover) !important;
+}
+/* Always visible add button: text-main in light, text-white in dark, border-primary, transparent background */
+.btn-add {
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  background: transparent !important;
+  transition: background 0.2s, color 0.2s;
+}
+.dark .btn-add {
+  color: #fff !important;
+}
+  /* Przyciski Dodaj - zawsze czytelne w obu motywach */
+  .btn-add {
+    color: var(--color-text) !important;
+    font-weight: 600;
+  }
+  /* Strong override for pagination button text color */
+  .pagination-btn-text {
+    color: var(--color-text) !important;
+  }
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -110,6 +172,20 @@
   .bg-error { background-color: var(--color-error); }
   .text-error { color: var(--color-error); }
   
+
+  /* Tile action button hover: gray in light, green in dark */
+  .tile-action-hover {
+    transition: background 0.2s, color 0.2s;
+  }
+  .tile-action-hover:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-primary);
+  }
+  :root.dark .tile-action-hover:hover {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+  }
+
   /* Opacity variants */
   @supports (backdrop-filter: blur(1px)) {
     .bg-accent\/10 { background-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }

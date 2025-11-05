@@ -222,7 +222,7 @@ const IssueHistory: FC = () => {
               onClick={() => setView('table')}
               className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                 view === 'table'
-                  ? 'bg-primary text-white shadow-md'
+                  ? 'view-switch-active'
                   : 'bg-surface border border-main text-main hover:border-primary'
               }`}
             >
@@ -233,7 +233,7 @@ const IssueHistory: FC = () => {
               onClick={() => setView('cards')}
               className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                 view === 'cards'
-                  ? 'bg-primary text-white shadow-md'
+                  ? 'view-switch-active'
                   : 'bg-surface border border-main text-main hover:border-primary'
               }`}
             >
@@ -357,7 +357,7 @@ const IssueHistory: FC = () => {
                     {/* Details Button */}
                     <button
                       onClick={() => setDetail(t)}
-                      className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 rounded-lg border border-main btn-details bg-surface hover:bg-surface-hover dark:bg-primary dark:hover:bg-primary-hover transition-colors font-medium text-sm flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
                       Szczegóły
@@ -497,7 +497,7 @@ const IssueHistory: FC = () => {
               </button>
               <button
                 onClick={() => setDetail(null)}
-                className="px-6 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
+                className="px-6 py-2 rounded-lg bg-primary btn-details hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Gotowe

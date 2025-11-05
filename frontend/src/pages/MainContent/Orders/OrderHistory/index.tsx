@@ -226,7 +226,7 @@ const OrdersHistory: FC = () => {
 
                   {/* Expand/Collapse Arrow */}
                   <div className={`ml-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                    <span className="text-2xl">▼</span>
+                    <span className="text-2xl dark:text-white">▼</span>
                   </div>
                 </button>
 

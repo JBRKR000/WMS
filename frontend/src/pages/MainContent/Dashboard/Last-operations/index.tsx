@@ -30,6 +30,9 @@ const LastOperations: FC = () => {
   const [query, setQuery] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pageSize, setPageSize] = useState(50);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -47,7 +50,7 @@ const LastOperations: FC = () => {
           },
         };
 
-        const response = await fetch('/api/transactions/paginated?page=0&size=10', requestOptions);
+        const response = await fetch(`/api/transactions/paginated?page=${currentPage}&size=${pageSize}`, requestOptions);
         if (!response.ok) {
           throw new Error('Błąd podczas pobierania transakcji');
         }
@@ -71,6 +74,7 @@ const LastOperations: FC = () => {
         });
 
         setTransactions(normalized);
+        setTotalElements(data.totalElements ?? 0);
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
@@ -79,7 +83,7 @@ const LastOperations: FC = () => {
     };
 
     fetchTransactions();
-  }, []);
+  }, [currentPage, pageSize]);
 
   const filtered = transactions.filter(t => {
     const q = query.toLowerCase();
@@ -110,6 +114,8 @@ const LastOperations: FC = () => {
         return <span className={`${base} bg-surface-hover text-main border border-main`}>Wydanie</span>;
       case 'RETURN':
         return <span className={`${base} bg-surface-hover text-main border border-main`}>Zwrot</span>;
+      case 'ORDER':
+        return <span className={`${base} bg-surface-hover text-main border border-main`}>Zamówienie</span>;
       default:
         return <span className={`${base} bg-surface-hover text-secondary border border-main`}>{type}</span>;
     }
@@ -137,7 +143,23 @@ const LastOperations: FC = () => {
 
       <section className="bg-surface-secondary border border-main rounded-lg p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm text-secondary">Ilość rekordów: {filtered.length}</div>
+          <div className="text-sm text-secondary">Ilość rekordów: {transactions.length}</div>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-secondary">Rozmiar strony:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(parseInt(e.target.value));
+                setCurrentPage(0);
+              }}
+              className="px-3 py-1 bg-surface border border-main rounded text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -177,6 +199,31 @@ const LastOperations: FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-main">
+            <div className="text-sm text-secondary">
+              Strona {currentPage + 1} · Razem: {totalElements} rekordów
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+                className="px-3 py-1 bg-surface border border-main rounded text-main text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                ← Poprzednia
+              </button>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={(currentPage + 1) * pageSize >= totalElements}
+                className="px-3 py-1 bg-surface border border-main rounded text-main text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Następna →
+              </button>
+            </div>
           </div>
         )}
       </section>

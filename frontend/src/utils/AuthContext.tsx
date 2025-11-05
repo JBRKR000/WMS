@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => void;
   username: string | null;
   isAdmin: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,39 +34,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const initUser = async () => {
-      const authenticated = AuthService.isAuthenticated();
-      setIsAuthenticated(authenticated);
+      try {
+        const authenticated = AuthService.isAuthenticated();
+        console.log('AuthProvider: checking authentication, authenticated:', authenticated);
+        setIsAuthenticated(authenticated);
 
-      if (authenticated) {
-        let token = AuthService.getToken();
-        if (!token) {
-          token = await AuthService.refreshToken();
-        }
+        if (authenticated) {
+          let token = AuthService.getToken();
+          if (!token) {
+            token = await AuthService.refreshToken();
+          }
 
-        if (token) {
-          try {
-            type JwtPayload = { userId: number };
-            const decoded = jwtDecode<JwtPayload>(token);
-            const userId = decoded.userId;
+          if (token) {
+            try {
+              type JwtPayload = { userId: number };
+              const decoded = jwtDecode<JwtPayload>(token);
+              const userId = decoded.userId;
 
-            const user = await fetchApi<{ username: string }>(`/users/${userId}`);
-            setUsername(user.username);
+              const user = await fetchApi<{ username: string }>(`/users/${userId}`);
+              setUsername(user.username);
 
-            const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
-            setIsAdmin(admin);
-          } catch (error) {
-            console.error('Error fetching user data:', error);
+              const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
+              setIsAdmin(admin);
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+              logout();
+            }
+          } else {
             logout();
           }
         } else {
-          logout();
+          setUsername(null);
+          setIsAdmin(false);
         }
-      } else {
-        setUsername(null);
-        setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -114,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, register, logout, isAdmin }}>
+    <AuthContext.Provider value={{ isAuthenticated, username, login, register, logout, isAdmin, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

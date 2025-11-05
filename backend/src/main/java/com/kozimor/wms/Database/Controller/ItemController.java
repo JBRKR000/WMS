@@ -88,16 +88,48 @@ public class ItemController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Item> getItemById(@PathVariable Long id) {
+    public ResponseEntity<ItemDTO> getItemById(@PathVariable Long id) {
         return itemService.getItemById(id)
-                .map(ResponseEntity::ok)
+                .map(item -> {
+                    ItemDTO dto = new ItemDTO();
+                    dto.setId(item.getId());
+                    dto.setName(item.getName());
+                    dto.setDescription(item.getDescription());
+                    dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+                    dto.setUnit(item.getUnit());
+                    dto.setCurrentQuantity(item.getCurrentQuantity());
+                    dto.setQrCode(item.getQrCode());
+                    dto.setItemType(item.getType());
+                    dto.setCreatedAt(item.getCreatedAt() != null ? item.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    dto.setUpdatedAt(item.getUpdatedAt() != null ? item.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    dto.setKeywords(item.getKeywords() != null
+                            ? item.getKeywords().stream().map(k -> k.getValue()).collect(java.util.stream.Collectors.toSet())
+                            : java.util.Collections.emptySet());
+                    return ResponseEntity.ok(dto);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/qr/{qrCode}")
-    public ResponseEntity<Item> getItemByQrCode(@PathVariable String qrCode) {
+    public ResponseEntity<ItemDTO> getItemByQrCode(@PathVariable String qrCode) {
         return itemService.getItemByQrCode(qrCode)
-                .map(ResponseEntity::ok)
+                .map(item -> {
+                    ItemDTO dto = new ItemDTO();
+                    dto.setId(item.getId());
+                    dto.setName(item.getName());
+                    dto.setDescription(item.getDescription());
+                    dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+                    dto.setUnit(item.getUnit());
+                    dto.setCurrentQuantity(item.getCurrentQuantity());
+                    dto.setQrCode(item.getQrCode());
+                    dto.setItemType(item.getType());
+                    dto.setCreatedAt(item.getCreatedAt() != null ? item.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    dto.setUpdatedAt(item.getUpdatedAt() != null ? item.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    dto.setKeywords(item.getKeywords() != null
+                            ? item.getKeywords().stream().map(k -> k.getValue()).collect(java.util.stream.Collectors.toSet())
+                            : java.util.Collections.emptySet());
+                    return ResponseEntity.ok(dto);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -131,12 +163,26 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
 }
 
     @PatchMapping("/{id}/quantity")
-    public ResponseEntity<Item> updateItemQuantity(
+    public ResponseEntity<ItemDTO> updateItemQuantity(
             @PathVariable Long id,
             @RequestParam Integer quantity) {
         try {
             Item updatedItem = itemService.updateItemQuantity(id, quantity);
-            return ResponseEntity.ok(updatedItem);
+            ItemDTO dto = new ItemDTO();
+            dto.setId(updatedItem.getId());
+            dto.setName(updatedItem.getName());
+            dto.setDescription(updatedItem.getDescription());
+            dto.setCategoryName(updatedItem.getCategory() != null ? updatedItem.getCategory().getName() : null);
+            dto.setUnit(updatedItem.getUnit());
+            dto.setCurrentQuantity(updatedItem.getCurrentQuantity());
+            dto.setQrCode(updatedItem.getQrCode());
+            dto.setItemType(updatedItem.getType());
+            dto.setCreatedAt(updatedItem.getCreatedAt() != null ? updatedItem.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            dto.setUpdatedAt(updatedItem.getUpdatedAt() != null ? updatedItem.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            dto.setKeywords(updatedItem.getKeywords() != null
+                    ? updatedItem.getKeywords().stream().map(k -> k.getValue()).collect(java.util.stream.Collectors.toSet())
+                    : java.util.Collections.emptySet());
+            return ResponseEntity.ok(dto);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }

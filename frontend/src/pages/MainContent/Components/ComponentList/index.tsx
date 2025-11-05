@@ -130,8 +130,12 @@ const ComponentList: FC = () => {
           </select>
 
           <div className="inline-flex items-center gap-2">
-            <button onClick={() => setView('cards')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'cards' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Tag className="w-4 h-4"/></button>
-            <button onClick={() => setView('compact')} className={`px-3 py-2 rounded-full border border-main text-sm ${view === 'compact' ? 'bg-primary text-white' : 'bg-surface text-main'}`}><Box className="w-4 h-4"/></button>
+            <button onClick={() => setView('cards')} className={`px-3 py-2 rounded-full border border-main text-sm bg-surface`}>
+              <Tag className="w-4 h-4" style={view === 'cards' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }} />
+            </button>
+            <button onClick={() => setView('compact')} className={`px-3 py-2 rounded-full border border-main text-sm bg-surface`}>
+              <Box className="w-4 h-4" style={view === 'compact' ? { color: 'var(--color-primary)' } : { color: 'var(--color-text-secondary)' }} />
+            </button>
           </div>
         </div>
       </div>
@@ -226,8 +230,8 @@ const ComponentList: FC = () => {
 
                   {/* Akcje */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                    <button onClick={() => setModal(it)} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Eye className="w-4 h-4"/>Szczegóły</button>
-                    <button onClick={() => { setEditingItem(it); setIsEditItemModalOpen(true); }} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface hover:bg-primary hover:text-white hover:border-primary transition text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
+                    <button onClick={() => setModal(it)} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface tile-action-hover text-sm font-medium"><Eye className="w-4 h-4"/>Szczegóły</button>
+                    <button onClick={() => { setEditingItem(it); setIsEditItemModalOpen(true); }} className="flex-1 inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-main text-main bg-surface tile-action-hover text-sm font-medium"><Edit3 className="w-4 h-4"/>Edytuj</button>
                     <button 
                       onClick={() => deletingItemId === it.id ? handleDeleteItem(it.id) : setDeletingItemId(it.id)}
                       className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg border transition-all duration-300 text-sm font-medium ${
