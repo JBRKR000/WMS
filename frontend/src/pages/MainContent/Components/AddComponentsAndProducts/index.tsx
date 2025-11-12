@@ -1,5 +1,6 @@
 import { type FC, useMemo, useState, useEffect } from 'react'
 import { PlusCircle, Box, X } from 'lucide-react'
+import { jwtDecode } from 'jwt-decode'
 import { LocationService, type Location, type LocationOccupancy } from '../../../../services/locationService'
 type KeywordDTO = { id: number; value: string; itemsCount: number }
 type Category = { id?: number | null; name: string }
@@ -18,12 +19,27 @@ type ItemForm = {
 const AddComponentsAndProducts: FC = () => {
   // status popup
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [userId, setUserId] = useState<number | null>(null)
   // auto-dismiss status
   useEffect(() => {
     if (!statusMessage) return
     const timer = setTimeout(() => setStatusMessage(null), 3000)
     return () => clearTimeout(timer)
   }, [statusMessage])
+
+  // Get userId from JWT token
+  useEffect(() => {
+    const authToken = localStorage.getItem('authToken')
+    if (authToken) {
+      try {
+        type JwtPayload = { userId: number }
+        const decoded = jwtDecode<JwtPayload>(authToken)
+        setUserId(decoded.userId)
+      } catch (err) {
+        console.error('Error decoding token:', err)
+      }
+    }
+  }, [])
 
   const [form, setForm] = useState<ItemForm>({ name: '', description: '', categoryId: '', unit: '', currentQuantity: '', threshold: '', qrCode: '', type: 'COMPONENT', locationId: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -112,8 +128,10 @@ const AddComponentsAndProducts: FC = () => {
     const e: Record<string, string> = {}
     if (!f.name.trim()) e.name = 'Nazwa jest wymagana'
     if (f.currentQuantity !== '' && Number(f.currentQuantity) < 0) e.currentQuantity = 'Ilość nie może być ujemna'
-    if (!f.locationId || typeof f.locationId !== 'number') e.locationId = 'Lokacja jest wymagana'
-    if (!f.unit) e.unit = 'Jednostka jest wymagana'
+    // Lokacja jest opcjonalna
+    // if (!f.locationId || typeof f.locationId !== 'number') e.locationId = 'Lokacja jest wymagana'
+    // Jednostka jest wymagana TYLKO gdy lokacja jest wybrana
+    if (f.locationId && !f.unit) e.unit = 'Jednostka jest wymagana'
     
     // Check if location is selected and has available capacity
     if (f.locationId && typeof f.locationId === 'number') {
@@ -145,7 +163,9 @@ const AddComponentsAndProducts: FC = () => {
         name: form.name,
         description: form.description,
         unit: form.unit,
-        currentQuantity: form.currentQuantity === '' ? 0 : Number(form.currentQuantity),
+        // Jeśli lokacja jest wybrana, ilość będzie zarządzana przez transakcje (ustawiamy 0)
+        // Jeśli lokacja nie jest wybrana, ustawiamy ilość bezpośrednio w itemie
+        currentQuantity: form.locationId ? 0 : (form.currentQuantity === '' ? 0 : Number(form.currentQuantity)),
         threshold: form.threshold === '' ? null : Number(form.threshold),
         category: { id: form.categoryId },
         type: form.type, // use 'type' to match entity field
@@ -163,20 +183,52 @@ const AddComponentsAndProducts: FC = () => {
       const response = await res.json()
       const createdItem = response.item
       
-      // Dodaj item do lokacji
-      try {
-        if (!createdItem?.id) {
-          console.error('Created item has no ID:', createdItem)
-          throw new Error('Item created but has no ID')
+      // Dodaj item do lokacji TYLKO jeśli lokacja jest wybrana
+      if (form.locationId && typeof form.locationId === 'number') {
+        try {
+          if (!createdItem?.id) {
+            console.error('Created item has no ID:', createdItem)
+            throw new Error('Item created but has no ID')
+          }
+          await LocationService.addItemToLocation(form.locationId as number, createdItem.id)
+          
+          // Utwórz transakcję RECEIPT aby zmienić obłożenie lokacji
+          const quantity = form.currentQuantity === '' ? 0 : Number(form.currentQuantity)
+          if (quantity > 0 && userId) {
+            try {
+              const transactionRes = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({
+                  item: { id: createdItem.id },
+                  location: { id: form.locationId },
+                  quantity: quantity,
+                  user: { id: userId },
+                  transactionType: 'RECEIPT',
+                  transactionStatus: 'COMPLETED',
+                  description: `Początkowa ilość dla nowego przedmiotu ${createdItem.name}`,
+                }),
+              })
+              if (!transactionRes.ok) {
+                const errorData = await transactionRes.json()
+                console.warn('Failed to create initial transaction for item:', errorData)
+              }
+            } catch (transactionErr) {
+              console.warn('Error creating transaction:', transactionErr)
+            }
+          }
+          
+          // Pobierz zaktualizowane obłożenie lokacji
+          const updatedOccupancy = await LocationService.getOccupancy(form.locationId as number)
+          setSelectedLocationOccupancy(updatedOccupancy)
+        } catch (err) {
+          console.error('Error adding item to location:', err)
+          setStatusMessage('Błąd przy dodawaniu itemu do lokacji')
+          throw err
         }
-        await LocationService.addItemToLocation(form.locationId as number, createdItem.id)
-        // Pobierz zaktualizowane obłożenie lokacji
-        const updatedOccupancy = await LocationService.getOccupancy(form.locationId as number)
-        setSelectedLocationOccupancy(updatedOccupancy)
-      } catch (err) {
-        console.error('Error adding item to location:', err)
-        setStatusMessage('Błąd przy dodawaniu itemu do lokacji')
-        throw err
       }
       
       // success
@@ -225,7 +277,7 @@ const AddComponentsAndProducts: FC = () => {
           <p className="text-sm text-secondary mt-1">Formularz jest UI-only — pola zgodne z modelem Item: name, description, category, unit, currentQuantity, qrCode.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={onSave} disabled={!form.locationId || !selectedLocationOccupancy || selectedLocationOccupancy.occupancyPercentage >= 100} className="inline-flex items-center gap-2 px-4 py-2 rounded-full btn-add hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
+          <button onClick={onSave} disabled={!form.name.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-full btn-add hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
           <button onClick={onClear} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover transition">Wyczyść</button>
         </div>
       </div>

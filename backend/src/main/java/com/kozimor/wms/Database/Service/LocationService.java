@@ -4,20 +4,13 @@ import com.kozimor.wms.Database.Model.InventoryLocation;
 import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.Location;
 import com.kozimor.wms.Database.Model.LocationThreshold;
-import com.kozimor.wms.Database.Model.Transaction;
-import com.kozimor.wms.Database.Model.TransactionType;
-import com.kozimor.wms.Database.Model.TransactionStatus;
-import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Model.DTO.LocationOccupancyDTO;
 import com.kozimor.wms.Database.Repository.InventoryLocationRepository;
 import com.kozimor.wms.Database.Repository.ItemRepository;
 import com.kozimor.wms.Database.Repository.LocationRepository;
 import com.kozimor.wms.Database.Repository.LocationThresholdRepository;
 import com.kozimor.wms.Database.Repository.TransactionRepository;
-import com.kozimor.wms.Database.Repository.UserRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +25,6 @@ public class LocationService {
     private final InventoryLocationRepository inventoryLocationRepository;
     private final TransactionRepository transactionRepository;
     private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
     
     /**
      * Pobierz wszystkie lokacje
@@ -135,11 +127,14 @@ public class LocationService {
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElseThrow(() -> new IllegalArgumentException("Threshold dla lokacji nie znaleziony"));
         
-        // Pobierz całkowitą ilość (quantity) ze wszystkich transakcji dla tej lokacji
-        int totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
+        // Pobierz wszystkie itemy w lokacji i zsumuj ich currentQuantity
+        List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
+        int totalQuantity = itemsInLocation.stream()
+                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+                .sum();
         
-        // Sprawdzaj czy całkowita ilość + 1 (nowy item) nie przekroczy maksymalnego progu
-        return (totalQuantity + 1) <= threshold.getMaxThreshold();
+        // Sprawdzaj czy całkowita ilość nie przekroczy maksymalnego progu
+        return totalQuantity <= threshold.getMaxThreshold();
     }
     
     /**
@@ -156,6 +151,7 @@ public class LocationService {
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElseThrow(() -> new IllegalArgumentException("Threshold dla lokacji nie znaleziony"));
         
+        // Oblicz netto ilość na podstawie transakcji dla tej lokacji i itemu
         int currentQuantity = transactionRepository.sumQuantityByItemAndLocation(itemId, locationId);
         
         return currentQuantity < threshold.getMinThreshold();
@@ -163,6 +159,7 @@ public class LocationService {
     
     /**
      * Uzyskaj informacje o obłożeniu lokacji (DTO)
+     * Oblicza na podstawie item.currentQuantity wszystkich itemów w lokacji
      */
     @Transactional(readOnly = true)
     public LocationOccupancyDTO getLocationOccupancy(Long locationId) {
@@ -172,8 +169,11 @@ public class LocationService {
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElse(null);
         
-        // Pobierz całkowitą ilość (quantity) ze wszystkich transakcji dla tej lokacji
-        double totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
+        // Pobierz wszystkie itemy w tej lokacji i zsumuj ich currentQuantity
+        List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
+        int totalQuantity = itemsInLocation.stream()
+                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+                .sum();
         
         double maxCapacity = threshold != null ? threshold.getMaxThreshold() : 0;
         double minThreshold = threshold != null ? threshold.getMinThreshold() : 0;
@@ -191,7 +191,7 @@ public class LocationService {
                 .minThreshold(minThreshold)
                 .currentOccupancy(totalQuantity)
                 .occupancyPercentage(occupancyPercentage)
-                .itemCount((int) totalQuantity)
+                .itemCount(itemsInLocation.size()) // Liczba unikalnych itemów w lokacji
                 .isAboveThreshold(isAboveThreshold)
                 .isActive(location.isActive())
                 .build();
@@ -199,57 +199,47 @@ public class LocationService {
     
     /**
      * Dodaj item do lokacji (powiązanie)
+     * 
+     * WAŻNE: Ta metoda TYLKO tworzy powiązanie item-location.
+     * Transakcje muszą być tworzone osobno na froncie/w controllerze.
+     * Uniknięcie duplikowania ilości z transakcji.
      */
     @Transactional
     public InventoryLocation addItemToLocation(Long locationId, Long itemId) {
         Location location = locationRepository.findById(locationId)
                 .orElseThrow(() -> new IllegalArgumentException("Lokacja nie znaleziona"));
         
-        Item item = new Item();
-        item.setId(itemId);
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item nie znaleziony"));
         
         // Sprawdź czy item już istnieje w lokacji
         if (inventoryLocationRepository.existsByItemAndLocation(item, location)) {
             throw new IllegalArgumentException("Item już istnieje w tej lokacji");
         }
         
-        // Sprawdź pojemność
-        if (!canAddItem(locationId, itemId)) {
-            throw new IllegalStateException("Brak miejsca w lokacji");
+        // Sprawdź pojemność na podstawie currentQuantity wszystkich itemów w lokacji
+        List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
+        int currentOccupancy = itemsInLocation.stream()
+                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+                .sum();
+        
+        LocationThreshold threshold = thresholdRepository.findByLocation(location)
+                .orElseThrow(() -> new IllegalArgumentException("Threshold dla lokacji nie znaleziony"));
+        
+        // Sprawdź czy dodanie tego itemu nie przekroczy progu
+        int newOccupancy = currentOccupancy + item.getCurrentQuantity();
+        if (newOccupancy > threshold.getMaxThreshold()) {
+            throw new IllegalStateException("Brak miejsca w lokacji. Maksymalna pojemność: " + 
+                    threshold.getMaxThreshold() + ", bieżące obłożenie: " + currentOccupancy + 
+                    ", ilość itemu: " + item.getCurrentQuantity());
         }
         
+        // Dodaj powiązanie item-location
         InventoryLocation inventoryLocation = new InventoryLocation();
         inventoryLocation.setItem(item);
         inventoryLocation.setLocation(location);
         
-        inventoryLocationRepository.save(inventoryLocation);
-        
-        // Pobierz pełne dane itemu z bazy
-        Item fullItem = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Item nie znaleziony"));
-        
-        int initialQuantity = fullItem.getCurrentQuantity() != null ? fullItem.getCurrentQuantity() : 0;
-        
-        // Pobierz aktualnego użytkownika z Security Context
-        User currentUser = null;
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            String username = authentication.getName();
-            currentUser = userRepository.findByUsername(username).orElse(null);
-        }
-        
-        Transaction transaction = Transaction.builder()
-                .item(fullItem)
-                .transactionType(TransactionType.RECEIPT)
-                .quantity(initialQuantity)
-                .transactionStatus(TransactionStatus.COMPLETED)
-                .user(currentUser)
-                .description("Dodanie itemu do lokacji: " + location.getCode())
-                .build();
-        
-        transactionRepository.save(transaction);
-        
-        return inventoryLocation;
+        return inventoryLocationRepository.save(inventoryLocation);
     }
     
     /**

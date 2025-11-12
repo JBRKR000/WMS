@@ -191,10 +191,19 @@ public class LocationController {
     public ResponseEntity<?> getItemsInLocation(@PathVariable Long id) {
         try {
             List<InventoryLocation> items = locationService.getItemsInLocation(id);
+            List<?> itemsList = items.stream()
+                    .map(inv -> Map.of(
+                            "id", inv.getId(),
+                            "itemId", inv.getItem().getId(),
+                            "locationId", inv.getLocation().getId(),
+                            "createdAt", inv.getCreatedAt() != null ? inv.getCreatedAt().toString() : null,
+                            "updatedAt", inv.getUpdatedAt() != null ? inv.getUpdatedAt().toString() : null
+                    ))
+                    .collect(Collectors.toList());
             return ResponseEntity.ok(Map.of(
                     "locationId", id,
-                    "items", items,
-                    "count", items.size()
+                    "items", itemsList,
+                    "count", itemsList.size()
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -285,7 +294,13 @@ public class LocationController {
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
                     "message", "Item dodany do lokacji",
-                    "inventoryLocation", result
+                    "inventoryLocation", Map.of(
+                            "id", result.getId(),
+                            "itemId", result.getItem().getId(),
+                            "locationId", result.getLocation().getId(),
+                            "createdAt", result.getCreatedAt() != null ? result.getCreatedAt().toString() : null,
+                            "updatedAt", result.getUpdatedAt() != null ? result.getUpdatedAt().toString() : null
+                    )
             ));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

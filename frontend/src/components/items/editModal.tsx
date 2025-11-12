@@ -5,6 +5,23 @@ import { X } from 'lucide-react'
 // Type for fetched keywords
 type KeywordDTO = { id: number; value: string }
 
+// Type for locations with occupancy
+type LocationDTO = {
+  id: number
+  code: string
+  name: string
+  unitType: 'PCS' | 'KG' | 'LITER' | 'METER'
+}
+
+type LocationOccupancyDTO = {
+  locationId: number
+  locationCode: string
+  locationName: string
+  maxCapacity: number
+  currentOccupancy: number
+  occupancyPercentage: number
+}
+
 export interface EditItemModalProps {
   isOpen: boolean
   onClose: () => void
@@ -38,6 +55,11 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null)
+  const [currentLocationId, setCurrentLocationId] = useState<number | null>(null)
+  const [locations, setLocations] = useState<LocationDTO[]>([])
+  const [locationsOccupancy, setLocationsOccupancy] = useState<Map<number, LocationOccupancyDTO>>(new Map())
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +72,8 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
       setKeywordSearch('')
       setConfirmSave(false)
       setError(null)
+      setLocationError(null)
+      setSelectedLocationId(null)
       ;(async () => {
         try {
           const authToken = localStorage.getItem('authToken')
@@ -71,6 +95,60 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
           if (!resAllKw.ok) throw new Error('Failed to load all keywords')
           const allKwDTO: KeywordDTO[] = await resAllKw.json()
           setAvailableKeywords(allKwDTO)
+
+          // Load locations
+          const resLoc = await fetch('/api/locations', { headers: { Authorization: `Bearer ${authToken}` } })
+          if (!resLoc.ok) throw new Error('Failed to load locations')
+          const locationsData: LocationDTO[] = await resLoc.json()
+          setLocations(locationsData)
+
+          // Load occupancy for each location
+          const occupancyMap = new Map<number, LocationOccupancyDTO>()
+          await Promise.all(
+            locationsData.map(async (loc) => {
+              try {
+                const resOccupancy = await fetch(`/api/locations/${loc.id}/occupancy`, {
+                  headers: { Authorization: `Bearer ${authToken}` }
+                })
+                if (resOccupancy.ok) {
+                  const occupancyData: LocationOccupancyDTO = await resOccupancy.json()
+                  occupancyMap.set(loc.id, occupancyData)
+                }
+              } catch (err) {
+                console.warn(`Failed to load occupancy for location ${loc.id}:`, err)
+              }
+            })
+          )
+          setLocationsOccupancy(occupancyMap)
+
+          // Load current location for this item by checking all locations
+          try {
+            for (const loc of locationsData) {
+              try {
+                const resItemLocs = await fetch(`/api/locations/${loc.id}/items`, { 
+                  headers: { Authorization: `Bearer ${authToken}` } 
+                })
+                if (resItemLocs.ok) {
+                  const itemLocsData = await resItemLocs.json()
+                  // itemLocsData.items is an array of InventoryLocation objects
+                  const itemLoc = itemLocsData.items?.find((il: any) => il.itemId === item.id || il.item?.id === item.id)
+                  if (itemLoc) {
+                    const locId = itemLoc.locationId || itemLoc.location?.id
+                    if (locId) {
+                      setCurrentLocationId(locId)
+                      setSelectedLocationId(locId)
+                      console.log(`Found current location ${locId} for item ${item.id}`)
+                      break
+                    }
+                  }
+                }
+              } catch (err) {
+                console.warn(`Failed to check location ${loc.id}:`, err)
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to load current location:', err)
+          }
         } catch (err) {
           console.error('Error loading categories or keywords:', err)
           setError('Błąd podczas ładowania danych')
@@ -78,6 +156,50 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
       })()
     }
   }, [isOpen, item])
+
+  const handleLocationChange = (locationId: string) => {
+    if (!locationId) {
+      setSelectedLocationId(null)
+      setLocationError(null)
+      return
+    }
+
+    const locId = Number(locationId)
+    const selectedLocation = locations.find(l => l.id === locId)
+
+    if (!selectedLocation) {
+      setLocationError('Lokacja nie znaleziona')
+      setSelectedLocationId(null)
+      return
+    }
+
+    // Validate unit type
+    if (selectedLocation.unitType !== unit) {
+      setLocationError(`Jednostka lokacji (${selectedLocation.unitType}) nie zgadza się z jednostką itemu (${unit})`)
+      setSelectedLocationId(null)
+      return
+    }
+
+    // Validate location capacity
+    const occupancy = locationsOccupancy.get(locId)
+    if (occupancy) {
+      // If item is already in this location, we need to account for it
+      // Calculate available capacity: max - (current - old quantity of this item if it's already there)
+      const isItemAlreadyInLocation = currentLocationId === locId
+      const spaceUsedByThisItem = isItemAlreadyInLocation ? originalQuantity : 0
+      const otherItemsOccupancy = occupancy.currentOccupancy - spaceUsedByThisItem
+      const availableCapacity = occupancy.maxCapacity - otherItemsOccupancy
+      
+      if (currentQuantity > availableCapacity) {
+        setLocationError(`Brak wystarczającej pojemności: dostępne ${availableCapacity} ${unit}, a potrzebujesz ${currentQuantity}`)
+        setSelectedLocationId(null)
+        return
+      }
+    }
+
+    setSelectedLocationId(locId)
+    setLocationError(null)
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -117,14 +239,173 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Błąd podczas aktualizacji pozycji')
       }
-      if (currentQuantity !== originalQuantity) {
+
+      // Handle location change using LocationService
+      // Distinguish between "adding location" (currentLocationId is null) and "changing location"
+      if (selectedLocationId && selectedLocationId !== currentLocationId) {
+        try {
+          // Get user ID for transaction
+          let userId: number = 1
+          try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+              const user = JSON.parse(userStr)
+              if (user.id) userId = user.id
+            }
+          } catch (e) {
+            console.warn('Could not parse user from localStorage, using default user ID')
+          }
+
+          // CASE 1: Item HAD a previous location - need to remove from old and add to new
+          if (currentLocationId) {
+            console.log(`Changing item ${item.id} location from ${currentLocationId} to ${selectedLocationId}`)
+            
+            // Create ISSUE transaction for old location (reduces occupancy)
+            const issueResponse = await fetch('/api/transactions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`
+              },
+              body: JSON.stringify({
+                transactionType: 'ISSUE_TO_SALES',
+                item: { id: item.id },
+                location: { id: currentLocationId },
+                user: { id: userId },
+                quantity: originalQuantity,
+                description: `Przeniesienie na lokację ${selectedLocationId}`,
+                transactionStatus: 'COMPLETED'
+              })
+            })
+
+            if (!issueResponse.ok) {
+              const errorData = await issueResponse.json().catch(() => ({}))
+              throw new Error(errorData.message || 'Błąd podczas tworzenia transakcji wyjścia')
+            }
+
+            console.log(`ISSUE transaction created for item ${item.id} at old location ${currentLocationId}`)
+
+            // Remove the item from old location
+            await fetch(`/api/locations/${currentLocationId}/remove-item/${item.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+
+            // Add item to new location
+            const addResponse = await fetch(`/api/locations/${selectedLocationId}/add-item/${item.id}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+
+            if (!addResponse.ok) {
+              const errorData = await addResponse.json().catch(() => ({}))
+              throw new Error(errorData.error || 'Błąd podczas przypisywania lokacji')
+            }
+
+            console.log(`Item ${item.id} added to location ${selectedLocationId}`)
+
+            // Create RECEIPT transaction for the new location (to record the move in transaction history)
+            const transactionResponse = await fetch('/api/transactions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`
+              },
+              body: JSON.stringify({
+                transactionType: 'RECEIPT',
+                item: { id: item.id },
+                location: { id: selectedLocationId },
+                user: { id: userId },
+                quantity: currentQuantity,
+                description: `Przeniesienie z lokacji ${currentLocationId}`,
+                transactionStatus: 'COMPLETED'
+              })
+            })
+
+            if (!transactionResponse.ok) {
+              const errorData = await transactionResponse.json().catch(() => ({}))
+              throw new Error(errorData.message || 'Błąd podczas tworzenia transakcji')
+            }
+
+            console.log(`RECEIPT transaction created for item ${item.id} at location ${selectedLocationId}`)
+          } else {
+            // CASE 2: Item has NO previous location - just add the location
+            // Obłożenie będzie liczone z item.currentQuantity, nie z transakcji
+            console.log(`Adding first location ${selectedLocationId} for item ${item.id} (currentQuantity=${currentQuantity})`)
+            
+            // Add item to location (just the relationship)
+            const addResponse = await fetch(`/api/locations/${selectedLocationId}/add-item/${item.id}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+
+            if (!addResponse.ok) {
+              const errorData = await addResponse.json().catch(() => ({}))
+              throw new Error(errorData.error || 'Błąd podczas przypisywania lokacji')
+            }
+
+            console.log(`Item ${item.id} added to location ${selectedLocationId}`)
+            // Obłożenie będzie teraz liczyć się z item.currentQuantity
+          }
+          
+          // Pobierz zaktualizowane obłożenie nowej lokacji (TERAZ zawiera nową transakcję)
+          try {
+            const occupancyResponse = await fetch(`/api/locations/${selectedLocationId}/occupancy`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+            if (occupancyResponse.ok) {
+              const updatedOccupancy = await occupancyResponse.json()
+              const newMap = new Map(locationsOccupancy)
+              newMap.set(selectedLocationId, updatedOccupancy)
+              setLocationsOccupancy(newMap)
+              console.log(`Updated occupancy for location ${selectedLocationId}:`, updatedOccupancy)
+            }
+          } catch (occErr) {
+            console.warn('Failed to update occupancy after location change:', occErr)
+          }
+          
+          // Pobierz RÓWNIEŻ zaktualizowane obłożenie starej lokacji jeśli była
+          if (currentLocationId && currentLocationId !== selectedLocationId) {
+            try {
+              const oldOccupancyResponse = await fetch(`/api/locations/${currentLocationId}/occupancy`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              })
+              if (oldOccupancyResponse.ok) {
+                const oldUpdatedOccupancy = await oldOccupancyResponse.json()
+                const newMap = new Map(locationsOccupancy)
+                newMap.set(currentLocationId, oldUpdatedOccupancy)
+                setLocationsOccupancy(newMap)
+                console.log(`Updated occupancy for old location ${currentLocationId}:`, oldUpdatedOccupancy)
+              }
+            } catch (occErr) {
+              console.warn('Failed to update occupancy for old location:', occErr)
+            }
+          }
+        } catch (locErr) {
+          console.error('Error managing item location:', locErr)
+          throw new Error(locErr instanceof Error ? locErr.message : 'Błąd podczas przypisywania lokacji')
+        }
+      }
+      
+      // Jeśli zmienisz ilość BEZ zmiany lokacji, utwórz transakcję
+      // WAŻNE: Transakcja MUSI zawierać lokację!
+      const locationChanged = selectedLocationId && selectedLocationId !== currentLocationId
+      if (currentQuantity !== originalQuantity && !locationChanged) {
+        // Jeśli nie mamy wybranej lokacji i zmieniamy ilość, to błąd
+        if (!currentLocationId) {
+          setError('Nie można zmienić ilości bez przypisanej lokacji')
+          setLoading(false)
+          return
+        }
+
         const quantityDifference = currentQuantity - originalQuantity
         
         console.log('Creating transaction:', {
           originalQuantity,
           currentQuantity,
           quantityDifference,
-          itemId: item.id
+          itemId: item.id,
+          locationId: currentLocationId
         })
         
         // Get current user info from auth token or localStorage
@@ -139,7 +420,7 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
           console.warn('Could not parse user from localStorage, using default user ID')
         }
 
-        // Create transaction for quantity change
+        // Create transaction for quantity change - MUSI zawierać locationId!
         const transactionResponse = await fetch('/api/transactions', {
           method: 'POST',
           headers: {
@@ -149,6 +430,7 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
           body: JSON.stringify({
             transactionType: quantityDifference > 0 ? 'RECEIPT' : 'ISSUE_TO_SALES',
             item: { id: item.id },
+            location: { id: currentLocationId }, // DODANE: Lokacja do transakcji!
             user: { id: userId },
             quantity: Math.abs(quantityDifference),
             description: `Modyfikacja zasobu - zmiana ilości z ${originalQuantity} na ${currentQuantity}`,
@@ -161,6 +443,22 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
         if (!transactionResponse.ok) {
           const errorData = await transactionResponse.json().catch(() => ({}))
           throw new Error(errorData.message || 'Błąd podczas tworzenia transakcji')
+        }
+
+        // Pobierz zaktualizowane obłożenie lokacji po transakcji
+        try {
+          const occupancyResponse = await fetch(`/api/locations/${currentLocationId}/occupancy`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+          })
+          if (occupancyResponse.ok) {
+            const updatedOccupancy = await occupancyResponse.json()
+            const newMap = new Map(locationsOccupancy)
+            newMap.set(currentLocationId, updatedOccupancy)
+            setLocationsOccupancy(newMap)
+            console.log(`Updated occupancy for location ${currentLocationId}:`, updatedOccupancy)
+          }
+        } catch (occErr) {
+          console.warn('Failed to update occupancy after quantity change:', occErr)
         }
       }
 
@@ -283,16 +581,34 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
                 onChange={e => {
                   const newValue = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
                   setCurrentQuantity(newValue)
+                  
+                  // Re-validate location capacity if location is selected
+                  if (selectedLocationId) {
+                    const occupancy = locationsOccupancy.get(selectedLocationId)
+                    if (occupancy) {
+                      // Account for this item's old quantity if it's already in the selected location
+                      const isItemAlreadyInLocation = currentLocationId === selectedLocationId
+                      const spaceUsedByThisItem = isItemAlreadyInLocation ? originalQuantity : 0
+                      const otherItemsOccupancy = occupancy.currentOccupancy - spaceUsedByThisItem
+                      const availableCapacity = occupancy.maxCapacity - otherItemsOccupancy
+                      
+                      if (newValue > availableCapacity) {
+                        setLocationError(`Brak wystarczającej pojemności: dostępne ${availableCapacity} ${unit}, a potrzebujesz ${newValue}`)
+                      } else {
+                        setLocationError(null)
+                      }
+                    }
+                  }
                 }}
                 style={{
                   backgroundColor: 'var(--color-surface-secondary)',
                   color: 'var(--color-text)',
-                  borderColor: 'var(--color-border)'
+                  borderColor: locationError ? 'var(--color-error)' : 'var(--color-border)'
                 }}
                 className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                 disabled={loading}
               />
-              {currentQuantity !== originalQuantity && (
+              {currentQuantity !== originalQuantity && !locationError && (
                 <div style={{ color: 'var(--color-accent)' }} className="text-xs mt-2 font-semibold">
                   ℹ Zmiana o {currentQuantity - originalQuantity} — transakcja zostanie utworzona w systemie
                 </div>
@@ -313,6 +629,52 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
               }}
               className="w-full px-4 py-2 border rounded-lg text-sm"
             />
+          </div>
+          <div>
+            <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Lokacja przechowywania</label>
+            <select
+              value={selectedLocationId ?? ''}
+              onChange={e => handleLocationChange(e.target.value)}
+              style={{
+                backgroundColor: 'var(--color-surface-secondary)',
+                color: 'var(--color-text)',
+                borderColor: locationError ? 'var(--color-error)' : 'var(--color-border)'
+              }}
+              className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              disabled={loading}
+            >
+              <option value="">Brak przypisanej lokacji</option>
+              {locations.map(loc => {
+                const occupancy = locationsOccupancy.get(loc.id)
+                const occupancyText = occupancy 
+                  ? ` (${Math.round(occupancy.currentOccupancy)}/${Math.round(occupancy.maxCapacity)})` 
+                  : ''
+                const unitMismatch = loc.unitType !== unit
+                return (
+                  <option 
+                    key={loc.id} 
+                    value={loc.id}
+                    disabled={unitMismatch}
+                    style={{
+                      color: unitMismatch ? '#999' : 'inherit'
+                    }}
+                  >
+                    {loc.code} - {loc.name}{occupancyText}
+                    {unitMismatch ? ` (${loc.unitType} ≠ ${unit})` : ''}
+                  </option>
+                )
+              })}
+            </select>
+            {locationError && (
+              <div style={{ color: 'var(--color-error)' }} className="text-xs mt-2 font-semibold">
+                ⚠ {locationError}
+              </div>
+            )}
+            {selectedLocationId && locationsOccupancy.has(selectedLocationId) && (
+              <div style={{ color: 'var(--color-accent)' }} className="text-xs mt-2 font-semibold">
+                ℹ Obłożenie: {Math.round(locationsOccupancy.get(selectedLocationId)!.currentOccupancy)}/{Math.round(locationsOccupancy.get(selectedLocationId)!.maxCapacity)} ({Math.round(locationsOccupancy.get(selectedLocationId)!.occupancyPercentage)}%)
+              </div>
+            )}
           </div>
           <div>
             <label style={{ color: 'var(--color-text-secondary)' }} className="block text-sm font-semibold mb-2">Słowa kluczowe</label>
@@ -386,7 +748,8 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
           </button>
           <button
             onClick={() => confirmSave ? handleSubmit() : setConfirmSave(true)}
-            disabled={loading}
+            disabled={loading || !!locationError}
+            title={locationError ? `Popraw błąd: ${locationError}` : ''}
             style={{
               backgroundColor: confirmSave ? 'var(--color-success)' : 'var(--color-primary)',
               color: 'var(--color-surface)'

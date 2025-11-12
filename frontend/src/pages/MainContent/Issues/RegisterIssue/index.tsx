@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode'
 // We'll build the UI using Transaction/Item/User model fields only
 type Item = { id?: number | null; name: string; currentQuantity?: number; unit?: string }
 type UserType = { id?: number | null; username: string; employeeId?: string }
+type LocationType = { id: number; code: string; name: string; unitType: string }
 type TransactionType = 'RECEIPT' | 'ISSUE_TO_PRODUCTION' | 'RETURN'
 
 const RegisterIssue: FC = () => {
@@ -22,6 +23,8 @@ const RegisterIssue: FC = () => {
   const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false)
   const [isSearchingItems, setIsSearchingItems] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [locationId, setLocationId] = useState<number | ''>('')
+  const [locations, setLocations] = useState<LocationType[]>([])
 
   // Current user from token
   const [currentUser, setCurrentUser] = useState<UserType | null>(null)
@@ -68,6 +71,16 @@ const RegisterIssue: FC = () => {
               employeeId: undefined
             })
           }
+        }
+
+        // Load locations
+        try {
+          const locationsData = await fetchApi<LocationType[]>('/locations')
+          if (locationsData) {
+            setLocations(locationsData)
+          }
+        } catch (err) {
+          console.error('Błąd pobierania lokacji:', err)
         }
       } catch (err) {
         console.error('Błąd pobierania danych użytkownika:', err)
@@ -128,6 +141,7 @@ const RegisterIssue: FC = () => {
     const e: Record<string,string> = {}
     if (!itemId) e.item = 'Wybierz pozycję'
     if (quantity === '' || Number(quantity) <= 0) e.quantity = 'Podaj poprawną ilość'
+    if (!locationId) e.location = 'Wybierz lokację'
     
     const selectedItem = getSelectedItem()
     // Sprawdzaj limit tylko przy wydaniu, nie przy przyjęciu
@@ -149,12 +163,14 @@ const RegisterIssue: FC = () => {
     const it = getSelectedItem()
     if (!it?.id) return
     if (!currentUser?.id) return
+    if (!locationId) return
     
     setIsSubmitting(true)
     try {
       const payload = {
         item: { id: it.id },
         user: { id: currentUser.id },
+        location: { id: locationId }, // DODANE: Lokacja jest teraz obowiązkowa
         transactionType: txType,
         quantity: Number(quantity),
         description
@@ -188,6 +204,7 @@ const RegisterIssue: FC = () => {
       setItemSearch('')
       setQuantity('')
       setDescription('')
+      setLocationId('')
       
     } catch (err) {
       console.error('Błąd wysyłania transakcji:', err)
@@ -362,28 +379,51 @@ const RegisterIssue: FC = () => {
             </div>
 
             <div>
-              <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-2">4. Pracownik</h2>
-              {isLoadingUser ? (
-                <div className="w-full px-4 py-3 rounded-lg border-2 border-main bg-surface-secondary text-secondary text-lg font-bold">
-                  Ładuję...
-                </div>
-              ) : currentUser ? (
-                <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5">
-                  <div className="text-lg font-bold text-main">{currentUser.username}</div>
-                  <div className="text-sm text-secondary mt-1">ID Pracownika: <span className="font-semibold">{currentUser.employeeId || '-'}</span></div>
-                </div>
-              ) : (
-                <div className="w-full px-4 py-3 rounded-lg border-2 border-error bg-error-bg text-error-text text-lg font-bold">
-                  Błąd: Nie udało się załadować użytkownika
-                </div>
-              )}
-              {errors.user && <div className="text-xs text-error-text font-medium mt-1">{errors.user}</div>}
+              <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-2">4. Lokacja</h2>
+              <select
+                value={locationId}
+                onChange={e => {
+                  setLocationId(e.target.value === '' ? '' : Number(e.target.value))
+                  setErrors(prev => ({ ...prev, location: '' }))
+                }}
+                className={`w-full px-4 py-3 rounded-lg border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
+                  errors.location 
+                    ? 'border-error bg-error-bg text-error-text' 
+                    : locationId !== ''
+                    ? 'border-primary bg-primary/5 text-main'
+                    : 'border-main bg-surface text-main'
+                }`}
+              >
+                <option value="">Wybierz lokację...</option>
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.code} - {loc.name}
+                  </option>
+                ))}
+              </select>
+              {errors.location && <div className="text-xs text-error-text font-medium mt-1">{errors.location}</div>}
             </div>
+          </div>
+
+          {/* 4. Pracownik */}
+          <div className="bg-surface border border-main rounded-xl p-6">
+            <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">5. Pracownik</h2>
+            {currentUser ? (
+              <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5">
+                <div className="text-lg font-bold text-main">{currentUser.username}</div>
+                <div className="text-sm text-secondary mt-1">ID Pracownika: <span className="font-semibold">{currentUser.employeeId || '-'}</span></div>
+              </div>
+            ) : (
+              <div className="w-full px-4 py-3 rounded-lg border-2 border-error bg-error-bg text-error-text text-lg font-bold">
+                Błąd: Nie udało się załadować użytkownika
+              </div>
+            )}
+            {errors.user && <div className="text-xs text-error-text font-medium mt-1">{errors.user}</div>}
           </div>
 
           {/* 5. Notatka (opcjonalnie) */}
           <div className="bg-surface border border-main rounded-xl p-6">
-            <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">5. Notatka (opcjonalnie)</h2>
+            <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-4">6. Notatka (opcjonalnie)</h2>
             <textarea 
               value={description} 
               onChange={e => setDescription(e.target.value)} 

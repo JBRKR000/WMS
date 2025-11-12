@@ -21,5 +21,7 @@ public class TransactionDTO {
     private String description;
     private String categoryName;
     private String transactionStatus;
+    private String locationCode;
+    private String locationName;
 
 }

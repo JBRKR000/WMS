@@ -35,8 +35,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Sumuj ilość z transakcji dla danego itemu i lokacji
      */
     @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM Transaction t " +
-           "JOIN t.item i JOIN InventoryLocation il ON il.item = i " +
-           "WHERE i.id = :itemId AND il.location.id = :locationId")
+           "WHERE t.item.id = :itemId AND t.location.id = :locationId " +
+           "AND t.transactionStatus = 'COMPLETED'")
     int sumQuantityByItemAndLocation(@Param("itemId") Long itemId, @Param("locationId") Long locationId);
 
     /**
@@ -45,7 +45,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      */
     @Query("SELECT COALESCE(SUM(CASE WHEN t.transactionType = 'RECEIPT' THEN t.quantity ELSE -t.quantity END), 0) " +
            "FROM Transaction t " +
-           "JOIN t.item i JOIN InventoryLocation il ON il.item = i " +
-           "WHERE il.location.id = :locationId")
+           "WHERE t.location.id = :locationId " +
+           "AND t.transactionStatus = 'COMPLETED'")
     int sumQuantityByLocation(@Param("locationId") Long locationId);
 }

@@ -45,6 +45,11 @@ public class TransactionServiceImpl implements TransactionService {
         if (transaction.getUser() == null || transaction.getUser().getId() == null) {
             throw new IllegalArgumentException("User is required");
         }
+        // WAŻNE: Location jest teraz wymagana dla poprawnego obliczania obłożenia lokacji
+        if (transaction.getLocation() == null || transaction.getLocation().getId() == null) {
+            throw new IllegalArgumentException("Location is required");
+        }
+        
         Transaction saved = transactionRepository.save(transaction);
         Item item = itemRepository.findById(transaction.getItem().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + transaction.getItem().getId()));
@@ -125,6 +130,7 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setItem(transactionDetails.getItem());
         transaction.setQuantity(transactionDetails.getQuantity());
         transaction.setUser(transactionDetails.getUser());
+        transaction.setLocation(transactionDetails.getLocation());
         transaction.setDescription(transactionDetails.getDescription());
         transaction.setTransactionStatus(transactionDetails.getTransactionStatus());
 
@@ -166,6 +172,8 @@ public class TransactionServiceImpl implements TransactionService {
             dto.setTransactionStatus(transaction.getTransactionStatus() != null 
                 ? transaction.getTransactionStatus().name() 
                 : null);
+            dto.setLocationCode(transaction.getLocation() != null ? transaction.getLocation().getCode() : null);
+            dto.setLocationName(transaction.getLocation() != null ? transaction.getLocation().getName() : null);
             return dto;
         });
         
@@ -260,6 +268,8 @@ public class TransactionServiceImpl implements TransactionService {
             dto.setTransactionStatus(transaction.getTransactionStatus() != null 
                 ? transaction.getTransactionStatus().name() 
                 : null);
+            dto.setLocationCode(transaction.getLocation() != null ? transaction.getLocation().getCode() : null);
+            dto.setLocationName(transaction.getLocation() != null ? transaction.getLocation().getName() : null);
             return dto;
         });
     }
@@ -292,6 +302,8 @@ public class TransactionServiceImpl implements TransactionService {
             dto.setTransactionStatus(transaction.getTransactionStatus() != null 
                 ? transaction.getTransactionStatus().name() 
                 : null);
+            dto.setLocationCode(transaction.getLocation() != null ? transaction.getLocation().getCode() : null);
+            dto.setLocationName(transaction.getLocation() != null ? transaction.getLocation().getName() : null);
             return dto;
         });
     }

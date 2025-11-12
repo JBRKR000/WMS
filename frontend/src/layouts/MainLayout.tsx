@@ -35,6 +35,7 @@ const componentsSections: SidebarSection[] = [
             { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
             { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
             { to: "/components/search", icon: BarChart3, label: "Wielokryterialne wyszukiwanie" },
+            
         ],
     },
 ];

@@ -23,6 +23,13 @@ type UserType = {
   username: string
 }
 
+type LocationType = {
+  id: number
+  code: string
+  name: string
+  unitType: string
+}
+
 const ItemEditPage: FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -35,6 +42,8 @@ const ItemEditPage: FC = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [description, setDescription] = useState('')
+  const [locationId, setLocationId] = useState<number | ''>('')
+  const [locations, setLocations] = useState<LocationType[]>([])
 
   // Fetch current user from token
   useEffect(() => {
@@ -53,6 +62,16 @@ const ItemEditPage: FC = () => {
         type UserResponse = { id: number; username: string }
         const userData = await fetchApi<UserResponse>(`/users/${userId}`)
         setCurrentUser(userData)
+
+        // Load locations
+        try {
+          const locationsData = await fetchApi<LocationType[]>('/locations')
+          if (locationsData) {
+            setLocations(locationsData)
+          }
+        } catch (err) {
+          console.error('Error fetching locations:', err)
+        }
       } catch (err) {
         console.error('Error fetching user data:', err)
       } finally {
@@ -99,11 +118,20 @@ const ItemEditPage: FC = () => {
         return
       }
 
+      if (!locationId) {
+        setError('Wybierz lokację')
+        setSubmitting(false)
+        return
+      }
+
       await fetchApi<void>('/transactions', {
         method: 'POST',
         body: JSON.stringify({
           item: {
             id: item.id,
+          },
+          location: {
+            id: locationId, // DODANE: Lokacja jest teraz obowiązkowa
           },
           user: {
             id: currentUser?.id,
@@ -350,6 +378,25 @@ const ItemEditPage: FC = () => {
                   placeholder="Dodaj opis zmian (np. 'Dopasowanie stanu faktycznego')"
                   className="w-full px-4 py-2 border border-main rounded-lg bg-surface text-main focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none h-24"
                 />
+              </div>
+
+              {/* Location Selection */}
+              <div>
+                <label className="block text-secondary font-medium mb-2">Lokacja (wymagana):</label>
+                <select
+                  value={locationId}
+                  onChange={(e) => {
+                    setLocationId(e.target.value === '' ? '' : Number(e.target.value))
+                  }}
+                  className="w-full px-4 py-2 border border-main rounded-lg bg-surface text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  <option value="">Wybierz lokację...</option>
+                  {locations.map(loc => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.code} - {loc.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Submit Button */}

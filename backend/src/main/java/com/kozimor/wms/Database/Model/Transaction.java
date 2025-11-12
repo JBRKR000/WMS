@@ -12,7 +12,9 @@ import java.util.Set;
 @Table(name = "transactions",
        indexes = {
            @Index(name = "idx_transactions_item", columnList = "item_id"),
-           @Index(name = "idx_transactions_user", columnList = "user_id")
+           @Index(name = "idx_transactions_user", columnList = "user_id"),
+           @Index(name = "idx_transactions_location", columnList = "location_id"),
+           @Index(name = "idx_transactions_item_location", columnList = "item_id,location_id")
        })
 @Getter
 @Setter
@@ -36,6 +38,10 @@ public class Transaction {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id")
     private Item item;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location; // LOKACJA gdzie przybyła/wybyła ilość
 
     @Min(0)
     @Column(name = "quantity", nullable = false)
