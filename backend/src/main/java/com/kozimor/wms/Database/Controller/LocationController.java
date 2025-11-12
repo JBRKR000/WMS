@@ -37,6 +37,7 @@ public class LocationController {
                             .name(loc.getName())
                             .description(loc.getDescription())
                             .type(loc.getType())
+                            .unitType(loc.getUnitType())
                             .active(loc.isActive())
                             .build())
                     .collect(Collectors.toList());
@@ -61,6 +62,7 @@ public class LocationController {
                     .name(location.getName())
                     .description(location.getDescription())
                     .type(location.getType())
+                    .unitType(location.getUnitType())
                     .active(location.isActive())
                     .build();
             return ResponseEntity.ok(dto);
@@ -98,6 +100,7 @@ public class LocationController {
                     .name(created.getName())
                     .description(created.getDescription())
                     .type(created.getType())
+                    .unitType(created.getUnitType())
                     .active(created.isActive())
                     .build();
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
@@ -125,6 +128,7 @@ public class LocationController {
                     .name(updated.getName())
                     .description(updated.getDescription())
                     .type(updated.getType())
+                    .unitType(updated.getUnitType())
                     .active(updated.isActive())
                     .build();
             return ResponseEntity.ok(dto);

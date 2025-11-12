@@ -87,7 +87,13 @@ const AddComponentsAndProducts: FC = () => {
   }, [])
 
   const handleLocationChange = async (locationId: string) => {
-    setForm({ ...form, locationId: locationId ? Number(locationId) : '' })
+    const selectedLocation = locations.find(l => l.id === Number(locationId))
+    
+    setForm({ 
+      ...form, 
+      locationId: locationId ? Number(locationId) : '',
+      unit: selectedLocation?.unitType || '', // Auto-set unit based on location
+    })
     
     if (locationId) {
       try {
@@ -107,6 +113,24 @@ const AddComponentsAndProducts: FC = () => {
     if (!f.name.trim()) e.name = 'Nazwa jest wymagana'
     if (f.currentQuantity !== '' && Number(f.currentQuantity) < 0) e.currentQuantity = 'Ilość nie może być ujemna'
     if (!f.locationId || typeof f.locationId !== 'number') e.locationId = 'Lokacja jest wymagana'
+    if (!f.unit) e.unit = 'Jednostka jest wymagana'
+    
+    // Check if location is selected and has available capacity
+    if (f.locationId && typeof f.locationId === 'number') {
+      if (!selectedLocationOccupancy) {
+        e.locationId = 'Ładowanie danych obłożenia lokacji...'
+      } else if (selectedLocationOccupancy.occupancyPercentage >= 100) {
+        e.locationId = 'Wybrana lokacja jest pełna – nie można dodać itemów'
+      } else {
+        // Check if the quantity fits in the remaining capacity
+        const remainingCapacity = selectedLocationOccupancy.maxCapacity - selectedLocationOccupancy.currentOccupancy
+        const quantity = f.currentQuantity === '' ? 0 : Number(f.currentQuantity)
+        if (quantity > remainingCapacity) {
+          e.currentQuantity = `Nie mieści się w lokacji. Dostępne miejsce: ${remainingCapacity}`
+        }
+      }
+    }
+    
     return e
   }
 
@@ -201,7 +225,7 @@ const AddComponentsAndProducts: FC = () => {
           <p className="text-sm text-secondary mt-1">Formularz jest UI-only — pola zgodne z modelem Item: name, description, category, unit, currentQuantity, qrCode.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={onSave} className="inline-flex items-center gap-2 px-4 py-2 rounded-full btn-add hover:bg-primary-hover transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
+          <button onClick={onSave} disabled={!form.locationId || !selectedLocationOccupancy || selectedLocationOccupancy.occupancyPercentage >= 100} className="inline-flex items-center gap-2 px-4 py-2 rounded-full btn-add hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"><PlusCircle className="w-5 h-5"/>Zapisz</button>
           <button onClick={onClear} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-main text-main bg-surface hover:bg-surface-hover transition">Wyczyść</button>
         </div>
       </div>
@@ -230,19 +254,55 @@ const AddComponentsAndProducts: FC = () => {
 
             <div>
               <label className="block text-xs text-secondary">Jednostka</label>
-              <select value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+              <select 
+                value={form.unit} 
+                onChange={(e) => setForm({ ...form, unit: e.target.value })} 
+                disabled={form.locationId ? true : false}
+                className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <option value="">Wybierz jednostkę</option>
-                <option value="PCS">Sztuki</option>
-                <option value="KG">Kilogramy</option>
-                <option value="LITER">Litry</option>
-                <option value="METER">Metry</option>
+                {form.locationId && locations.find(l => l.id === form.locationId) ? (
+                  // Show only the unit type of the selected location
+                  <option value={locations.find(l => l.id === form.locationId)?.unitType || ''}>
+                    {locations.find(l => l.id === form.locationId)?.unitType === 'PCS' && 'Sztuki'}
+                    {locations.find(l => l.id === form.locationId)?.unitType === 'KG' && 'Kilogramy'}
+                    {locations.find(l => l.id === form.locationId)?.unitType === 'LITER' && 'Litry'}
+                    {locations.find(l => l.id === form.locationId)?.unitType === 'METER' && 'Metry'}
+                  </option>
+                ) : (
+                  // Show all options when no location selected
+                  <>
+                    <option value="PCS">Sztuki</option>
+                    <option value="KG">Kilogramy</option>
+                    <option value="LITER">Litry</option>
+                    <option value="METER">Metry</option>
+                  </>
+                )}
               </select>
+              {form.locationId && (
+                <p className="text-xs text-secondary mt-1">
+                  Jednostka zmieniona do: {locations.find(l => l.id === form.locationId)?.unitType}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs text-secondary">Ilość</label>
               <input type="number" value={form.currentQuantity as any} onChange={e => setForm({ ...form, currentQuantity: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-4 py-2 rounded-2xl border border-main bg-surface text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               {errors.currentQuantity && <div className="text-xs text-error-text mt-1">{errors.currentQuantity}</div>}
+              {selectedLocationOccupancy && form.currentQuantity !== '' && (
+                <div className="mt-2 text-xs">
+                  {(() => {
+                    const remainingCapacity = selectedLocationOccupancy.maxCapacity - selectedLocationOccupancy.currentOccupancy
+                    const quantity = Number(form.currentQuantity)
+                    if (quantity > remainingCapacity) {
+                      return <div className="text-error">⚠ Brak miejsca! Dostępne: {remainingCapacity}</div>
+                    } else {
+                      return <div className="text-success">✓ Zmieści się ({remainingCapacity - quantity} zostanie)</div>
+                    }
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
@@ -253,16 +313,30 @@ const AddComponentsAndProducts: FC = () => {
               {locations.map(loc => <option key={loc.id} value={String(loc.id)}>{loc.code} - {loc.name}</option>)}
             </select>
             {errors.locationId && <div className="text-xs text-error-text mt-1">{errors.locationId}</div>}
+            {form.locationId && locations.find(l => l.id === form.locationId) && (
+              <div className="text-xs text-secondary mt-1">
+                Typ: <span className="font-semibold text-main">{locations.find(l => l.id === form.locationId)?.type}</span>
+              </div>
+            )}
             {selectedLocationOccupancy && (
-              <div className="mt-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <div className={`mt-2 p-3 rounded-lg border ${
+                selectedLocationOccupancy.occupancyPercentage >= 100
+                  ? 'bg-error/10 border-error'
+                  : 'bg-primary/10 border-primary/30'
+              }`}>
                 <div className="text-xs text-secondary mb-1">Obłożenie lokacji:</div>
                 <div className="w-full bg-surface-secondary rounded-full h-2 overflow-hidden mb-2">
                   <div
-                    className={`h-full transition-all ${selectedLocationOccupancy.occupancyPercentage >= 90 ? 'bg-error' : selectedLocationOccupancy.occupancyPercentage >= 70 ? 'bg-warning' : 'bg-success'}`}
+                    className={`h-full transition-all ${selectedLocationOccupancy.occupancyPercentage >= 100 ? 'bg-error' : selectedLocationOccupancy.occupancyPercentage >= 90 ? 'bg-error' : selectedLocationOccupancy.occupancyPercentage >= 70 ? 'bg-warning' : 'bg-success'}`}
                     style={{ width: `${Math.min(selectedLocationOccupancy.occupancyPercentage, 100)}%` }}
                   />
                 </div>
-                <div className="text-xs font-semibold text-main">{selectedLocationOccupancy.occupancyPercentage.toFixed(1)}% ({selectedLocationOccupancy.currentOccupancy}/{selectedLocationOccupancy.maxCapacity})</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold text-main">{selectedLocationOccupancy.occupancyPercentage.toFixed(2)}% ({selectedLocationOccupancy.currentOccupancy}/{selectedLocationOccupancy.maxCapacity})</div>
+                  {selectedLocationOccupancy.occupancyPercentage >= 100 && (
+                    <div className="text-xs font-bold text-error">Lokacja pełna</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -352,6 +426,9 @@ const AddComponentsAndProducts: FC = () => {
               <div>
                 <div className="text-xs text-secondary">Lokacja</div>
                 <div className="text-main">{filledPreview.location ? `${filledPreview.location.code} - ${filledPreview.location.name}` : '-'}</div>
+                {filledPreview.location && (
+                  <div className="text-xs text-secondary mt-1">Typ: {filledPreview.location.type}</div>
+                )}
               </div>
 
               {filledPreview.locationOccupancy && (

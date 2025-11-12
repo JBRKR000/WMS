@@ -64,7 +64,10 @@ const DataTable: FC<{
   onSizeChange: (size: number) => void
   onPageChange: (page: number) => void
   onQRClick?: (qr: string) => void
-}> = ({ title, data, loading, page, totalPages, size, onSizeChange, onPageChange, onQRClick }) => {
+  visibleColumns?: string[]
+}> = ({ title, data, loading, page, totalPages, size, onSizeChange, onPageChange, onQRClick, visibleColumns }) => {
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const columnLabels: Record<string, string> = {
     id: 'ID',
     name: 'Nazwa',
@@ -88,6 +91,42 @@ const DataTable: FC<{
   const safeId = title.replace(/[^a-zA-Z0-9]/g, '')
   // Remove emojis from title for display
   const cleanTitle = title.replace(/[^\w\s]/g, '').trim()
+
+  // Determine which columns to show based on table type
+  const columnsToShow = visibleColumns || Object.keys(data[0] || {})
+
+  // Sort data
+  const sortedData = [...data].sort((a, b) => {
+    if (!sortKey) return 0
+    
+    const aVal = (a as any)[sortKey]
+    const bVal = (b as any)[sortKey]
+    
+    if (aVal === null || aVal === undefined) return 1
+    if (bVal === null || bVal === undefined) return -1
+    
+    let comparison = 0
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(String(bVal))
+    } else if (typeof aVal === 'number') {
+      comparison = Number(aVal) - Number(bVal)
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal))
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison
+  })
+
+  const handleColumnClick = (column: string) => {
+    if (sortKey === column) {
+      // Toggle sort order if clicking same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Set new sort column
+      setSortKey(column)
+      setSortOrder('asc')
+    }
+  }
 
   // Map English values to Polish
   const valueMap: Record<string, Record<string, string>> = {
@@ -154,17 +193,30 @@ const DataTable: FC<{
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-main border-b-2 border-main bg-surface">
-                  {Object.keys(data[0] || {}).map((key) => (
-                    <th key={key} className="px-4 py-3 font-semibold text-xs uppercase tracking-wider whitespace-nowrap">
-                      {columnLabels[key] || key}
+                  {columnsToShow.map((key) => (
+                    <th 
+                      key={key} 
+                      onClick={() => handleColumnClick(key)}
+                      className="px-4 py-3 font-semibold text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-surface-secondary transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {columnLabels[key] || key}
+                        {sortKey === key && (
+                          <span className="text-xs">
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.map((item, idx) => (
+                {sortedData.map((item, idx) => (
                   <tr key={idx} className="border-b border-main hover:bg-surface transition-colors duration-150">
-                    {Object.entries(item).map(([key, value]) => {
+                    {columnsToShow.map((key) => {
+                      const value = (item as any)[key]
+                      
                       // Render QR code
                       if (key === 'qrCode' && value) {
                         return (
@@ -175,7 +227,7 @@ const DataTable: FC<{
                               role="button"
                               tabIndex={0}
                             >
-                              <QRCode value={String(value)} size={56} level="L" />
+                              <QRCode value={String(value)} size={32} level="L" />
                             </div>
                           </td>
                         )
@@ -438,6 +490,7 @@ const SummaryPage: FC = () => {
           onSizeChange={setSizeItems}
           onPageChange={setPageItems}
           onQRClick={setModalQr}
+          visibleColumns={['name', 'description', 'qrCode']}
         />
         <DataTable
           title="Ostatnie transakcje"
@@ -449,6 +502,7 @@ const SummaryPage: FC = () => {
           onSizeChange={setSizeTransactions}
           onPageChange={setPageTransactions}
           onQRClick={setModalQr}
+          visibleColumns={['transactionDate', 'itemName', 'quantity', 'userName']}
         />
       </div>
     </div>

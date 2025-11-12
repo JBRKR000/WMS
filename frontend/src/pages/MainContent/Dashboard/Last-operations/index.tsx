@@ -33,6 +33,8 @@ const LastOperations: FC = () => {
   const [pageSize, setPageSize] = useState(50);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -94,6 +96,51 @@ const LastOperations: FC = () => {
       (t.transactionType ?? '').toLowerCase().includes(q)
     );
   });
+
+  // Sort filtered data
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    if (!sortKey) return 0;
+
+    let aVal: any = null;
+    let bVal: any = null;
+
+    if (sortKey === 'item') {
+      aVal = a.item?.name ?? '';
+      bVal = b.item?.name ?? '';
+    } else if (sortKey === 'category') {
+      aVal = a.item?.category?.name ?? '';
+      bVal = b.item?.category?.name ?? '';
+    } else if (sortKey === 'user') {
+      aVal = a.user?.username ?? '';
+      bVal = b.user?.username ?? '';
+    } else {
+      aVal = (a as any)[sortKey];
+      bVal = (b as any)[sortKey];
+    }
+
+    if (aVal === null || aVal === undefined) return 1;
+    if (bVal === null || bVal === undefined) return -1;
+
+    let comparison = 0;
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(String(bVal));
+    } else if (typeof aVal === 'number') {
+      comparison = Number(aVal) - Number(bVal);
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal));
+    }
+
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  const handleColumnClick = (column: string) => {
+    if (sortKey === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(column);
+      setSortOrder('asc');
+    }
+  };
 
   const formatDate = (iso?: string | null) => {
     if (!iso) return '-';
@@ -171,18 +218,53 @@ const LastOperations: FC = () => {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-secondary bg-surface-secondary">
-                  <th className="px-3 py-2">ID</th>
-                  <th className="px-3 py-2">Data</th>
-                  <th className="px-3 py-2">Typ</th>
-                  <th className="px-3 py-2">Pozycja</th>
-                  <th className="px-3 py-2">Kategoria</th>
-                  <th className="px-3 py-2">Ilość</th>
-                  <th className="px-3 py-2">Użytkownik</th>
+                  <th onClick={() => handleColumnClick('id')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      ID
+                      {sortKey === 'id' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('transactionDate')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Data
+                      {sortKey === 'transactionDate' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('transactionType')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Typ
+                      {sortKey === 'transactionType' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('item')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Pozycja
+                      {sortKey === 'item' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('category')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Kategoria
+                      {sortKey === 'category' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('quantity')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Ilość
+                      {sortKey === 'quantity' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
+                  <th onClick={() => handleColumnClick('user')} className="px-3 py-2 cursor-pointer hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-2">
+                      Użytkownik
+                      {sortKey === 'user' && <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                    </div>
+                  </th>
                   <th className="px-3 py-2">Opis</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t, idx) => (
+                {sortedFiltered.map((t, idx) => (
                   <tr
                     key={t.id ?? idx}
                     className="border-t border-main hover:bg-surface-hover odd:bg-surface even:bg-surface-secondary"

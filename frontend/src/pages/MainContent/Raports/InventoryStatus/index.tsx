@@ -19,8 +19,9 @@ const getOccupancyStatus = (occupancy: number, maxCapacity: number): 'ok' | 'war
   return 'ok'
 }
 
-const getOccupancyPercentage = (occupancy: number, maxCapacity: number): number => {
-  return Math.round((occupancy / maxCapacity) * 100)
+const getOccupancyPercentage = (occupancy: number, maxCapacity: number): string => {
+  if (maxCapacity === 0) return '0.00'
+  return ((occupancy / maxCapacity) * 100).toFixed(2)
 }
 
 const getStatusBadge = (status: 'ok' | 'warning' | 'critical'): { icon: ReactNode; color: string; label: string } => {
@@ -143,7 +144,7 @@ const InventoryStatus: FC = () => {
       totalLocations: locations.length,
       totalCapacity,
       totalOccupancy,
-      averageOccupancy: locations.length > 0 ? Math.round((totalOccupancy / totalCapacity) * 100) : 0,
+  averageOccupancy: locations.length > 0 && totalCapacity > 0 ? ((totalOccupancy / totalCapacity) * 100).toFixed(2) : '0.00',
       criticalCount,
       warningCount,
       okCount: locations.length - criticalCount - warningCount,

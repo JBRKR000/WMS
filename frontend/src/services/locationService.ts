@@ -6,6 +6,7 @@ export interface Location {
   name: string;
   description?: string;
   type: string;
+  unitType: 'PCS' | 'KG' | 'LITER' | 'METER';
   active: boolean;
   createdAt: string;
   updatedAt: string;

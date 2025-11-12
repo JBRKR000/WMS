@@ -25,10 +25,10 @@ public class LocationThreshold {
     private Location location;
 
     @Column(nullable = false)
-    private int minThreshold; // Minimalna ilość przed alertem
+    private double minThreshold; // Minimalna ilość przed alertem (sztuki, kg, litry itd)
 
     @Column(nullable = false)
-    private int maxThreshold; // Maksymalna pojemność
+    private double maxThreshold; // Maksymalna pojemność
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

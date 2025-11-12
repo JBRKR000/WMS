@@ -14,9 +14,9 @@ public class LocationOccupancyDTO {
     private String locationCode;
     private String locationName;
     private String locationDescription;
-    private int maxCapacity;
-    private int minThreshold;
-    private int currentOccupancy;
+    private double maxCapacity;
+    private double minThreshold;
+    private double currentOccupancy;
     private double occupancyPercentage; // 0-100
     private int itemCount;
     private boolean isAboveThreshold; // Czy powyżej minimalnego progu

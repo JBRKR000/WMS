@@ -7,6 +7,15 @@ interface LocationWithThreshold extends Location {
   occupancy?: LocationOccupancy;
 }
 
+const LOCATION_TYPES = [
+  { value: 'SEKTOR', label: 'Sektor' },
+  { value: 'REGAŁ', label: 'Regał' },
+  { value: 'RZĄD', label: 'Rząd' },
+  { value: 'PÓŁKA', label: 'Półka' },
+  { value: 'KOSZ', label: 'Kosz' },
+  { value: 'POJEMNIK', label: 'Pojemnik' },
+];
+
 const LocationSettingsPage: FC = () => {
   const [activeTab, setActiveTab] = useState<'list' | 'add'>('list');
   const [locations, setLocations] = useState<LocationWithThreshold[]>([]);
@@ -21,8 +30,9 @@ const LocationSettingsPage: FC = () => {
     name: '',
     description: '',
     type: '',
-    minThreshold: 1,
-    maxThreshold: 100,
+    unitType: 'PCS',
+    minThreshold: 1.0,
+    maxThreshold: 100.0,
   });
 
   useEffect(() => {
@@ -82,6 +92,7 @@ const LocationSettingsPage: FC = () => {
         name: formData.name,
         description: formData.description,
         type: formData.type,
+        unitType: formData.unitType as 'PCS' | 'KG' | 'LITER' | 'METER',
         active: true,
       });
 
@@ -95,7 +106,7 @@ const LocationSettingsPage: FC = () => {
       }
 
       setMessage({ type: 'success', text: 'Lokacja dodana pomyślnie' });
-      setFormData({ code: '', name: '', description: '', type: '', minThreshold: 1, maxThreshold: 100 });
+      setFormData({ code: '', name: '', description: '', type: '', unitType: 'PCS', minThreshold: 1.0, maxThreshold: 100.0 });
       setActiveTab('list');
       await fetchLocations();
     } catch (error) {
@@ -147,6 +158,7 @@ const LocationSettingsPage: FC = () => {
       name: location.name,
       description: location.description,
       type: location.type,
+      unitType: location.unitType,
       active: location.active,
     });
   };
@@ -234,6 +246,7 @@ const LocationSettingsPage: FC = () => {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-main">Kod</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-main">Nazwa</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-main">Typ</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-main">Jednostka</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-main">Obłożenie</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-main">Status</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-main">Akcje</th>
@@ -242,7 +255,7 @@ const LocationSettingsPage: FC = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={7} className="px-6 py-12 text-center">
                         <div className="flex items-center justify-center">
                           <div className="w-6 h-6 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                         </div>
@@ -250,7 +263,7 @@ const LocationSettingsPage: FC = () => {
                     </tr>
                   ) : locations.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-secondary">
+                      <td colSpan={7} className="px-6 py-12 text-center text-secondary">
                         Brak lokacji do wyświetlenia
                       </td>
                     </tr>
@@ -283,14 +296,36 @@ const LocationSettingsPage: FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           {editingId === location.id ? (
-                            <input
-                              type="text"
+                            <select
                               value={editingData?.type || ''}
                               onChange={(e) => editingData && setEditingData({ ...editingData, type: e.target.value })}
                               className="px-3 py-2 bg-surface border border-border rounded-lg text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            />
+                            >
+                              <option value="">Wybierz typ</option>
+                              {LOCATION_TYPES.map((locType) => (
+                                <option key={locType.value} value={locType.value}>
+                                  {locType.label}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             <span className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-sm">{location.type}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {editingId === location.id ? (
+                            <select
+                              value={editingData?.unitType || 'PCS'}
+                              onChange={(e) => editingData && setEditingData({ ...editingData, unitType: e.target.value as 'PCS' | 'KG' | 'LITER' | 'METER' })}
+                              className="px-3 py-2 bg-surface border border-border rounded-lg text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            >
+                              <option value="PCS">Sztuki</option>
+                              <option value="KG">Kilogramy</option>
+                              <option value="LITER">Litry</option>
+                              <option value="METER">Metry</option>
+                            </select>
+                          ) : (
+                            <span className="px-3 py-1 bg-accent/10 text-accent rounded-lg text-sm">{location.unitType}</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -430,14 +465,39 @@ const LocationSettingsPage: FC = () => {
                   <label className="block text-sm font-semibold text-main mb-3">
                     Typ lokacji *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    placeholder="np. SECTOR, SHELF, BIN"
                     className="w-full px-4 py-3 bg-surface-secondary border border-border rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent"
                     required
-                  />
+                  >
+                    <option value="">Wybierz typ lokacji</option>
+                    {LOCATION_TYPES.map((locType) => (
+                      <option key={locType.value} value={locType.value}>
+                        {locType.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-secondary mt-1">Typ lokalizacji magazynu</p>
+                </div>
+
+                {/* Unit Type */}
+                <div>
+                  <label className="block text-sm font-semibold text-main mb-3">
+                    Jednostka przechowywania *
+                  </label>
+                  <select
+                    value={formData.unitType}
+                    onChange={(e) => setFormData({ ...formData, unitType: e.target.value })}
+                    className="w-full px-4 py-3 bg-surface-secondary border border-border rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent"
+                    required
+                  >
+                    <option value="PCS">Sztuki (PCS)</option>
+                    <option value="KG">Kilogramy (KG)</option>
+                    <option value="LITER">Litry (LITER)</option>
+                    <option value="METER">Metry (METER)</option>
+                  </select>
+                  <p className="text-xs text-secondary mt-1">Jednostka używana do pomiaru pojemności</p>
                 </div>
 
                 {/* Description */}
@@ -473,8 +533,9 @@ const LocationSettingsPage: FC = () => {
                     </label>
                     <input
                       type="number"
+                      step="0.1"
                       value={formData.minThreshold}
-                      onChange={(e) => setFormData({ ...formData, minThreshold: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, minThreshold: parseFloat(e.target.value) || 0 })}
                       min="0"
                       className="w-full px-4 py-3 bg-surface-secondary border border-border rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent"
                     />
@@ -488,9 +549,10 @@ const LocationSettingsPage: FC = () => {
                     </label>
                     <input
                       type="number"
+                      step="0.1"
                       value={formData.maxThreshold}
-                      onChange={(e) => setFormData({ ...formData, maxThreshold: parseInt(e.target.value) || 0 })}
-                      min="1"
+                      onChange={(e) => setFormData({ ...formData, maxThreshold: parseFloat(e.target.value) || 0 })}
+                      min="0.1"
                       className="w-full px-4 py-3 bg-surface-secondary border border-border rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent"
                     />
                     <p className="text-xs text-secondary mt-1">Maksymalna liczba itemów</p>

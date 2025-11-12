@@ -71,6 +71,7 @@ public class LocationService {
         if (locationData.getName() != null) location.setName(locationData.getName());
         if (locationData.getDescription() != null) location.setDescription(locationData.getDescription());
         if (locationData.getType() != null) location.setType(locationData.getType());
+        if (locationData.getUnitType() != null) location.setUnitType(locationData.getUnitType());
         location.setActive(locationData.isActive());
         
         return locationRepository.save(location);
@@ -172,10 +173,10 @@ public class LocationService {
                 .orElse(null);
         
         // Pobierz całkowitą ilość (quantity) ze wszystkich transakcji dla tej lokacji
-        int totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
+        double totalQuantity = transactionRepository.sumQuantityByLocation(locationId);
         
-        int maxCapacity = threshold != null ? threshold.getMaxThreshold() : 0;
-        int minThreshold = threshold != null ? threshold.getMinThreshold() : 0;
+        double maxCapacity = threshold != null ? threshold.getMaxThreshold() : 0;
+        double minThreshold = threshold != null ? threshold.getMinThreshold() : 0;
         
         double occupancyPercentage = maxCapacity > 0 ? (totalQuantity * 100.0) / maxCapacity : 0;
         
@@ -190,7 +191,7 @@ public class LocationService {
                 .minThreshold(minThreshold)
                 .currentOccupancy(totalQuantity)
                 .occupancyPercentage(occupancyPercentage)
-                .itemCount(totalQuantity)
+                .itemCount((int) totalQuantity)
                 .isAboveThreshold(isAboveThreshold)
                 .isActive(location.isActive())
                 .build();

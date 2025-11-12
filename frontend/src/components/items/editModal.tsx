@@ -29,6 +29,7 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [unit, setUnit] = useState(item.unit ?? '')
   const [currentQuantity, setCurrentQuantity] = useState(item.currentQuantity ?? 0)
+  const [originalQuantity, setOriginalQuantity] = useState(item.currentQuantity ?? 0)
   const [qrCode, setQrCode] = useState(item.qrCode ?? '')
   const [availableKeywords, setAvailableKeywords] = useState<KeywordDTO[]>([])
   const [selectedKeywords, setSelectedKeywords] = useState<KeywordDTO[]>([])
@@ -44,6 +45,7 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
       setDescription(item.description ?? '')
       setUnit(item.unit ?? '')
       setCurrentQuantity(item.currentQuantity ?? 0)
+      setOriginalQuantity(item.currentQuantity ?? 0)
       setQrCode(item.qrCode ?? '')
       setKeywordSearch('')
       setConfirmSave(false)
@@ -84,14 +86,21 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
     try {
       const authToken = localStorage.getItem('authToken')
       
-      const requestBody = {
+      // Update item details (name, description, category, unit, keywords) - but NOT quantity
+      const requestBody: any = {
         name,
         description: description || null,
-        category: categoryId ? { id: categoryId } : null,
-        unit,
-        currentQuantity,
+        unit, // Send unit as string (backend will convert)
+        currentQuantity: originalQuantity, // Keep original quantity, don't update it
         keywords: selectedKeywords.map(k => ({ value: k.value }))
       }
+      
+      // Only add category if selected
+      if (categoryId) {
+        requestBody.category = { id: categoryId }
+      }
+
+      console.log('Sending PUT request:', { url: `/api/items/${item.id}`, body: requestBody })
 
       const response = await fetch(`/api/items/${item.id}`, {
         method: 'PUT',
@@ -102,9 +111,57 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
         body: JSON.stringify(requestBody)
       })
 
+      console.log('PUT response:', response.status, response.statusText, response.ok)
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Błąd podczas aktualizacji pozycji')
+      }
+      if (currentQuantity !== originalQuantity) {
+        const quantityDifference = currentQuantity - originalQuantity
+        
+        console.log('Creating transaction:', {
+          originalQuantity,
+          currentQuantity,
+          quantityDifference,
+          itemId: item.id
+        })
+        
+        // Get current user info from auth token or localStorage
+        let userId: number = 1 // Default fallback user ID
+        try {
+          const userStr = localStorage.getItem('user')
+          if (userStr) {
+            const user = JSON.parse(userStr)
+            if (user.id) userId = user.id
+          }
+        } catch (e) {
+          console.warn('Could not parse user from localStorage, using default user ID')
+        }
+
+        // Create transaction for quantity change
+        const transactionResponse = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            transactionType: quantityDifference > 0 ? 'RECEIPT' : 'ISSUE_TO_SALES',
+            item: { id: item.id },
+            user: { id: userId },
+            quantity: Math.abs(quantityDifference),
+            description: `Modyfikacja zasobu - zmiana ilości z ${originalQuantity} na ${currentQuantity}`,
+            transactionStatus: 'COMPLETED'
+          })
+        })
+
+        console.log('Transaction response:', transactionResponse.status, transactionResponse.ok)
+
+        if (!transactionResponse.ok) {
+          const errorData = await transactionResponse.json().catch(() => ({}))
+          throw new Error(errorData.message || 'Błąd podczas tworzenia transakcji')
+        }
       }
 
       onSubmit()
@@ -223,7 +280,10 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
               <input
                 type="number"
                 value={currentQuantity}
-                onChange={e => setCurrentQuantity(Number(e.target.value))}
+                onChange={e => {
+                  const newValue = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
+                  setCurrentQuantity(newValue)
+                }}
                 style={{
                   backgroundColor: 'var(--color-surface-secondary)',
                   color: 'var(--color-text)',
@@ -232,6 +292,11 @@ const EditItemModal: FC<EditItemModalProps> = ({ isOpen, onClose, item, onSubmit
                 className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                 disabled={loading}
               />
+              {currentQuantity !== originalQuantity && (
+                <div style={{ color: 'var(--color-accent)' }} className="text-xs mt-2 font-semibold">
+                  ℹ Zmiana o {currentQuantity - originalQuantity} — transakcja zostanie utworzona w systemie
+                </div>
+              )}
             </div>
           </div>
           <div>

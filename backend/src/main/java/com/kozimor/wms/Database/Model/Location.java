@@ -29,6 +29,10 @@ public class Location {
     @Column(nullable = false)
     private String type; // np. "SECTOR", "SHELF", "BIN" - jako String, bez enum
 
+    @Column(nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'PCS'")
+    @Enumerated(EnumType.STRING)
+    private UnitType unitType = UnitType.PCS; // Jednostka przechowywania dla tej lokalizacji
+
     @OneToMany(mappedBy = "location", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     private List<InventoryLocation> inventoryLocations;
 

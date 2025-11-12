@@ -172,7 +172,7 @@ const IssueHistory: FC = () => {
               <option value="">Wszystkie typy</option>
               <option value="RECEIPT">Przyjęcie</option>
               <option value="ISSUE_TO_PRODUCTION">Produkcja</option>
-              <option value="ISSUE_TO_SALES">Sprzedaż</option>
+              {/* <option value="ISSUE_TO_SALES">Sprzedaż</option> */}
             </select>
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary">
               {typeFilter === 'RECEIPT' && <CheckCircle2 className="w-4 h-4" />}
