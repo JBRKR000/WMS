@@ -25,10 +25,11 @@ const RegisterIssue: FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [locationId, setLocationId] = useState<number | ''>('')
   const [locations, setLocations] = useState<LocationType[]>([])
+  const [selectedLocationOccupancy, setSelectedLocationOccupancy] = useState<any>(null)
+  const [itemLocationData, setItemLocationData] = useState<LocationType | null>(null)
 
   // Current user from token
   const [currentUser, setCurrentUser] = useState<UserType | null>(null)
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
 
   // Fetch current user from token on component mount
   useEffect(() => {
@@ -36,7 +37,6 @@ const RegisterIssue: FC = () => {
       try {
         const token = AuthService.getToken()
         if (!token) {
-          setIsLoadingUser(false)
           return
         }
 
@@ -84,8 +84,6 @@ const RegisterIssue: FC = () => {
         }
       } catch (err) {
         console.error('Błąd pobierania danych użytkownika:', err)
-      } finally {
-        setIsLoadingUser(false)
       }
     }
 
@@ -128,6 +126,58 @@ const RegisterIssue: FC = () => {
     setItemSearch(item.name)
     setIsItemDropdownOpen(false)
     setErrors(prev => ({ ...prev, item: '' }))
+    
+    // Pobierz lokację itemu
+    loadItemLocation(item.id)
+  }
+
+  const loadItemLocation = async (itemId: number | null | undefined) => {
+    if (!itemId) return
+    
+    try {
+      const token = AuthService.getToken()
+      if (!token) return
+
+      // Pobierz wszystkie lokacje i sprawdź w której jest item
+      const allLocations = locations.length > 0 ? locations : await fetchApi<LocationType[]>('/locations')
+      
+      if (allLocations) {
+        // Szukaj item w każdej lokacji
+        for (const loc of allLocations) {
+          try {
+            const response = await fetch(`/api/locations/${loc.id}/items`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+            if (response.ok) {
+              const data = await response.json()
+              const itemInLocation = data.items?.find((inv: any) => inv.itemId === itemId || inv.item?.id === itemId)
+              if (itemInLocation) {
+                const locId = itemInLocation.locationId || itemInLocation.location?.id
+                if (locId) {
+                  setLocationId(locId)
+                  setItemLocationData(loc)
+                  
+                  // Pobierz obłożenie tej lokacji
+                  const occupancyResponse = await fetch(`/api/locations/${locId}/occupancy`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  })
+                  if (occupancyResponse.ok) {
+                    const occupancy = await occupancyResponse.json()
+                    setSelectedLocationOccupancy(occupancy)
+                  }
+                  console.log(`Found item ${itemId} in location ${locId}`)
+                  break
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`Failed to check location ${loc.id}:`, err)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Błąd pobierania lokacji itemu:', err)
+    }
   }
 
   const handleClearItemSearch = () => {
@@ -135,13 +185,16 @@ const RegisterIssue: FC = () => {
     setItemSearch('')
     setItemSearchResults([])
     setIsItemDropdownOpen(false)
+    setLocationId('')
+    setItemLocationData(null)
+    setSelectedLocationOccupancy(null)
   }
 
   const validate = () => {
     const e: Record<string,string> = {}
     if (!itemId) e.item = 'Wybierz pozycję'
     if (quantity === '' || Number(quantity) <= 0) e.quantity = 'Podaj poprawną ilość'
-    if (!locationId) e.location = 'Wybierz lokację'
+    if (!itemLocationData) e.location = 'Ten item nie ma przypisanej lokacji'
     
     const selectedItem = getSelectedItem()
     // Sprawdzaj limit tylko przy wydaniu, nie przy przyjęciu
@@ -149,6 +202,15 @@ const RegisterIssue: FC = () => {
       const maxAvailable = selectedItem.currentQuantity ?? 0
       if (Number(quantity) > maxAvailable) {
         e.quantity = `Maksymalnie dostępne: ${maxAvailable} ${selectedItem.unit ?? ''}`
+      }
+    }
+    
+    // Sprawdzaj pojemność lokacji przy przyjęciu
+    if (txType === 'RECEIPT' && selectedLocationOccupancy && quantity !== '') {
+      const remainingCapacity = selectedLocationOccupancy.maxCapacity - selectedLocationOccupancy.currentOccupancy
+      const quantityNum = Number(quantity)
+      if (quantityNum > remainingCapacity) {
+        e.quantity = `Brak wystarczającej pojemności. Dostępne miejsce: ${remainingCapacity} ${selectedItem?.unit ?? ''}`
       }
     }
     
@@ -205,6 +267,7 @@ const RegisterIssue: FC = () => {
       setQuantity('')
       setDescription('')
       setLocationId('')
+      setItemLocationData(null)
       
     } catch (err) {
       console.error('Błąd wysyłania transakcji:', err)
@@ -380,27 +443,57 @@ const RegisterIssue: FC = () => {
 
             <div>
               <h2 className="text-sm font-bold text-secondary uppercase tracking-wide mb-2">4. Lokacja</h2>
-              <select
-                value={locationId}
-                onChange={e => {
-                  setLocationId(e.target.value === '' ? '' : Number(e.target.value))
-                  setErrors(prev => ({ ...prev, location: '' }))
-                }}
-                className={`w-full px-4 py-3 rounded-lg border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                  errors.location 
-                    ? 'border-error bg-error-bg text-error-text' 
-                    : locationId !== ''
-                    ? 'border-primary bg-primary/5 text-main'
-                    : 'border-main bg-surface text-main'
-                }`}
-              >
-                <option value="">Wybierz lokację...</option>
-                {locations.map(loc => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.code} - {loc.name}
-                  </option>
-                ))}
-              </select>
+              {!itemId ? (
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-main bg-surface-secondary text-secondary opacity-50">
+                  <div className="text-sm">Najpierw wybierz item...</div>
+                </div>
+              ) : itemLocationData ? (
+                <div className="space-y-3">
+                  {/* Informacja o lokacji */}
+                  <div className="w-full px-4 py-3 rounded-lg border-2 border-primary bg-primary/5">
+                    <div className="text-xs text-secondary uppercase tracking-wide font-semibold">Przypisana lokacja</div>
+                    <div className="text-main font-bold mt-2">{itemLocationData.code}</div>
+                    <div className="text-sm text-secondary mt-1">Sektor: <span className="font-semibold text-main">{itemLocationData.name}</span></div>
+                  </div>
+                  
+                  {/* Wyświetl obłożenie lokacji */}
+                  {selectedLocationOccupancy && (
+                    <div className="p-3 bg-primary/5 border border-primary/30 rounded-lg text-sm">
+                      <div className="text-xs text-secondary uppercase tracking-wide font-semibold">Obłożenie lokacji</div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-main font-medium">
+                          {Math.round(selectedLocationOccupancy.currentOccupancy)} / {Math.round(selectedLocationOccupancy.maxCapacity)}
+                        </span>
+                        <span className="text-xs font-bold" style={{
+                          color: selectedLocationOccupancy.occupancyPercentage >= 100 ? '#ef4444' : 
+                                 selectedLocationOccupancy.occupancyPercentage >= 80 ? '#f97316' : '#22c55e'
+                        }}>
+                          {Math.round(selectedLocationOccupancy.occupancyPercentage)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-surface rounded-full h-2 mt-2">
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(selectedLocationOccupancy.occupancyPercentage, 100)}%`,
+                            backgroundColor: selectedLocationOccupancy.occupancyPercentage >= 100 ? '#ef4444' : 
+                                            selectedLocationOccupancy.occupancyPercentage >= 80 ? '#f97316' : '#22c55e'
+                          }}
+                        />
+                      </div>
+                      {txType === 'RECEIPT' && (
+                        <div className="text-xs text-secondary mt-2">
+                          Dostępne miejsce: {Math.round(selectedLocationOccupancy.maxCapacity - selectedLocationOccupancy.currentOccupancy)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full px-4 py-3 rounded-lg border-2 border-warning bg-warning/10 text-warning">
+                  <div className="text-sm font-medium">Ten item nie ma przypisanej lokacji</div>
+                </div>
+              )}
               {errors.location && <div className="text-xs text-error-text font-medium mt-1">{errors.location}</div>}
             </div>
           </div>

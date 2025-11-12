@@ -18,6 +18,7 @@ import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.Transaction;
 import com.kozimor.wms.Database.Model.TransactionType;
+import com.kozimor.wms.Database.Model.InventoryLocation;
 import com.kozimor.wms.Database.Model.DTO.OrderDTO;
 import com.kozimor.wms.Database.Model.DTO.OrderLineDTO;
 import com.kozimor.wms.Database.Model.DTO.OrderStatusHistoryDTO;
@@ -26,6 +27,7 @@ import com.kozimor.wms.Database.Repository.OrderLineRepository;
 import com.kozimor.wms.Database.Repository.OrderStatusHistoryRepository;
 import com.kozimor.wms.Database.Repository.UserRepository;
 import com.kozimor.wms.Database.Repository.ItemRepository;
+import com.kozimor.wms.Database.Repository.InventoryLocationRepository;
 import com.kozimor.wms.Database.Service.OrderService;
 import com.kozimor.wms.Database.Service.TransactionService;
 
@@ -40,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
+    private final InventoryLocationRepository inventoryLocationRepository;
     private final TransactionService transactionService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
@@ -47,12 +50,14 @@ public class OrderServiceImpl implements OrderService {
                           OrderStatusHistoryRepository orderStatusHistoryRepository,
                           UserRepository userRepository,
                           ItemRepository itemRepository,
+                          InventoryLocationRepository inventoryLocationRepository,
                           TransactionService transactionService) {
         this.orderRepository = orderRepository;
         this.orderLineRepository = orderLineRepository;
         this.orderStatusHistoryRepository = orderStatusHistoryRepository;
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
+        this.inventoryLocationRepository = inventoryLocationRepository;
         this.transactionService = transactionService;
     }
 
@@ -87,6 +92,12 @@ public class OrderServiceImpl implements OrderService {
 
             OrderLine savedOrderLine = orderLineRepository.save(orderLine);
 
+            // Pobierz lokację itemu (musi być przypisana)
+            java.util.List<InventoryLocation> itemLocations = inventoryLocationRepository.findAllByItem(item);
+            if (itemLocations.isEmpty()) {
+                throw new IllegalArgumentException("Item '" + item.getName() + "' nie ma przypisanej lokacji. Nie można utworzyć zamówienia.");
+            }
+            
             // Tworzenie transakcji do aktualizacji stanu produktu
             Transaction transaction = new Transaction();
             transaction.setTransactionType(TransactionType.ORDER);
@@ -95,6 +106,9 @@ public class OrderServiceImpl implements OrderService {
             transaction.setUser(user);
             transaction.setTransactionStatus(TransactionStatus.PENDING);
             transaction.setDescription("Order #" + savedOrder.getOrderNumber());
+            
+            // Ustaw lokację (wybierz pierwszą/główną lokację itemu)
+            transaction.setLocation(itemLocations.get(0).getLocation());
 
             // Używamy TransactionService które automatycznie aktualizuje ilość
             Transaction savedTransaction = transactionService.createTransaction(transaction);

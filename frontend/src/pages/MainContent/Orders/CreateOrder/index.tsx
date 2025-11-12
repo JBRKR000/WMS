@@ -424,7 +424,16 @@ const CreateOrder: FC = () => {
                     .catch((err: any) => {
                       console.error('Błąd przy tworzeniu zamówienia:', err)
                       setIsSubmitting(false)
-                      alert('✗ Błąd przy tworzeniu zamówienia')
+                      
+                      // Spróbuj wyświetlić szczegółową wiadomość błędu z serwera
+                      let errorMessage = 'Błąd przy tworzeniu zamówienia'
+                      if (err instanceof Error) {
+                        errorMessage = err.message
+                      } else if (err?.message) {
+                        errorMessage = err.message
+                      }
+                      
+                      alert(`✗ ${errorMessage}`)
                     })
                 }} 
                 disabled={isSubmitting}
