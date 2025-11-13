@@ -298,7 +298,7 @@ const InventoryStatus: FC = () => {
         }} className="lg:col-span-2 border rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle style={{ color: 'var(--color-error)' }} className="w-5 h-5" />
-            <h3 style={{ color: 'var(--color-error)' }} className="text-lg font-semibold">Sektory zagrożone</h3>
+            <h3 style={{ color: 'var(--color-error)' }} className="text-lg font-semibold">Sektory z kończącym się miejscem</h3>
           </div>
           <div className="space-y-2">
             {stats.criticalCount === 0 && stats.warningCount === 0 ? (
