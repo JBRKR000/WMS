@@ -143,7 +143,7 @@ public class ReportServiceImpl implements ReportService {
                     .status(status)
                     .lastReceiptDate(lastReceiptDate)
                     .lastIssueDate(lastIssueDate)
-                    .warehouseValue((double) item.getCurrentQuantity())
+                    .warehouseValue(item.getCurrentQuantity() != null ? (double) item.getCurrentQuantity() : 0.0)
                     .unit(item.getUnit())
                     .qrCode(item.getQrCode())
                     .differenceFromPrevious(differenceFromPrevious)
