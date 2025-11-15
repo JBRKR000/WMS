@@ -1,4 +1,4 @@
-package com.kozimor.wms;
+package com.kozimor.wms.UnitTests;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
