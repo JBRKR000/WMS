@@ -13,8 +13,6 @@ type LayoutProps = {
     children: ReactNode
 }
 
-
-
 // Nowe sekcje zgodnie z wymaganiami użytkownika
 const dashboardSections: SidebarSection[] = [
     {
@@ -27,18 +25,26 @@ const dashboardSections: SidebarSection[] = [
     },
 ];
 
-const componentsSections: SidebarSection[] = [
-    {
-        label: "Komponenty i Produkty",
-        items: [
-            { to: "/components", icon: Package, label: "Lista komponentów" },
-            { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
-            { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
-            { to: "/components/search", icon: BarChart3, label: "Wielokryterialne wyszukiwanie" },
-            
-        ],
-    },
-];
+const getComponentsSections = (isProduction: boolean): SidebarSection[] => {
+    const items = [
+        { to: "/components", icon: Package, label: "Lista komponentów" },
+        { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
+    ];
+
+    // ROLE_PRODUCTION nie widzi "Dodaj komponent/produkt"
+    if (!isProduction) {
+        items.push({ to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" });
+    }
+
+    items.push({ to: "/components/search", icon: BarChart3, label: "Wielokryterialne wyszukiwanie" });
+
+    return [
+        {
+            label: "Komponenty i Produkty",
+            items,
+        },
+    ];
+};
 
 const issuesSections: SidebarSection[] = [
     {
@@ -60,17 +66,25 @@ const ordersSections: SidebarSection[] = [
     },
 ];
 
-const raportsSections: SidebarSection[] = [
-    {
-        label: "Raporty",
-        items: [
-            { to: "/raports/inventory", icon: BarChart3, label: "Stany magazynowe" },
-            { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
-            { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
-            { to: "/raports/export", icon: FileSpreadsheet, label: "Raporty" },
-        ],
-    },
-];
+const getRaportsSections = (isProduction: boolean): SidebarSection[] => {
+    const items = [
+        { to: "/raports/inventory", icon: BarChart3, label: "Stany magazynowe" },
+        { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
+        { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
+    ];
+
+    // ROLE_PRODUCTION nie widzi opcji eksportu raportów
+    if (!isProduction) {
+        items.push({ to: "/raports/export", icon: FileSpreadsheet, label: "Raporty" });
+    }
+
+    return [
+        {
+            label: "Raporty",
+            items,
+        },
+    ];
+};
 
 const settingsSections: SidebarSection[] = [
     {
@@ -86,22 +100,24 @@ const settingsSections: SidebarSection[] = [
 const Layout: FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
 
-    // get admin status from AuthContext
-    const { isAdmin } = useAuth()
-
+    // Pobierz flagi ról z AuthContext
+    const { isAdmin, isProduction, isWarehouse } = useAuth()
 
     const getSectionsForPath = (pathname: string): SidebarSection[] => {
-        console.log('getSectionsForPath called with:', pathname)
+        console.log('getSectionsForPath called with:', pathname, { isAdmin, isProduction, isWarehouse })
+        
         if (pathname.startsWith('/items')) {
             console.log('Matched /items path')
-            return dashboardSections; // Pokaż dashboard sections dla /items
+            return dashboardSections;
         }
+        
         if (pathname.startsWith('/settings')) {
-            // only admin can access settings
+            // Tylko ROLE_ADMIN widzi ustawienia
             return isAdmin ? settingsSections : [];
         }
+        
         if (pathname.startsWith('/components') || pathname.startsWith('/products')) {
-            return componentsSections;
+            return getComponentsSections(isProduction);
         } else if (pathname.startsWith('/main')) {
             return dashboardSections;
         } else if (pathname.startsWith('/issues')) {
@@ -109,10 +125,9 @@ const Layout: FC<LayoutProps> = ({ children }) => {
         } else if (pathname.startsWith('/orders')) {
             return ordersSections;
         } else if (pathname.startsWith('/raports')) {
-            return raportsSections;
+            return getRaportsSections(isProduction);
         }
         return dashboardSections;
-        //TODO: dodać sekcję domyślną lub obsługę błędów
     };
 
     const currentSections = getSectionsForPath(location.pathname);

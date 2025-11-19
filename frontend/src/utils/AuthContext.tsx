@@ -16,7 +16,10 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => void;
   username: string | null;
+  role: string | null;
   isAdmin: boolean;
+  isProduction: boolean;
+  isWarehouse: boolean;
   isLoading: boolean;
 }
 
@@ -33,8 +36,17 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isProduction, setIsProduction] = useState<boolean>(false);
+  const [isWarehouse, setIsWarehouse] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const determineRoleFlags = (userRole: string) => {
+    setIsAdmin(userRole === 'ROLE_ADMIN');
+    setIsProduction(userRole === 'ROLE_PRODUCTION');
+    setIsWarehouse(userRole === 'ROLE_WAREHOUSE');
+  };
 
   useEffect(() => {
     const initUser = async () => {
@@ -55,11 +67,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const decoded = jwtDecode<JwtPayload>(token);
               const userId = decoded.userId;
 
-              const user = await fetchApi<{ username: string }>(`/users/${userId}`);
+              const user = await fetchApi<{ 
+                username: string;
+                role: { roleName: string } | string;
+              }>(`/users/${userId}`);
+              
               setUsername(user.username);
 
-              const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
-              setIsAdmin(admin);
+              // Obsługujemy zarówno role jako string jak i jako obiekt
+              const userRole = typeof user.role === 'string' 
+                ? user.role 
+                : user.role?.roleName || 'ROLE_USER';
+              
+              setRole(userRole);
+              determineRoleFlags(userRole);
             } catch (error) {
               console.error('Error fetching user data:', error);
               logout();
@@ -69,7 +90,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } else {
           setUsername(null);
+          setRole(null);
           setIsAdmin(false);
+          setIsProduction(false);
+          setIsWarehouse(false);
         }
       } finally {
         setIsLoading(false);
@@ -90,11 +114,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const decoded = jwtDecode<JwtPayload>(token);
         const userId = decoded.userId;
 
-        const user = await fetchApi<{ username: string }>(`/users/${userId}`);
+        const user = await fetchApi<{ 
+          username: string;
+          role: { roleName: string } | string;
+        }>(`/users/${userId}`);
+        
         setUsername(user.username);
 
-        const admin = await fetchApi<boolean>(`/users/isAdmin/${userId}`);
-        setIsAdmin(admin);
+        const userRole = typeof user.role === 'string' 
+          ? user.role 
+          : user.role?.roleName || 'ROLE_USER';
+        
+        setRole(userRole);
+        determineRoleFlags(userRole);
       } catch (error) {
         console.error('Error fetching user data after login:', error);
       }
@@ -117,11 +149,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     AuthService.logout();
     setIsAuthenticated(false);
     setUsername(null);
+    setRole(null);
     setIsAdmin(false);
+    setIsProduction(false);
+    setIsWarehouse(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, register, logout, isAdmin, isLoading }}>
+    <AuthContext.Provider 
+      value={{ 
+        isAuthenticated, 
+        username, 
+        role,
+        login, 
+        register, 
+        logout, 
+        isAdmin,
+        isProduction,
+        isWarehouse,
+        isLoading 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
