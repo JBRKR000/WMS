@@ -4,10 +4,12 @@ import com.kozimor.wms.Database.Model.ScheduleConfig;
 import com.kozimor.wms.Database.Service.ScheduleConfigService;
 import com.kozimor.wms.Database.Service.SchedulerService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/schedule")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN')")
 public class ScheduleController {
 
     private final ScheduleConfigService scheduleConfigService;
