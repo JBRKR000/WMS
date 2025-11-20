@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -36,6 +37,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Value("${jwt.secret}")
@@ -51,7 +53,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/register").hasAnyAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/transactions").hasAnyAuthority("ROLE_ADMIN","ROLE_WAREHOUSE")
                 .requestMatchers("/api/settings/**").hasAnyAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()

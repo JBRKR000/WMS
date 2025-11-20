@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
@@ -39,6 +40,7 @@ public class ItemController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_WAREHOUSE')")
     public ResponseEntity<java.util.Map<String, Object>> createItem(@Valid @RequestBody Item item) {
         Item created = itemService.createItem(item);
         String qrUrl = itemService.buildQrUrl(created);
