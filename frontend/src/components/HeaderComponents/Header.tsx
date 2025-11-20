@@ -47,12 +47,42 @@ type NavItem = {
 const Header: FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
-  const { username, isAdmin, logout } = useAuth();
+  const { username, isAdmin, logout, isProduction } = useAuth();
   const navigate = useNavigate();
   const iconSize = 24;
 
+  // Helper function to get components submenu based on role  
+  const getComponentsSubmenu = () => {
+    const items = [
+      { to: "/components", icon: List, label: "Lista komponentów" },
+      { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
+    ];
+    
+    // ROLE_PRODUCTION nie widzi "Dodaj komponent/produkt"
+    if (!isProduction) {
+      items.push({ to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" });
+    }
+    
+    items.push({ to: "/components/search", icon: BarChart, label: "Wielokryterialne wyszukiwanie" });
+    
+    return items;
+  };
 
-
+  // Helper function to get raports submenu based on role
+  const getRaportsSubmenu = () => {
+    const items = [
+      { to: "/raports/inventory", icon: BarChart, label: "Stany magazynowe" },
+      { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
+      { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
+    ];
+    
+    // ROLE_PRODUCTION nie widzi opcji eksportu raportów
+    if (!isProduction) {
+      items.push({ to: "/raports/export", icon: FileText, label: "Raporty" });
+    }
+    
+    return items;
+  };
 
   const navItems: NavItem[] = [
     {
@@ -69,12 +99,7 @@ const Header: FC = () => {
       to: "/components",
       icon: ShoppingCart,
       label: "Komponenty i Produkty",
-      submenu: [
-        { to: "/components", icon: List, label: "Lista komponentów" },
-        { to: "/components/products", icon: Layers, label: "Lista produktów gotowych" },
-        { to: "/components/add", icon: Plus, label: "Dodaj komponent/produkt" },
-        { to: "/components/search", icon: BarChart, label: "Wielokryterialne wyszukiwanie" },
-      ],
+      submenu: getComponentsSubmenu(),
     },
     {
       to: "/issues",
@@ -98,12 +123,7 @@ const Header: FC = () => {
       to: "/raports",
       icon: ChartColumnIcon,
       label: "Raporty",
-      submenu: [
-        { to: "/raports/inventory", icon: BarChart, label: "Stany magazynowe" },
-        { to: "/raports/inbound-summary", icon: Download, label: "Zestawienia przyjęć" },
-        { to: "/raports/outbound-summary", icon: Upload, label: "Zestawienia wydań" },
-        { to: "/raports/export", icon: FileText, label: "Raporty" },
-      ],
+      submenu: getRaportsSubmenu(),
     },
     {
       to: "/settings",
@@ -115,7 +135,7 @@ const Header: FC = () => {
       ],
     },
   ];
-  // filter settings for non-admin
+  // filter settings for non-admin and apply role-based filtering
   const filteredNavItems = navItems.filter(item => item.to !== "/settings" || isAdmin);
 
   const toggleSubmenu = (itemLabel: string) => {
@@ -309,7 +329,7 @@ const Header: FC = () => {
                 );
               })}
 
-              {/* Mobile Account Button */}
+              {/* Mobile Logout Button */}
               <div
                 className={`transform transition-all duration-300 ease-out ${
                   isMobileMenuOpen
@@ -318,16 +338,13 @@ const Header: FC = () => {
                 }`}
                 style={{ transitionDelay: `${navItems.length * 50}ms` }}
               >
-                <HeaderButton
-                  onClick={() => {
-                    console.log("Moje Konto clicked");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="justify-start w-full md:hidden"
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-200 text-secondary hover:text-primary md:hidden"
                 >
                   <User size={iconSize} />
-                  <span>Moje Konto</span>
-                </HeaderButton>
+                  <span>Wyloguj</span>
+                </button>
               </div>
 
               {/* Mobile Dark/Light Switch */}
