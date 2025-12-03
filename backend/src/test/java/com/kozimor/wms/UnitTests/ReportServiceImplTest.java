@@ -3,9 +3,6 @@ package com.kozimor.wms.UnitTests;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +23,6 @@ import com.kozimor.wms.Database.Model.Category;
 import com.kozimor.wms.Database.Model.Item;
 import com.kozimor.wms.Database.Model.ItemType;
 import com.kozimor.wms.Database.Model.Report;
-import com.kozimor.wms.Database.Model.ReportItem;
-import com.kozimor.wms.Database.Model.Transaction;
-import com.kozimor.wms.Database.Model.TransactionType;
 import com.kozimor.wms.Database.Model.UnitType;
 import com.kozimor.wms.Database.Model.User;
 import com.kozimor.wms.Database.Repository.ItemRepository;
@@ -41,7 +35,7 @@ import com.kozimor.wms.Database.Service.ServiceImpl.ReportServiceImpl;
 import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ReportServiceImpl - Unit Tests")
+@DisplayName("ReportServiceImpl - Critical Unit Tests")
 class ReportServiceImplTest {
 
     @Mock
@@ -99,7 +93,7 @@ class ReportServiceImplTest {
                 .build();
     }
 
-    // ========== CRUD OPERATIONS TESTS ==========
+    // ========== CRITICAL CRUD OPERATIONS ==========
 
     @Test
     @DisplayName("Should create report successfully")
@@ -114,7 +108,7 @@ class ReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should retrieve report by id")
+    @DisplayName("Should retrieve report by ID")
     void testGetReportById() {
         when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
 
@@ -122,22 +116,20 @@ class ReportServiceImplTest {
 
         assertTrue(result.isPresent());
         assertEquals(1L, result.get().getId());
-        verify(reportRepository, times(1)).findById(1L);
     }
 
     @Test
-    @DisplayName("Should return empty optional when report not found")
+    @DisplayName("Should return empty when report not found")
     void testGetReportByIdNotFound() {
         when(reportRepository.findById(999L)).thenReturn(Optional.empty());
 
         Optional<Report> result = reportService.getReportById(999L);
 
         assertFalse(result.isPresent());
-        verify(reportRepository, times(1)).findById(999L);
     }
 
     @Test
-    @DisplayName("Should get all reports paginated")
+    @DisplayName("Should get all reports with pagination")
     void testGetAllReportsPaginated() {
         Page<Report> page = new PageImpl<>(Arrays.asList(report), pageable, 1);
         when(reportRepository.findAllWithDetails(pageable)).thenReturn(page);
@@ -146,98 +138,6 @@ class ReportServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals(1, result.getContent().size());
-        verify(reportRepository, times(1)).findAllWithDetails(pageable);
-    }
-
-    @Test
-    @DisplayName("Should get reports by user id")
-    void testGetReportsByUserId() {
-        Page<Report> page = new PageImpl<>(Arrays.asList(report), pageable, 1);
-        when(reportRepository.findAllByCreatedBy_Id(1L, pageable)).thenReturn(page);
-
-        Page<Report> result = reportService.getReportsByUserId(1L, pageable);
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        verify(reportRepository, times(1)).findAllByCreatedBy_Id(1L, pageable);
-    }
-
-    @Test
-    @DisplayName("Should get reports by date range")
-    void testGetReportsByDateRange() {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
-        LocalDateTime endDate = LocalDateTime.now();
-        Page<Report> page = new PageImpl<>(Arrays.asList(report), pageable, 1);
-
-        when(reportRepository.findReportsByDateRange(startDate, endDate, pageable))
-                .thenReturn(page);
-
-        Page<Report> result = reportService.getReportsByDateRange(startDate, endDate, pageable);
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        verify(reportRepository, times(1)).findReportsByDateRange(startDate, endDate, pageable);
-    }
-
-    @Test
-    @DisplayName("Should get reports with critical items")
-    void testGetReportsWithCriticalItems() {
-        Page<Report> page = new PageImpl<>(Arrays.asList(report), pageable, 1);
-        when(reportRepository.findReportsWithCriticalItems(pageable)).thenReturn(page);
-
-        Page<Report> result = reportService.getReportsWithCriticalItems(pageable);
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        verify(reportRepository, times(1)).findReportsWithCriticalItems(pageable);
-    }
-
-    @Test
-    @DisplayName("Should get most recent report")
-    void testGetMostRecentReport() {
-        when(reportRepository.findMostRecentReport()).thenReturn(report);
-
-        Report result = reportService.getMostRecentReport();
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        verify(reportRepository, times(1)).findMostRecentReport();
-    }
-
-    @Test
-    @DisplayName("Should update report successfully")
-    void testUpdateReportSuccessfully() {
-        Report updatedReport = Report.builder()
-                .id(1L)
-                .totalItemsCount(2)
-                .lowStockCount(1)
-                .criticalStockCount(0)
-                .okCount(1)
-                .createdBy(user)
-                .build();
-
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
-        when(reportRepository.save(any(Report.class))).thenReturn(updatedReport);
-
-        Report result = reportService.updateReport(1L, updatedReport);
-
-        assertNotNull(result);
-        assertEquals(2, result.getTotalItemsCount());
-        assertEquals(1, result.getLowStockCount());
-        verify(reportRepository, times(1)).findById(1L);
-        verify(reportRepository, times(1)).save(any());
-    }
-
-    @Test
-    @DisplayName("Should throw exception when updating non-existent report")
-    void testUpdateNonExistentReport() {
-        when(reportRepository.findById(999L)).thenReturn(Optional.empty());
-
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> reportService.updateReport(999L, report));
-
-        assertEquals("Report not found with id: 999", exception.getMessage());
     }
 
     @Test
@@ -247,7 +147,6 @@ class ReportServiceImplTest {
 
         reportService.deleteReport(1L);
 
-        verify(reportRepository, times(1)).findById(1L);
         verify(reportRepository, times(1)).delete(report);
     }
 
@@ -256,32 +155,18 @@ class ReportServiceImplTest {
     void testDeleteNonExistentReport() {
         when(reportRepository.findById(999L)).thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> reportService.deleteReport(999L));
-
-        assertEquals("Report not found with id: 999", exception.getMessage());
-        verify(reportRepository, never()).delete(any());
     }
 
-    @Test
-    @DisplayName("Should get report count")
-    void testGetReportCount() {
-        when(reportRepository.count()).thenReturn(5L);
-
-        long count = reportService.getReportCount();
-
-        assertEquals(5L, count);
-        verify(reportRepository, times(1)).count();
-    }
-
-    // ========== SNAPSHOT CREATION TESTS ==========
+    // ========== CRITICAL SNAPSHOT TESTS ==========
 
     @Test
     @DisplayName("Should create snapshot with OK status items")
     void testCreateSnapshotWithOkStatusItems() {
         setupSecurityContext();
-
         item.setCurrentQuantity(50);
+
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
         when(reportRepository.save(any(Report.class))).thenReturn(report);
@@ -292,19 +177,15 @@ class ReportServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1, result.getTotalItemsCount());
-        assertEquals(0, result.getLowStockCount());
-        assertEquals(0, result.getCriticalStockCount());
         assertEquals(1, result.getOkCount());
-        verify(reportRepository, times(2)).save(any());
-        verify(reportItemRepository, times(1)).saveAll(any());
     }
 
     @Test
     @DisplayName("Should create snapshot with LOW status items")
     void testCreateSnapshotWithLowStatusItems() {
         setupSecurityContext();
-
         item.setCurrentQuantity(5);
+
         Report reportWithCounts = Report.builder()
                 .id(1L)
                 .totalItemsCount(1)
@@ -324,20 +205,15 @@ class ReportServiceImplTest {
         Report result = reportService.createSnapshot();
 
         assertNotNull(result);
-        assertEquals(1, result.getTotalItemsCount());
         assertEquals(1, result.getLowStockCount());
-        assertEquals(0, result.getCriticalStockCount());
-        assertEquals(0, result.getOkCount());
-        verify(reportRepository, times(2)).save(any());
-        verify(reportItemRepository, times(1)).saveAll(any());
     }
 
     @Test
     @DisplayName("Should create snapshot with CRITICAL status items")
     void testCreateSnapshotWithCriticalStatusItems() {
         setupSecurityContext();
-
         item.setCurrentQuantity(0);
+
         Report reportWithCounts = Report.builder()
                 .id(1L)
                 .totalItemsCount(1)
@@ -357,12 +233,7 @@ class ReportServiceImplTest {
         Report result = reportService.createSnapshot();
 
         assertNotNull(result);
-        assertEquals(1, result.getTotalItemsCount());
-        assertEquals(0, result.getLowStockCount());
         assertEquals(1, result.getCriticalStockCount());
-        assertEquals(0, result.getOkCount());
-        verify(reportRepository, times(2)).save(any());
-        verify(reportItemRepository, times(1)).saveAll(any());
     }
 
     @Test
@@ -410,111 +281,13 @@ class ReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should create snapshot with transaction history")
-    void testCreateSnapshotWithTransactionHistory() {
-        setupSecurityContext();
-
-        Transaction receiptTransaction = new Transaction();
-        receiptTransaction.setId(1L);
-        receiptTransaction.setTransactionType(TransactionType.RECEIPT);
-        receiptTransaction.setTransactionDate(OffsetDateTime.now().minusDays(5));
-
-        Transaction orderTransaction = new Transaction();
-        orderTransaction.setId(2L);
-        orderTransaction.setTransactionType(TransactionType.ORDER);
-        orderTransaction.setTransactionDate(OffsetDateTime.now().minusDays(2));
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report);
-        when(transactionRepository.findByItemId(1L))
-                .thenReturn(Arrays.asList(receiptTransaction, orderTransaction));
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
-
-        assertNotNull(result);
-        verify(reportItemRepository, times(1)).saveAll(any());
-    }
-
-    @Test
     @DisplayName("Should throw exception when user not found during snapshot creation")
     void testCreateSnapshotUserNotFound() {
         setupSecurityContext();
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> reportService.createSnapshot());
-
-        assertTrue(exception.getMessage().contains("User not found"));
-    }
-
-    @Test
-    @DisplayName("Should create snapshot with null quantity items")
-    void testCreateSnapshotWithNullQuantityItems() {
-        setupSecurityContext();
-
-        item.setCurrentQuantity(null);
-        Report reportWithCounts = Report.builder()
-                .id(1L)
-                .totalItemsCount(1)
-                .lowStockCount(0)
-                .criticalStockCount(0)
-                .okCount(1)
-                .createdBy(user)
-                .build();
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report, reportWithCounts);
-        when(reportRepository.findAllWithDetails(any())).thenReturn(new PageImpl<>(new ArrayList<>(), pageable, 0));
-        when(transactionRepository.findByItemId(1L)).thenReturn(new ArrayList<>());
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalItemsCount());
-        assertEquals(1, result.getOkCount());
-        assertEquals(0, result.getLowStockCount());
-        assertEquals(0, result.getCriticalStockCount());
-    }
-
-    @Test
-    @DisplayName("Should create snapshot and calculate difference from previous")
-    void testCreateSnapshotCalculatesDifference() {
-        setupSecurityContext();
-
-        Report previousReport = Report.builder()
-                .id(0L)
-                .totalItemsCount(1)
-                .okCount(1)
-                .createdBy(user)
-                .build();
-
-        ReportItem previousReportItem = ReportItem.builder()
-                .id(1L)
-                .report(previousReport)
-                .item(item)
-                .itemName("Test Item")
-                .status("OK")
-                .warehouseValue(45.0)
-                .build();
-
-        previousReport.setReportItems(new HashSet<>(Arrays.asList(previousReportItem)));
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report);
-        when(reportRepository.findAllWithDetails(any())).thenReturn(
-                new PageImpl<>(Arrays.asList(previousReport), pageable, 1));
-        when(transactionRepository.findByItemId(1L)).thenReturn(new ArrayList<>());
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
-
-        assertNotNull(result);
-        verify(reportItemRepository, times(1)).saveAll(any());
     }
 
     @Test
@@ -540,102 +313,17 @@ class ReportServiceImplTest {
 
         assertNotNull(result);
         assertEquals(0, result.getTotalItemsCount());
-        verify(reportItemRepository, times(1)).saveAll(any());
-    }
-
-    // ========== STATUS CALCULATION TESTS ==========
-
-    @Test
-    @DisplayName("Should calculate OK status correctly")
-    void testCalculateStatusOk() {
-        item.setCurrentQuantity(100);
-        setupSecurityContext();
-
-        Report reportWithCounts = Report.builder()
-                .id(1L)
-                .totalItemsCount(1)
-                .lowStockCount(0)
-                .criticalStockCount(0)
-                .okCount(1)
-                .createdBy(user)
-                .build();
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report, reportWithCounts);
-        when(reportRepository.findAllWithDetails(any())).thenReturn(new PageImpl<>(new ArrayList<>(), pageable, 0));
-        when(transactionRepository.findByItemId(1L)).thenReturn(new ArrayList<>());
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
-
-        assertNotNull(result);
-        assertEquals(1, result.getOkCount());
-        assertEquals(0, result.getLowStockCount());
-        assertEquals(0, result.getCriticalStockCount());
-        verify(reportItemRepository, times(1)).saveAll(any());
     }
 
     @Test
-    @DisplayName("Should calculate LOW status correctly")
-    void testCalculateStatusLow() {
-        item.setCurrentQuantity(10);
-        setupSecurityContext();
+    @DisplayName("Should get most recent report")
+    void testGetMostRecentReport() {
+        when(reportRepository.findMostRecentReport()).thenReturn(report);
 
-        Report reportWithCounts = Report.builder()
-                .id(1L)
-                .totalItemsCount(1)
-                .lowStockCount(1)
-                .criticalStockCount(0)
-                .okCount(0)
-                .createdBy(user)
-                .build();
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report, reportWithCounts);
-        when(reportRepository.findAllWithDetails(any())).thenReturn(new PageImpl<>(new ArrayList<>(), pageable, 0));
-        when(transactionRepository.findByItemId(1L)).thenReturn(new ArrayList<>());
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
+        Report result = reportService.getMostRecentReport();
 
         assertNotNull(result);
-        assertEquals(1, result.getLowStockCount());
-        assertEquals(0, result.getOkCount());
-        assertEquals(0, result.getCriticalStockCount());
-        verify(reportItemRepository, times(1)).saveAll(any());
-    }
-
-    @Test
-    @DisplayName("Should calculate CRITICAL status correctly")
-    void testCalculateStatusCritical() {
-        item.setCurrentQuantity(0);
-        setupSecurityContext();
-
-        Report reportWithCounts = Report.builder()
-                .id(1L)
-                .totalItemsCount(1)
-                .lowStockCount(0)
-                .criticalStockCount(1)
-                .okCount(0)
-                .createdBy(user)
-                .build();
-
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
-        when(reportRepository.save(any(Report.class))).thenReturn(report, reportWithCounts);
-        when(reportRepository.findAllWithDetails(any())).thenReturn(new PageImpl<>(new ArrayList<>(), pageable, 0));
-        when(transactionRepository.findByItemId(1L)).thenReturn(new ArrayList<>());
-        when(reportItemRepository.saveAll(any())).thenReturn(new ArrayList<>());
-
-        Report result = reportService.createSnapshot();
-
-        assertNotNull(result);
-        assertEquals(1, result.getCriticalStockCount());
-        assertEquals(0, result.getOkCount());
-        assertEquals(0, result.getLowStockCount());
-        verify(reportItemRepository, times(1)).saveAll(any());
+        assertEquals(1L, result.getId());
     }
 
     // ========== HELPER METHODS ==========

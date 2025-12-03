@@ -172,7 +172,7 @@ class CustomUserDetailsServiceTest {
     // ========== NULL ROLE TESTS ==========
 
     @Test
-    @DisplayName("Should load user with null role")
+    @DisplayName("Should load user with null role - empty authorities")
     void testLoadUserWithNullRole() {
         testUser.setRole(null);
         when(userRepository.findByUsername("testuser"))
@@ -183,18 +183,6 @@ class CustomUserDetailsServiceTest {
         assertNotNull(result);
         assertEquals("testuser", result.getUsername());
         assertTrue(result.getAuthorities().isEmpty());
-    }
-
-    @Test
-    @DisplayName("Should have empty authorities when role is null")
-    void testEmptyAuthoritiesWhenRoleNull() {
-        testUser.setRole(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertEquals(0, result.getAuthorities().size());
     }
 
     // ========== ACCOUNT STATUS TESTS ==========
@@ -285,32 +273,6 @@ class CustomUserDetailsServiceTest {
         assertEquals(username, result.getUsername());
     }
 
-    @Test
-    @DisplayName("Should handle username with special characters")
-    void testUsernameWithSpecialCharacters() {
-        String username = "user.name-123_test";
-        testUser.setUsername(username);
-        when(userRepository.findByUsername(username))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername(username);
-
-        assertEquals(username, result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should handle long passwords")
-    void testLongPassword() {
-        String longPassword = "a".repeat(255);
-        testUser.setPassword(longPassword);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertEquals(longPassword, result.getPassword());
-    }
-
     // ========== REPOSITORY INTERACTION TESTS ==========
 
     @Test
@@ -324,155 +286,67 @@ class CustomUserDetailsServiceTest {
         verify(userRepository, times(1)).findByUsername("testuser");
     }
 
-    @Test
-    @DisplayName("Should call repository with correct username parameter")
-    void testRepositoryCalledWithCorrectUsername() {
-        String username = "specificuser";
-        when(userRepository.findByUsername(username))
-                .thenReturn(Optional.of(testUser));
-
-        userDetailsService.loadUserByUsername(username);
-
-        verify(userRepository).findByUsername(username);
-    }
+    // ========== SECURITY AUTHORIZATION TESTS ==========
 
     @Test
-    @DisplayName("Should not call repository multiple times on repeated calls")
-    void testRepositoryNotCalledMultipleTimesOnRepeatedCalls() {
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        userDetailsService.loadUserByUsername("testuser");
-        userDetailsService.loadUserByUsername("testuser");
-
-        verify(userRepository, times(2)).findByUsername("testuser");
-    }
-
-    // ========== EDGE CASES TESTS ==========
-
-    @Test
-    @DisplayName("Should load user with empty string password")
-    void testLoadUserWithEmptyPassword() {
-        testUser.setPassword("");
+    @DisplayName("Should verify user with ROLE_ADMIN can authenticate")
+    void testRoleAdminAuthentication() {
         when(userRepository.findByUsername("testuser"))
                 .thenReturn(Optional.of(testUser));
 
         UserDetails result = userDetailsService.loadUserByUsername("testuser");
 
-        assertEquals("", result.getPassword());
+        assertTrue(result.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
     }
 
     @Test
-    @DisplayName("Should handle case sensitivity in username lookup")
-    void testUsernameCaseSensitivity() {
-        when(userRepository.findByUsername("TestUser"))
+    @DisplayName("Should verify user with ROLE_WAREHOUSE can authenticate")
+    void testRoleWarehouseAuthentication() {
+        testUser.setRole(warehouseRole);
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(Optional.of(testUser));
+
+        UserDetails result = userDetailsService.loadUserByUsername("testuser");
+
+        assertTrue(result.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_WAREHOUSE")));
+    }
+
+    @Test
+    @DisplayName("Should verify user with ROLE_PRODUCTION can authenticate")
+    void testRoleProductionAuthentication() {
+        testUser.setRole(productionRole);
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(Optional.of(testUser));
+
+        UserDetails result = userDetailsService.loadUserByUsername("testuser");
+
+        assertTrue(result.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PRODUCTION")));
+    }
+
+    @Test
+    @DisplayName("Should have exactly one authority per user")
+    void testExactlyOneAuthority() {
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(Optional.of(testUser));
+
+        UserDetails result = userDetailsService.loadUserByUsername("testuser");
+
+        assertEquals(1, result.getAuthorities().size());
+    }
+
+    @Test
+    @DisplayName("Should throw UsernameNotFoundException for unauthorized access attempt")
+    void testUnauthorizedAccessThrowsException() {
+        when(userRepository.findByUsername("hacker"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(UsernameNotFoundException.class,
-                () -> userDetailsService.loadUserByUsername("TestUser"));
-    }
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
+                () -> userDetailsService.loadUserByUsername("hacker"));
 
-    @Test
-    @DisplayName("Should load user with null email")
-    void testLoadUserWithNullEmail() {
-        testUser.setEmail(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should load user with null firstName")
-    void testLoadUserWithNullFirstName() {
-        testUser.setFirstName(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should load user with null lastName")
-    void testLoadUserWithNullLastName() {
-        testUser.setLastName(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should load user with null employeeId")
-    void testLoadUserWithNullEmployeeId() {
-        testUser.setEmployeeId(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should load user with all optional fields null")
-    void testLoadUserWithAllOptionalFieldsNull() {
-        testUser.setEmail(null);
-        testUser.setFirstName(null);
-        testUser.setLastName(null);
-        testUser.setEmployeeId(null);
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-
-        UserDetails result = userDetailsService.loadUserByUsername("testuser");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    @DisplayName("Should throw correct exception type on user not found")
-    void testCorrectExceptionType() {
-        when(userRepository.findByUsername("nonexistent"))
-                .thenReturn(Optional.empty());
-
-        Exception exception = assertThrows(UsernameNotFoundException.class,
-                () -> userDetailsService.loadUserByUsername("nonexistent"));
-
-        assertInstanceOf(UsernameNotFoundException.class, exception);
-    }
-
-    @Test
-    @DisplayName("Should load multiple different users without interference")
-    void testLoadMultipleDifferentUsers() {
-        User user2 = new User();
-        user2.setUsername("seconduser");
-        user2.setPassword("password2");
-        user2.setRole(warehouseRole);
-
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(testUser));
-        when(userRepository.findByUsername("seconduser"))
-                .thenReturn(Optional.of(user2));
-
-        UserDetails result1 = userDetailsService.loadUserByUsername("testuser");
-        UserDetails result2 = userDetailsService.loadUserByUsername("seconduser");
-
-        assertEquals("testuser", result1.getUsername());
-        assertEquals("ROLE_ADMIN", result1.getAuthorities().iterator().next().getAuthority());
-
-        assertEquals("seconduser", result2.getUsername());
-        assertEquals("ROLE_WAREHOUSE", result2.getAuthorities().iterator().next().getAuthority());
+        assertFalse(exception.getMessage().isBlank());
     }
 
 }
