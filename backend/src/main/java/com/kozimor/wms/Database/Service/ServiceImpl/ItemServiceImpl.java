@@ -111,7 +111,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Item updateItemQuantity(Long id, Integer quantity) {
+    public Item updateItemQuantity(Long id, Double quantity) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + id));
 

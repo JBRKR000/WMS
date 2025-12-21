@@ -45,7 +45,7 @@ public class Transaction {
 
     @Min(0)
     @Column(name = "quantity", nullable = false)
-    private Integer quantity; // ILOŚĆ
+    private Double quantity; // ILOŚĆ
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

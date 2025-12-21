@@ -16,7 +16,7 @@ public class TransactionDTO {
     private String transactionDate;
     private String transactionType;
     private String itemName;
-    private Integer quantity;
+    private Double quantity;
     private String userName;
     private String description;
     private String categoryName;

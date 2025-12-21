@@ -96,7 +96,7 @@ class ReportServiceIntegrationTest {
         testItem.setName("Test Item");
         testItem.setDescription("Item for tests");
         testItem.setCategory(testCategory);
-        testItem.setCurrentQuantity(100);
+        testItem.setCurrentQuantity(100.0);
         testItem.setUnit(UnitType.PCS);
         testItem.setType(ItemType.PRODUCT);
         testItem = itemRepository.save(testItem);

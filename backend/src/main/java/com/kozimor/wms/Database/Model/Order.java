@@ -60,9 +60,9 @@ public class Order {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Integer getTotalQuantity() {
+    public Double getTotalQuantity() {
         return orderLines.stream()
-                .mapToInt(OrderLine::getQuantity)
+                .mapToDouble(OrderLine::getQuantity)
                 .sum();
     }
 

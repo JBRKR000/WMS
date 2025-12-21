@@ -42,7 +42,7 @@ public class Item {
     private UnitType unit;
 
     @Column(name = "current_quantity", nullable = false)
-    private Integer currentQuantity; // AKTUALNA ILOŚĆ
+    private Double currentQuantity; // AKTUALNA ILOŚĆ
 
     @Column(name = "qr_code", unique = true, length = 255)
     private String qrCode; // KOD QR

@@ -57,7 +57,7 @@ class TransactionServiceImplTest {
         item.setId(1L);
         item.setName("Test Item");
         item.setCategory(category);
-        item.setCurrentQuantity(100);
+        item.setCurrentQuantity(100.0);
 
         user = new User();
         user.setId(1L);
@@ -73,7 +73,7 @@ class TransactionServiceImplTest {
         transaction.setItem(item);
         transaction.setUser(user);
         transaction.setLocation(location);
-        transaction.setQuantity(10);
+        transaction.setQuantity(10.0);
         transaction.setTransactionType(TransactionType.RECEIPT);
         transaction.setTransactionStatus(TransactionStatus.COMPLETED);
         transaction.setDescription("Test transaction");
@@ -91,7 +91,7 @@ class TransactionServiceImplTest {
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(110, item.getCurrentQuantity());
+        assertEquals(110.0, item.getCurrentQuantity());
         verify(itemRepository, times(1)).save(item);
     }
 
@@ -105,7 +105,7 @@ class TransactionServiceImplTest {
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(90, item.getCurrentQuantity());
+        assertEquals(90.0, item.getCurrentQuantity());
         verify(itemRepository, times(1)).save(item);
     }
 
@@ -119,7 +119,7 @@ class TransactionServiceImplTest {
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(90, item.getCurrentQuantity());
+        assertEquals(90.0, item.getCurrentQuantity());
     }
 
     @Test
@@ -132,7 +132,7 @@ class TransactionServiceImplTest {
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(90, item.getCurrentQuantity());
+        assertEquals(90.0, item.getCurrentQuantity());
     }
 
     @Test
@@ -145,7 +145,7 @@ class TransactionServiceImplTest {
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(110, item.getCurrentQuantity());
+        assertEquals(110.0, item.getCurrentQuantity());
     }
 
     // ========== VALIDATION TESTS - CRITICAL ==========
@@ -162,7 +162,7 @@ class TransactionServiceImplTest {
     @Test
     @DisplayName("Should throw exception when quantity is zero")
     void testCreateTransactionWithZeroQuantity() {
-        transaction.setQuantity(0);
+        transaction.setQuantity(0.0);
 
         assertThrows(IllegalArgumentException.class, 
             () -> transactionService.createTransaction(transaction));
@@ -171,7 +171,7 @@ class TransactionServiceImplTest {
     @Test
     @DisplayName("Should throw exception when quantity is negative")
     void testCreateTransactionWithNegativeQuantity() {
-        transaction.setQuantity(-5);
+        transaction.setQuantity(-5.0);
 
         assertThrows(IllegalArgumentException.class, 
             () -> transactionService.createTransaction(transaction));
@@ -220,7 +220,7 @@ class TransactionServiceImplTest {
     @DisplayName("Should throw exception when insufficient quantity for ORDER")
     void testCreateOrderTransactionWithInsufficientQuantity() {
         transaction.setTransactionType(TransactionType.ORDER);
-        transaction.setQuantity(150);
+        transaction.setQuantity(150.0);
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
 
@@ -232,7 +232,7 @@ class TransactionServiceImplTest {
     @DisplayName("Should throw exception when insufficient quantity for ISSUE_TO_PRODUCTION")
     void testCreateIssueToProductionWithInsufficientQuantity() {
         transaction.setTransactionType(TransactionType.ISSUE_TO_PRODUCTION);
-        transaction.setQuantity(150);
+        transaction.setQuantity(150.0);
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
 
@@ -244,27 +244,27 @@ class TransactionServiceImplTest {
     @DisplayName("Should successfully create transaction with exact quantity match")
     void testCreateTransactionWithExactQuantityMatch() {
         transaction.setTransactionType(TransactionType.ORDER);
-        transaction.setQuantity(100);
+        transaction.setQuantity(100.0);
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
 
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(0, item.getCurrentQuantity());
+        assertEquals(0.0, item.getCurrentQuantity());
     }
 
     @Test
     @DisplayName("Should successfully create transaction with large quantity")
     void testCreateTransactionWithLargeQuantity() {
-        transaction.setQuantity(1000);
+        transaction.setQuantity(1000.0);
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
 
         Transaction result = transactionService.createTransaction(transaction);
 
         assertNotNull(result);
-        assertEquals(1100, item.getCurrentQuantity());
+        assertEquals(1100.0, item.getCurrentQuantity());
     }
 
     // ========== CRUD OPERATIONS ==========

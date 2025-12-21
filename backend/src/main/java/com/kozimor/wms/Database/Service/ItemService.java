@@ -53,7 +53,7 @@ public interface ItemService {
      * @param quantity The new quantity
      * @return The updated item
      */
-    Item updateItemQuantity(Long id, Integer quantity);
+    Item updateItemQuantity(Long id, Double quantity);
 
     /**
      * Delete an item by its ID

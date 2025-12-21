@@ -54,8 +54,8 @@ public class TransactionServiceImpl implements TransactionService {
         Item item = itemRepository.findById(transaction.getItem().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + transaction.getItem().getId()));
         
-        Integer currentQuantity = item.getCurrentQuantity() != null ? item.getCurrentQuantity() : 0;
-        Integer newQuantity = currentQuantity;
+        Double currentQuantity = item.getCurrentQuantity() != null ? item.getCurrentQuantity() : 0.0;
+        Double newQuantity = currentQuantity;
         
         switch (transaction.getTransactionType()) {
             case RECEIPT:
@@ -76,7 +76,7 @@ public class TransactionServiceImpl implements TransactionService {
                 break;
         }
         if (newQuantity < 0) {
-            newQuantity = 0;
+            newQuantity = 0.0;
         }
         
         item.setCurrentQuantity(newQuantity);

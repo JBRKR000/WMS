@@ -129,8 +129,8 @@ public class LocationService {
         
         // Pobierz wszystkie itemy w lokacji i zsumuj ich currentQuantity
         List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
-        int totalQuantity = itemsInLocation.stream()
-                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+        double totalQuantity = itemsInLocation.stream()
+                .mapToDouble(inv -> inv.getItem().getCurrentQuantity())
                 .sum();
         
         // Sprawdzaj czy całkowita ilość nie przekroczy maksymalnego progu
@@ -171,8 +171,8 @@ public class LocationService {
         
         // Pobierz wszystkie itemy w tej lokacji i zsumuj ich currentQuantity
         List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
-        int totalQuantity = itemsInLocation.stream()
-                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+        double totalQuantity = itemsInLocation.stream()
+                .mapToDouble(inv -> inv.getItem().getCurrentQuantity())
                 .sum();
         
         double maxCapacity = threshold != null ? threshold.getMaxThreshold() : 0;
@@ -219,15 +219,15 @@ public class LocationService {
         
         // Sprawdź pojemność na podstawie currentQuantity wszystkich itemów w lokacji
         List<InventoryLocation> itemsInLocation = inventoryLocationRepository.findAllByLocation(location);
-        int currentOccupancy = itemsInLocation.stream()
-                .mapToInt(inv -> inv.getItem().getCurrentQuantity())
+        double currentOccupancy = itemsInLocation.stream()
+                .mapToDouble(inv -> inv.getItem().getCurrentQuantity())
                 .sum();
         
         LocationThreshold threshold = thresholdRepository.findByLocation(location)
                 .orElseThrow(() -> new IllegalArgumentException("Threshold dla lokacji nie znaleziony"));
         
         // Sprawdź czy dodanie tego itemu nie przekroczy progu
-        int newOccupancy = currentOccupancy + item.getCurrentQuantity();
+        double newOccupancy = currentOccupancy + item.getCurrentQuantity();
         if (newOccupancy > threshold.getMaxThreshold()) {
             throw new IllegalStateException("Brak miejsca w lokacji. Maksymalna pojemność: " + 
                     threshold.getMaxThreshold() + ", bieżące obłożenie: " + currentOccupancy + 

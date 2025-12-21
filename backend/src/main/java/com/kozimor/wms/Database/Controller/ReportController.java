@@ -208,7 +208,7 @@ public class ReportController {
                 .id(reportItem.getId())
                 .itemName(reportItem.getItemName())
                 .status(reportItem.getStatus())
-                .currentQuantity(reportItem.getWarehouseValue() != null ? reportItem.getWarehouseValue().intValue() : 0)
+                .currentQuantity(reportItem.getWarehouseValue() != null ? reportItem.getWarehouseValue() : 0.0)
                 .unit(reportItem.getUnit() != null ? reportItem.getUnit().name() : null)
                 .lastReceiptDate(reportItem.getLastReceiptDate())
                 .lastIssueDate(reportItem.getLastIssueDate())

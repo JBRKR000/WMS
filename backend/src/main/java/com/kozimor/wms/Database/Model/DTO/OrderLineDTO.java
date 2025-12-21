@@ -12,7 +12,7 @@ public class OrderLineDTO {
     private Long itemId;
     private String itemName;
     private String itemCategory;
-    private Integer quantity;
+    private Double quantity;
     private String unit;
     private Long transactionId;
 }

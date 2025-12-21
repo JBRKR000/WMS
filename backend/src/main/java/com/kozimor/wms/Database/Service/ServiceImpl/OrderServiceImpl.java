@@ -259,7 +259,7 @@ public class OrderServiceImpl implements OrderService {
                 order.getCreatedBy().getUsername(),
                 order.getDescription(),
                 order.getItemCount(),
-                order.getTotalQuantity(),
+                order.getTotalQuantity() != null ? order.getTotalQuantity().intValue() : 0,
                 orderLineDTOs,
                 order.getCreatedAt() != null ? order.getCreatedAt().format(formatter) : null,
                 order.getUpdatedAt() != null ? order.getUpdatedAt().format(formatter) : null

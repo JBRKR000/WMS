@@ -78,7 +78,7 @@ class ReportServiceImplTest {
         item.setId(1L);
         item.setName("Test Item");
         item.setCategory(category);
-        item.setCurrentQuantity(50);
+        item.setCurrentQuantity(50.0);
         item.setUnit(UnitType.PCS);
         item.setType(ItemType.PRODUCT);
         item.setQrCode("QR123");
@@ -165,7 +165,7 @@ class ReportServiceImplTest {
     @DisplayName("Should create snapshot with OK status items")
     void testCreateSnapshotWithOkStatusItems() {
         setupSecurityContext();
-        item.setCurrentQuantity(50);
+        item.setCurrentQuantity(50.0);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(itemRepository.findAll()).thenReturn(Arrays.asList(item));
@@ -184,7 +184,7 @@ class ReportServiceImplTest {
     @DisplayName("Should create snapshot with LOW status items")
     void testCreateSnapshotWithLowStatusItems() {
         setupSecurityContext();
-        item.setCurrentQuantity(5);
+        item.setCurrentQuantity(5.0);
 
         Report reportWithCounts = Report.builder()
                 .id(1L)
@@ -212,7 +212,7 @@ class ReportServiceImplTest {
     @DisplayName("Should create snapshot with CRITICAL status items")
     void testCreateSnapshotWithCriticalStatusItems() {
         setupSecurityContext();
-        item.setCurrentQuantity(0);
+        item.setCurrentQuantity(0.0);
 
         Report reportWithCounts = Report.builder()
                 .id(1L)
@@ -244,14 +244,14 @@ class ReportServiceImplTest {
         Item item2 = new Item();
         item2.setId(2L);
         item2.setName("Item 2");
-        item2.setCurrentQuantity(5);
+        item2.setCurrentQuantity(50.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.PRODUCT);
 
         Item item3 = new Item();
         item3.setId(3L);
         item3.setName("Item 3");
-        item3.setCurrentQuantity(0);
+        item3.setCurrentQuantity(0.0);
         item3.setUnit(UnitType.PCS);
         item3.setType(ItemType.PRODUCT);
 

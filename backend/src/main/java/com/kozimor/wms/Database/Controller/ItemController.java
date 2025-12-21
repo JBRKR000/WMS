@@ -167,7 +167,7 @@ public ResponseEntity<ItemDTO> updateItem(@PathVariable Long id, @Valid @Request
     @PatchMapping("/{id}/quantity")
     public ResponseEntity<ItemDTO> updateItemQuantity(
             @PathVariable Long id,
-            @RequestParam Integer quantity) {
+            @RequestParam Double quantity) {
         try {
             Item updatedItem = itemService.updateItemQuantity(id, quantity);
             ItemDTO dto = new ItemDTO();

@@ -60,7 +60,7 @@ class ItemServiceIntegrationTest {
         testItem.setName("Integration Test Item");
         testItem.setDescription("Test item for integration tests");
         testItem.setCategory(testCategory);
-        testItem.setCurrentQuantity(100);
+        testItem.setCurrentQuantity(100.0);
         testItem.setUnit(UnitType.PCS);
         testItem.setType(ItemType.PRODUCT);
     }
@@ -86,7 +86,7 @@ class ItemServiceIntegrationTest {
 
         assertTrue(result.isPresent());
         assertEquals("Integration Test Item", result.get().getName());
-        assertEquals(100, result.get().getCurrentQuantity());
+        assertEquals(100.0, result.get().getCurrentQuantity());
     }
 
     @Test
@@ -115,14 +115,14 @@ class ItemServiceIntegrationTest {
         Item updateData = new Item();
         updateData.setName("Updated Item Name");
         updateData.setDescription("Updated description");
-        updateData.setCurrentQuantity(250);
+        updateData.setCurrentQuantity(150.0);
         updateData.setUnit(UnitType.KG);
         updateData.setCategory(testCategory);
 
         Item result = itemService.updateItem(savedItem.getId(), updateData);
 
         assertEquals("Updated Item Name", result.getName());
-        assertEquals(250, result.getCurrentQuantity());
+        assertEquals(250.0, result.getCurrentQuantity());
         assertEquals(UnitType.KG, result.getUnit());
     }
 
@@ -146,7 +146,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("Component 1");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(50);
+        item1.setCurrentQuantity(50.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -154,7 +154,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Component 2");
         item2.setCategory(testCategory);
-        item2.setCurrentQuantity(30);
+        item2.setCurrentQuantity(30.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.COMPONENT);
         itemService.createItem(item2);
@@ -174,7 +174,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("Electronic Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(100);
+        item1.setCurrentQuantity(100.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -182,7 +182,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Mechanical Item");
         item2.setCategory(category2);
-        item2.setCurrentQuantity(50);
+        item2.setCurrentQuantity(50.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.PRODUCT);
         itemService.createItem(item2);
@@ -202,7 +202,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("PCS Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(100);
+        item1.setCurrentQuantity(100.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -210,7 +210,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("KG Item");
         item2.setCategory(testCategory);
-        item2.setCurrentQuantity(50);
+        item2.setCurrentQuantity(50.0);
         item2.setUnit(UnitType.KG);
         item2.setType(ItemType.PRODUCT);
         itemService.createItem(item2);
@@ -230,7 +230,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("High Quantity Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(100);
+        item1.setCurrentQuantity(100.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -238,7 +238,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Low Quantity Item");
         item2.setCategory(testCategory);
-        item2.setCurrentQuantity(5);
+        item2.setCurrentQuantity(5.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.PRODUCT);
         itemService.createItem(item2);
@@ -258,7 +258,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("High Quantity Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(200);
+        item1.setCurrentQuantity(200.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -266,7 +266,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Low Quantity Item");
         item2.setCategory(testCategory);
-        item2.setCurrentQuantity(30);
+        item2.setCurrentQuantity(30.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.PRODUCT);
         itemService.createItem(item2);
@@ -286,7 +286,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("In Range Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(75);
+        item1.setCurrentQuantity(75.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -294,7 +294,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Out of Range Item");
         item2.setCategory(testCategory);
-        item2.setCurrentQuantity(150);
+        item2.setCurrentQuantity(150.0);
         item2.setUnit(UnitType.PCS);
         item2.setType(ItemType.PRODUCT);
         itemService.createItem(item2);
@@ -314,7 +314,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("SearchableItem");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(100);
+        item1.setCurrentQuantity(100.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -333,7 +333,7 @@ class ItemServiceIntegrationTest {
         Item item1 = new Item();
         item1.setName("Matching Item");
         item1.setCategory(testCategory);
-        item1.setCurrentQuantity(75);
+        item1.setCurrentQuantity(75.0);
         item1.setUnit(UnitType.PCS);
         item1.setType(ItemType.PRODUCT);
         itemService.createItem(item1);
@@ -341,7 +341,7 @@ class ItemServiceIntegrationTest {
         Item item2 = new Item();
         item2.setName("Non-matching Item");
         item2.setCategory(category2);
-        item2.setCurrentQuantity(150);
+        item2.setCurrentQuantity(150.0);
         item2.setUnit(UnitType.KG);
         item2.setType(ItemType.COMPONENT);
         itemService.createItem(item2);
@@ -389,7 +389,7 @@ class ItemServiceIntegrationTest {
             Item item = new Item();
             item.setName("Item " + i);
             item.setCategory(testCategory);
-            item.setCurrentQuantity(100 + i);
+            item.setCurrentQuantity(100.0 + i);
             item.setUnit(UnitType.PCS);
             item.setType(ItemType.PRODUCT);
             itemService.createItem(item);
@@ -419,7 +419,7 @@ class ItemServiceIntegrationTest {
         Item updateData = new Item();
         updateData.setName("New Name");
         updateData.setDescription("New description");
-        updateData.setCurrentQuantity(150);
+        updateData.setCurrentQuantity(150.0);
         updateData.setUnit(UnitType.PCS);
         updateData.setCategory(testCategory);
 

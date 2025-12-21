@@ -12,7 +12,7 @@ public class ReportItemDTO {
     private Long id;
     private String itemName;
     private String status;
-    private Integer currentQuantity;
+    private Double currentQuantity;
     private String unit;
     private LocalDateTime lastReceiptDate;
     private LocalDateTime lastIssueDate;

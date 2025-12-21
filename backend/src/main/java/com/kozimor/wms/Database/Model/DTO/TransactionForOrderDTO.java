@@ -17,7 +17,7 @@ public class TransactionForOrderDTO {
     private String transactionType;
     private Long itemId;
     private String itemName;
-    private Integer quantity;
+    private Double quantity;
     private Long userId;
     private String userName;
     private String description;

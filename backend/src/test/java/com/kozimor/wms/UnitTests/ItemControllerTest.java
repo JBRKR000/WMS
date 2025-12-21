@@ -55,7 +55,7 @@ class ItemControllerTest {
         testItem.setName("Test Item");
         testItem.setDescription("Test Description");
         testItem.setCategory(testCategory);
-        testItem.setCurrentQuantity(100);
+        testItem.setCurrentQuantity(100.0);
         testItem.setUnit(UnitType.PCS);
         testItem.setType(ItemType.PRODUCT);
         testItem.setQrCode("QR123");
@@ -297,8 +297,8 @@ class ItemControllerTest {
     @WithMockUser(roles = "WAREHOUSE")
     @DisplayName("PATCH /api/items/{id}/quantity - Should update item quantity")
     void testUpdateItemQuantity() throws Exception {
-        testItem.setCurrentQuantity(150);
-        when(itemService.updateItemQuantity(1L, 150)).thenReturn(testItem);
+        testItem.setCurrentQuantity(150.0);
+        when(itemService.updateItemQuantity(1L, 150.0)).thenReturn(testItem);
 
         mockMvc.perform(patch("/api/items/1/quantity")
                 .with(csrf())
@@ -306,7 +306,7 @@ class ItemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentQuantity").value(150));
 
-        verify(itemService, times(1)).updateItemQuantity(1L, 150);
+        verify(itemService, times(1)).updateItemQuantity(1L, 150.0);
     }
 
     // ========== PAGINATION TESTS ==========

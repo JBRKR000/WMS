@@ -202,7 +202,7 @@ public class ReportServiceImpl implements ReportService {
             return "OK";
         }
 
-        long currentQty = item.getCurrentQuantity();
+        double currentQty = item.getCurrentQuantity();
 
         if (currentQty <= 0) {
             return "CRITICAL";
